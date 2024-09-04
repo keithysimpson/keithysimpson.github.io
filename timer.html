@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timer with Changing Background, Sections, and Celebration</title>
+    <style>
+        html, body {
+            margin: 0; 
+            height: 100%; 
+            overflow: hidden
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            transition: background-color 0.5s ease;
+            overflow: hidden;
+        }
+        .color-bar {
+            display: flex;
+            width: 100%;
+            height: 10vh;
+        }
+        .color-section {
+            flex: 1;
+        }
+        .content {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            /*flex-grow: 1;*/
+            z-index: 10; /* Added z-index */
+            margin-bottom: 100px;
+        }
+        #section-text {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        #timer {
+            font-size: 48px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .button-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            font-size: 16px;
+            padding: 10px 20px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+        }
+		
+		.firework-particle, .firework-rocket, .balloon {
+			position: fixed;
+			pointer-events: none;
+			z-index: 9999;
+		}
+		
+		
+		.balloon {
+            width: 30px;
+            height: 40px;
+            border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%;
+        }
+        .balloon::after {
+            content: '';
+            position: absolute;
+            width: 1px;
+            height: 30px;
+            background-color: #ffffff;
+            top: 40px;
+            left: 15px;
+            transform-origin: top;
+            animation: waveString 2s ease-in-out infinite;
+        }
+        @keyframes waveString {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(10deg); }
+            75% { transform: rotate(-10deg); }
+        }
+
+
+
+        .color-overlay {
+            position: fixed;
+            top: 20px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: none;
+            z-index: 5; /* Ensure this is lower than .content */
+        }
+        .color-column {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 16.666%; /* 100% / 6 colors */
+            height: 0;
+            transition: height 2s ease-in-out;
+        }
+        .color-word {
+            position: absolute;
+            font-size: 48px;
+            font-weight: bold;
+            writing-mode: vertical-rl;
+            text-orientation: upright;
+            display: none;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+
+        .celebration_reveal_text {
+            position: fixed;
+            top: 20%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2em;
+            color: #797777;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 10000;
+        }
+		
+		.bubble {
+            position: absolute;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.3s ease-out;
+			z-index: 10000;
+        }
+        .bubble:hover {
+            transform: scale(1.1);
+        }
+
+		
+        .svg-object {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            transition: transform 0.3s;
+        }
+		
+    </style>
+</head>
+<body>
+    <div class="color-bar">
+        <div id="color-section-red" class="color-section" style="background-color: red;"></div>
+        <div id="color-section-orange" class="color-section" style="background-color: orange;"></div>
+        <div id="color-section-yellow" class="color-section" style="background-color: yellow;"></div>
+        <div id="color-section-green" class="color-section" style="background-color: green;"></div>
+        <div id="color-section-blue" class="color-section" style="background-color: blue;"></div>
+        <div id="color-section-purple" class="color-section" style="background-color: purple;"></div>
+    </div>
+    
+    <div class="content">
+        <div id="section-text">Section 1</div>
+        <div id="timer">00:00</div>
+        <div class="button-container">
+            <button id="startPauseBtn">Start</button>
+            <button id="resetBtn">Reset</button>
+        </div>
+    </div>
+    <div id="colorOverlay" class="color-overlay"></div>
+    <script>
+        const timer = document.getElementById('timer');
+        const sectionText = document.getElementById('section-text');
+        const startPauseBtn = document.getElementById('startPauseBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const colors = ['red', 'orange', 'yellow', 'green', 'blue', 'purple'];
+		const colorWords = {
+            'red': 'RED',
+            'orange': 'ORANGE',
+            'yellow': 'YELLOW',
+            'green': 'GREEN',
+            'blue': 'BLUE',
+            'purple': 'PURPLE'
+        };
+		
+        const colorOverlay = document.getElementById('colorOverlay');
+        let time = 0;
+        let isRunning = false;
+        let celebration_showing = false;
+        let interval;
+        let audioContext;
+        let celebration_effect = -1;
+        let initial_width;
+        let initial_height;
+
+        const effectLookup = {
+            'red': 'confetti',
+            'orange': 'fireworks',
+            'yellow': 'balloons',
+            'green': 'rainbow',
+            'blue': 'bubbles',
+            'purple': '???'
+        };
+
+        // Add event listeners to color sections such that when clicked, the celebration effect is set to the index of the color
+        colors.forEach(color => {
+            const colorSection = document.getElementById(`color-section-${color}`);
+            colorSection.addEventListener('click', () => {
+                celebration_effect = effectLookup[color];
+                showFadeText(effectLookup[color]);
+            });
+
+        });
+
+        const svgUrls = [
+            {url: 'https://www.svgrepo.com/show/481305/rabbit-4.svg', color: 0},
+            {url: 'https://www.svgrepo.com/show/481277/cat-1.svg', color: 0},
+            {url: 'https://www.svgrepo.com/show/513212/heart.svg', color: 0},
+            {url: 'https://www.svgrepo.com/show/444994/chart-big-number-solid.svg', color: 0},
+			{url: 'https://www.svgrepo.com/show/481186/octopus-2.svg', color: 0},
+			{url: 'https://www.svgrepo.com/show/481278/butterfly.svg', color: 0},
+			{url: 'https://www.svgrepo.com/show/487741/rocket.svg', color: 0},
+            {url: 'https://www.svgrepo.com/show/481832/witch-illustration-1.svg', color: 0},
+            {url: 'https://www.svgrepo.com/show/481138/owl-4.svg', color: 0},
+            {url: 'https://www.svgrepo.com/show/481384/crocodile-illustration-3.svg', color: 0},
+            {url: 'https://www.svgrepo.com/show/481099/big-crab-with-scissors.svg', color: 0},
+            {url: 'https://www.svgrepo.com/show/481091/lantern-anglerfish.svg', color: 0},
+            {url: 'https://www.svgrepo.com/show/416376/artificial-bot-intelligence.svg', color: 0},
+            {url: 'https://www.svgrepo.com/show/177925/maths-technology.svg', color: 0},
+            {url: 'https://www.svgrepo.com/show/450644/banana.svg', color: 0},
+
+            // coloured images:
+            {url: 'https://www.svgrepo.com/show/277709/rainbow.svg', color: 1},
+            {url: 'https://www.svgrepo.com/show/187784/earth-globe-global.svg', color: 1},
+            {url: 'https://www.svgrepo.com/show/253015/rocket.svg', color: 1},
+            {url: 'https://www.svgrepo.com/show/140755/penguin.svg', color: 1},
+            {url: 'https://www.svgrepo.com/show/4227/giraffe.svg', color: 1},
+            {url: 'https://www.svgrepo.com/show/104319/monkey.svg', color: 1},
+            {url: 'https://www.svgrepo.com/show/402819/tractor.svg', color: 1},
+            {url: 'https://www.svgrepo.com/show/405229/dna.svg', color: 1},
+            {url: 'https://www.svgrepo.com/show/398270/seal.svg', color: 1},
+            //{url: 'https://www.svgrepo.com/show/395982/carrot.svg', color: 1},
+
+        ];
+
+        let svgObjects = [];
+        let animationId;
+        let base_object;
+
+        function showFadeText(text) {
+            const fadeText = document.createElement('div');
+            fadeText.className = 'celebration_reveal_text';
+            fadeText.textContent = text;
+            document.body.appendChild(fadeText);
+
+            fadeText.animate([
+                //{ opacity: 0 },
+                { opacity: 1 },
+                { opacity: 0 }
+            ], {
+                duration: 2000,
+                easing: 'ease-in-out'
+            }).onfinish = () => fadeText.remove();
+        }
+
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+        }
+
+        function updateBackgroundColor() {
+            const colorIndex = Math.floor(time / 20);
+            document.body.style.backgroundColor = colorIndex < colors.length ? colors[colorIndex] : 'purple';
+        }
+
+        function updateSectionText() {
+            const sectionIndex = Math.floor(time / 20) + 1;
+            sectionText.textContent = time < 120 ? `Section ${sectionIndex}` : 'Ding!';
+        }
+
+
+/*
+        function playDingSound() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            const frequency = 7 * 660; // One octave higher than before (660 Hz * 2)
+            
+            for (let i = 0; i < 3; i++) {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime + i * 0.2);
+                
+                gainNode.gain.setValueAtTime(0.5, audioContext.currentTime + i * 0.2);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + i * 0.2 + 0.1);
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.start(audioContext.currentTime + i * 0.2);
+                oscillator.stop(audioContext.currentTime + i * 0.2 + 0.1);
+            }
+        }
+		*/
+		
+		function playDingSound(frequency, repetitions) {
+			if (!audioContext) {
+				audioContext = new (window.AudioContext || window.webkitAudioContext)();
+			}
+			//const frequency = 7 * 660;
+			
+			for (let i = 0; i < repetitions; i++) {
+				const oscillator = audioContext.createOscillator();
+				const gainNode = audioContext.createGain();
+				
+				oscillator.type = 'sine';
+				oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime + i * 0.3);
+				
+				gainNode.gain.setValueAtTime(0.5, audioContext.currentTime + i * 0.3);
+				gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + i * 0.3 + 0.5);
+				
+				oscillator.connect(gainNode);
+				gainNode.connect(audioContext.destination);
+				
+				oscillator.start(audioContext.currentTime + i * 0.3);
+				oscillator.stop(audioContext.currentTime + i * 0.3 + 0.5);
+			}
+		}
+
+        function createConfetti() {
+            const confettiCount = 100;
+            const colors = ['#f00', '#0f0', '#00f', '#ff0', '#0ff', '#f0f'];
+            
+            for (let i = 0; i < confettiCount; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.top = '-10px';
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+                document.body.appendChild(confetti);
+
+                const animation = confetti.animate([
+                    { transform: `translate(0, 0) rotate(0)`, opacity: 1 },
+                    { transform: `translate(${Math.random() * 100 - 50}px, ${initial_height}px) rotate(${Math.random() * 720 - 360}deg)`, opacity: 0 }
+                ], {
+                    duration: Math.random() * 3000 + 8000,
+                    easing: 'cubic-bezier(0,0,0.2,1)',
+                });
+
+                animation.onfinish = () => confetti.remove();
+            }
+        }
+        function createFirework(x, y) {
+            const particles = 100;
+            const colors = ['#ff0000', '#ff7700', '#ffff00', '#00ff00', '#0000ff', '#8a2be2'];
+            
+            for (let i = 0; i < particles; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'firework-particle';
+                particle.style.position = 'fixed';
+                particle.style.left = x + 'px';
+                particle.style.top = y + 'px';
+                particle.style.width = '4px';
+                particle.style.height = '4px';
+                particle.style.borderRadius = '50%';
+                particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                document.body.appendChild(particle);
+
+                const angle = Math.random() * Math.PI * 2;
+                const velocity = 2 + Math.random() * 3; // Increased velocity for more spread
+                const lifetime = 1000 + Math.random() * 1000; // Particle lifetime
+
+                const animation = particle.animate([
+                    { transform: 'scale(1) translate(0, 0)', opacity: 1 },
+                    { transform: `scale(0.5) translate(${Math.cos(angle) * velocity * lifetime / 16}px, ${Math.sin(angle) * velocity * lifetime / 16}px)`, opacity: 0 }
+                ], {
+                    duration: lifetime,
+                    easing: 'cubic-bezier(0,0,0.2,1)',
+                });
+
+                animation.onfinish = () => particle.remove();
+            }
+        }
+
+        function launchFirework() {
+            const x = Math.random() * initial_width;
+            const y = initial_height;
+
+            const rocket = document.createElement('div');
+            rocket.className = 'firework-rocket';
+            rocket.style.position = 'fixed';
+            rocket.style.left = x + 'px';
+            rocket.style.top = y + 'px';
+            rocket.style.width = '3px';
+            rocket.style.height = '10px';
+            rocket.style.backgroundColor = '#ffffff';
+            document.body.appendChild(rocket);
+
+            const animation = rocket.animate([
+                { transform: 'translateY(0)' },
+                { transform: `translateY(-${y * 0.7}px)` }
+            ], {
+                duration: 1000,
+                easing: 'ease-out',
+            });
+
+            animation.onfinish = () => {
+                rocket.remove();
+                createFirework(x, y * 0.3);
+            };
+        }
+
+        function launchMultipleFireworks() {
+            let count = 0;
+            const interval = setInterval(() => {
+                launchFirework();
+                count++;
+                if (count >= 5) {
+                    clearInterval(interval);
+                }
+            }, 1000);
+        }
+		
+		
+		function createBalloon() {
+            const balloon = document.createElement('div');
+            balloon.className = 'balloon';
+            balloon.style.left = Math.random() * initial_width + 'px';
+            balloon.style.top = initial_height + 'px';
+            balloon.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
+            document.body.appendChild(balloon);
+
+            const animation = balloon.animate([
+                { transform: 'translateY(0) rotate(0deg)' },
+                { transform: `translateY(-${initial_height + 100}px) rotate(${Math.random() * 20 - 10}deg)` }
+            ], {
+                duration: 5000 + Math.random() * 5000,
+                easing: 'ease-out'
+            });
+
+            animation.onfinish = () => balloon.remove();
+        }
+
+        function releaseBalloons() {
+            const balloonCount = 20;
+            let released = 0;
+            const interval = setInterval(() => {
+                createBalloon();
+                released++;
+                if (released >= balloonCount) {
+                    clearInterval(interval);
+                }
+            }, 200);
+        }
+
+
+       function startRainbowEffect() {
+            colorOverlay.style.display = 'block';
+            colorOverlay.innerHTML = '';
+
+            colors.forEach((color, index) => {
+                const colorColumn = document.createElement('div');
+                colorColumn.className = 'color-column';
+                colorColumn.style.backgroundColor = color;
+                colorColumn.style.left = `${(index * 100) / colors.length}%`;
+                colorOverlay.appendChild(colorColumn);
+
+                setTimeout(() => {
+                    colorColumn.style.height = '100%';
+                }, index * 200); // Slight delay between each color
+
+                colorColumn.addEventListener('click', () => revealColorWord(color, colorColumn));
+            });
+        }
+
+        function revealColorWord(color, colorColumn) {
+			
+            let existingWord = colorColumn.querySelector('.color-word');
+            if (!existingWord) {
+                existingWord = document.createElement('div');
+                existingWord.className = 'color-word';
+                existingWord.style.color = getContrastColor(color);
+                existingWord.style.top = "20%"; 
+                colorColumn.appendChild(existingWord);
+            }
+
+            const word = colorWords[color];
+            const currentLength = existingWord.textContent.length;
+            if (currentLength < word.length) {
+                existingWord.textContent += word[currentLength];
+                existingWord.style.display = 'block';
+            }
+        }
+
+        function getContrastColor(color) {
+            const colors = {
+                'red': '#FFD700', // Gold
+                'orange': '#4B0082', // Indigo
+                'yellow': '#8B4513', // SaddleBrown
+                'green': '#FF69B4', // HotPink
+                'blue': '#FFA500', // Orange
+                'purple': '#00FF00' // Lime
+            };
+            return colors[color] || '#FFFFFF';
+        }
+
+
+        function createBubbles() {
+            for (let i = 0; i < 20; i++) {
+                createBubble();
+            }
+        }
+
+        function createBubble_0() {
+            const bubble = document.createElement('div');
+            bubble.classList.add('bubble');
+            
+            const size = Math.random() * 90 + 20;
+            bubble.style.width = `${size}px`;
+            bubble.style.height = `${size}px`;
+            
+            bubble.style.left = `${Math.random() * initial_width}px`;
+            bubble.style.top = `${Math.random() * initial_height * 0.8}px`;
+            
+            //const hue = Math.floor(Math.random() * 360);
+            //bubble.style.background = `radial-gradient(circle at 30% 30%, hsla(${hue}, 100%, 90%, 0.6), hsla(${hue}, 100%, 50%, 0.2))`;
+            //bubble.style.boxShadow = `2px 2px 5px hsla(${hue}, 100%, 80%, 0.3)`;
+            
+            document.body.appendChild(bubble);
+            
+            bubble.addEventListener('click', popBubble);
+            
+            animateBubble(bubble);
+        }
+		
+		function createBubble() {
+            const bubble = document.createElement('div');
+            bubble.classList.add('bubble');
+            
+            const size = Math.random() * 70 + 20;
+            bubble.style.width = `${size}px`;
+            bubble.style.height = `${size}px`;
+            
+            //bubble.style.left = `${x}px`;
+            //bubble.style.top = `${y}px`;
+			
+			bubble.style.left = `${Math.random() * initial_width}px`;
+            bubble.style.top = `${Math.random() * initial_height * 0.8}px`;
+            
+            const hue = Math.floor(Math.random() * 360); // Random hue for each bubble
+            
+            // Create the main bubble gradient
+            bubble.style.background = `radial-gradient(circle at 30% 30%, 
+                hsla(${hue}, 100%, 80%, 0.4) 0%, 
+                hsla(${hue}, 100%, 70%, 0.2) 30%, 
+                hsla(${hue}, 100%, 60%, 0.1) 70%, 
+                hsla(${hue}, 100%, 50%, 0.05) 100%)`;
+            
+            // Add shadow effects
+            bubble.style.boxShadow = `
+                inset 0 0 20px hsla(${hue}, 100%, 80%, 0.2),
+                0 0 15px hsla(${hue}, 100%, 70%, 0.2)`;
+            
+            // Create highlight
+            const highlight = document.createElement('div');
+            highlight.style.position = 'absolute';
+            highlight.style.top = '10%';
+            highlight.style.left = '15%';
+            highlight.style.width = '30%';
+            highlight.style.height = '30%';
+            highlight.style.background = `radial-gradient(circle at center, 
+                rgba(255, 255, 255, 0.6) 0%, 
+                hsla(${hue}, 100%, 90%, 0.1) 100%)`;
+            highlight.style.borderRadius = '50%';
+            highlight.style.transform = 'rotate(-40deg)';
+            
+            bubble.appendChild(highlight);
+            document.body.appendChild(bubble);
+            
+            bubble.addEventListener('click', popBubble);
+            
+            animateBubble(bubble);
+        }
+
+        function animateBubble(bubble) {
+            let x = parseFloat(bubble.style.left);
+            let y = parseFloat(bubble.style.top);
+            const maxX = initial_width - parseFloat(bubble.style.width);
+            const maxY = initial_height - parseFloat(bubble.style.height);
+
+            const speed = Math.random() * 0.5 + 0.1;
+            let dx = (Math.random() - 0.5) * speed;
+            let dy = Math.random() * speed + 0.1;
+
+            function move() {
+                x += dx;
+                y += dy;
+
+                if (x <= 0 || x >= maxX) dx = -dx;
+                if (y <= 0 || y >= maxY) dy = -dy;
+
+                bubble.style.left = `${x}px`;
+                bubble.style.top = `${y}px`;
+
+                if (document.body.contains(bubble)) {
+                    requestAnimationFrame(move);
+                }
+            }
+
+            requestAnimationFrame(move);
+        }
+
+		function playBubblePopSound() {
+			if (!audioContext) {
+				audioContext = new (window.AudioContext || window.webkitAudioContext)();
+			}
+			
+			const oscillator = audioContext.createOscillator();
+			const gainNode = audioContext.createGain();
+			
+			const initial_freq = Math.random() * 3000 + 1000;
+			
+			// Use a higher frequency for the bubble pop
+			oscillator.type = 'saw';
+			oscillator.frequency.setValueAtTime(initial_freq, audioContext.currentTime);
+			oscillator.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.04);
+			
+			// Create a quick attack and decay
+			gainNode.gain.setValueAtTime(1, audioContext.currentTime);
+			gainNode.gain.linearRampToValueAtTime(1, audioContext.currentTime + 0.001);
+			gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+			
+			oscillator.connect(gainNode);
+			gainNode.connect(audioContext.destination);
+			
+			oscillator.start(audioContext.currentTime);
+			oscillator.stop(audioContext.currentTime + 0.02);
+		}
+		
+        function popBubble(event) {
+			playBubblePopSound();
+            event.target.remove();
+			event.stopPropagation();
+        }
+		
+		function removeAllBubbles() {
+			const bubbles = document.querySelectorAll('.bubble');
+			bubbles.forEach(bubble => bubble.remove());
+		}
+		
+
+        function getRandomVelocity(base_velocity_angle, coherence) {
+            const speed = 0.2 + 2*Math.random();
+			const angle = (1-coherence)*(Math.random() * 2 * Math.PI) + (coherence * base_velocity_angle);
+            return {
+                dx: speed * Math.cos(angle),
+                dy: speed * Math.sin(angle)
+            };
+        }
+
+        function createSVGObject(base_object) {
+
+            // Create the object as an img element
+            const object = document.createElement('img');
+            object.classList.add('svg-object');
+            object.src = base_object.svg_url.url; 
+
+            object.style.left = `${Math.random() *(initial_width - 50)}px`;
+            object.style.top  = `${Math.random() *(initial_height - 50)}px`;
+            
+            if (base_object.svg_url.color == 0) {
+                // if it doesn't have a color, use a random color
+                // color the object, using the base color and a random hue rotation
+			    object.style.filter = `invert(38%) sepia(74%) saturate(1000%) hue-rotate(${base_object.color + Math.random() * 50}deg) brightness(100%) contrast(99%)`;
+            }
+            
+
+            
+            const velocity = getRandomVelocity(base_object.velocity_angle, base_object.coherence);
+            object.dx = velocity.dx;
+            object.dy = velocity.dy;
+			
+            object.bounce = base_object.bounce;
+
+			// Initialize scale property
+            object.currentScale = 1;
+
+            // initialize rotation property
+            object.currentRotation = 0; 
+            object.rotationSpeed = base_object.rotationSpeed; // Adjust the increment value to control rotation speed
+
+			// select how many times the object need to be clicked before it disappears
+			object.lives = 3;
+
+            // Add click event listener to object
+            object.addEventListener('click', clickSVGOBject);
+            /*
+            object.addEventListener('click', () => {
+				object.lives -= 1;
+                playDingSound((3 - object.lives) * 660, 1);
+                if (object.lives == 0) {
+                    
+                    object.remove();
+                    svgObjects = svgObjects.filter(obj => obj !== object);
+                } else {
+                    //playBubblePopSound();
+                    // Increase scale by 10% each click
+                    object.currentScale *= 2;
+                    //object.style.transform = `scale(${object.currentScale})`;
+                    object.style.transform = `scale(${object.currentScale}) rotate(${object.currentRotation}deg)`;
+                }
+                event.stopPropagation();
+            });
+            */
+
+            document.body.appendChild(object);
+            return object;
+        }
+
+        function clickSVGOBject(event) {
+            const object = event.currentTarget;
+
+            object.lives -= 1;
+                playDingSound((3 - object.lives) * 660, 1);
+                if (object.lives == 0) {
+                    
+                    object.remove();
+                    svgObjects = svgObjects.filter(obj => obj !== object);
+                } else {
+                    //playBubblePopSound();
+                    // Increase scale by 10% each click
+                    object.currentScale *= 2;
+                    //object.style.transform = `scale(${object.currentScale})`;
+                    object.style.transform = `scale(${object.currentScale}) rotate(${object.currentRotation}deg)`;
+                }
+                event.stopPropagation();
+
+        }
+
+        function moveSVGObjects() {
+            svgObjects.forEach(object => {
+                let left = parseFloat(object.style.left);
+                let top = parseFloat(object.style.top);
+
+                left += object.dx;
+                top += object.dy;
+                if (object.bounce == 1){
+                    //--- bounce off the walls
+                    if (left <= 0 || left >= initial_width - 50) {
+                        object.dx *= -1;
+                        left = Math.max(0, Math.min(left, initial_width - 50));
+                    }
+                    if (top <= 0 || top >= initial_height - 50) {
+                        object.dy *= -1;
+                        top = Math.max(0, Math.min(top, initial_height - 50));
+                    }
+                } else {
+                    //--- wrap around the walls
+                    if (left <= -50) {
+                        left = initial_width + 50;
+                    } else if (left >= initial_width + 50) {
+                        left = -50;
+                    }
+                    if (top <= -50) {
+                        top = initial_height + 50;
+                    } else if (top >= initial_height + 50) {
+                        top = -50;
+                    }
+                }
+                
+
+                object.style.left = `${left}px`;
+                object.style.top = `${top}px`;
+
+                // Increment the rotation angle
+                object.currentRotation += object.rotationSpeed; // Adjust the increment value to control rotation speed
+                object.style.transform = `scale(${object.currentScale}) rotate(${object.currentRotation}deg)`;
+            });
+
+            animationId = requestAnimationFrame(moveSVGObjects);
+        }
+
+        function createRandomSVGObjects() {
+            // This function will create some objects to float around the screen
+            // ...lots of aspects of this will be random, so each time you run it, you'll get a different result
+
+            let rotation_speed_list = [0,0,0,0,0.1,1,2,5];
+            let velocity_angle_list = [0, 0, 0, 
+                                       90, 90, 90, 
+                                       180,270,
+                                       45, 135, 225, 315];
+            let coherence_list = [0, 0.5, 0.75, 0.9, 1, 1];
+
+            // Create a base object with some random choices
+            base_object = {
+                //--- Pick random image
+                svg_url: svgUrls[Math.floor(Math.random() * svgUrls.length)],
+                //--- Pick random velocity angle
+                velocity_angle: (2.0 * Math.PI / 360.0) * velocity_angle_list[Math.floor(Math.random() * velocity_angle_list.length)],
+                //--- Pick random color
+                color: Math.random() * 360,
+                //--- Pick if all moving in the same direction
+                // this should be randomly selected from [0, 0.5, 1] to represent no coherence, partial coherence, full
+                coherence: coherence_list[Math.floor(Math.random() * coherence_list.length)],
+                //--- pick random rotation speed
+                rotationSpeed: rotation_speed_list[Math.floor(Math.random() * rotation_speed_list.length)],
+                //--- pick if it bounces off the walls or wraps around
+                bounce: Math.floor(Math.random() * 2)
+            };
+
+
+            for (let i = 0; i < 10; i++) {
+                svgObjects.push(createSVGObject(base_object));
+            }
+            moveSVGObjects();
+
+        }
+
+        function add1MoreSVGobject() {
+            svgObjects.push(createSVGObject(base_object));
+        }
+
+        function showCelebration() {
+            startPauseBtn.textContent = 'Start';
+            sectionText.textContent = 'Ding!';
+            playDingSound(7 * 660, 3);
+            document.body.style.backgroundColor = 'black';
+            document.body.style.color = 'white';
+            
+            
+            //--- show celebration effect:
+            if (celebration_effect == -1) {
+                var effects = Object.values(effectLookup);
+                celebration_effect = effects[Math.floor(Math.random() * effects.length)];
+            }
+
+            initial_width = window.innerWidth;
+            initial_height = window.innerHeight;
+            
+            if (celebration_effect == "confetti") {
+                //--- confetti:
+                createConfetti();
+                document.addEventListener('click', createConfetti);
+            } else if (celebration_effect == "fireworks") {
+                //--- fireworks:
+                launchMultipleFireworks();
+                document.addEventListener('click', launchFirework);
+            } else if (celebration_effect == "balloons") {
+                //--- balloons:
+                releaseBalloons();
+                document.addEventListener('click', releaseBalloons);
+            } else if (celebration_effect == "rainbow") {
+                //--- balloons:
+                startRainbowEffect();
+            } else if (celebration_effect == "bubbles") {
+                //--- bubbles:
+                createBubbles();
+                document.addEventListener('click', createBubble);
+            } else if (celebration_effect == "???") {
+                //--- random svg objects:
+                createRandomSVGObjects();
+                document.addEventListener('click', add1MoreSVGobject);
+            }
+            
+            
+            /*
+            // Other potential effects
+            shimering gold
+            rainbows
+            rocket
+            shapes
+            */
+        }
+		
+        function toggleTimer() {
+            if (isRunning) {
+                clearInterval(interval);
+                startPauseBtn.textContent = 'Start';
+            } else {
+                interval = setInterval(() => {
+                    if (time < 120) {
+                        time++;
+                        timer.textContent = formatTime(time);
+                        updateBackgroundColor();
+                        updateSectionText();
+                    } else {
+                        clearInterval(interval);
+                        isRunning = false;
+
+                        if (celebration_showing == false) {
+                            celebration_showing = true;
+                            showCelebration();
+
+                        }
+                        
+						
+                    }
+                }, 10);
+                startPauseBtn.textContent = 'Pause';
+            }
+            isRunning = !isRunning;
+        }
+
+        function resetTimer() {
+            clearInterval(interval);
+            time = 0;
+            isRunning = false;
+            celebration_showing = false;
+            timer.textContent = '00:00';
+            sectionText.textContent = 'Section 1';
+            startPauseBtn.textContent = 'Start';
+            document.body.style.backgroundColor = 'white';
+			document.body.style.color = 'black';
+
+            celebration_effect = -1;
+			
+			document.removeEventListener('click', launchFirework);
+			document.removeEventListener('click', releaseBalloons);
+			document.removeEventListener('click', createConfetti);
+
+            colorOverlay.style.display = 'hidden';
+            colorOverlay.innerHTML = '';
+			
+			removeAllBubbles();
+			document.removeEventListener('click', createBubble);
+
+
+            svgObjects.forEach(object => object.remove());
+            svgObjects = [];
+            cancelAnimationFrame(animationId);
+            document.removeEventListener('click', add1MoreSVGobject);
+            
+        }
+
+        startPauseBtn.addEventListener('click', toggleTimer);
+        resetBtn.addEventListener('click', resetTimer);
+
+        /*======================================
+        TODO:
+        - SVG: sound when the object is clicked
+        - SVG: alternative movements e.g. dropping down and bouncing off the floor; flying out from the centre, flying around in a circle
+        - SVG: more urls
+        - SVG: a fall back svg for when their is no connection
+        - background music
+
+        =======================================*/ 
+    </script>
+</body>
+</html>
+
+
