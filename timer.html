@@ -273,13 +273,16 @@
             {url: 'https://www.svgrepo.com/show/481138/owl-4.svg', color: 0},
             {url: 'https://www.svgrepo.com/show/177925/maths-technology.svg', color: 0},
             {url: 'https://www.svgrepo.com/show/483628/cute-pirate.svg', color: 0},
-            */
-            {url: 'https://www.svgrepo.com/show/440472/atom.svg', color: 0},
             {url: 'https://www.svgrepo.com/show/440395/atronaut.svg', color: 0},
+            */
+
+
+
+            {url: 'https://www.svgrepo.com/show/440472/atom.svg', color: 0},
             {url: 'ding.svg', color: 0},
 
-            
-            
+            {url: 'https://www.svgrepo.com/show/482779/brain-illustration-12', color: 0},
+          
 
             //---- coloured images:
             /*
@@ -288,22 +291,30 @@
             {url: 'https://www.svgrepo.com/show/253015/rocket.svg', color: 1},
             {url: 'https://www.svgrepo.com/show/402819/tractor.svg', color: 1},
             {url: 'https://www.svgrepo.com/show/402841/umbrella.svg', color: 1},
-            */
-            {url: 'https://www.svgrepo.com/show/405229/dna.svg', color: 1},
+            
+            
 
             //{url: 'https://www.svgrepo.com/show/395982/carrot.svg', color: 1},
             //{url: 'https://www.svgrepo.com/show/418888/atom-chemistry-laboratory.svg', color: 1},
-            
-            {url: 'https://www.svgrepo.com/show/214872/ambulance.svg', color: 1},
+            //{url: 'https://www.svgrepo.com/show/191386/sloth.svg', color: 1},
+            //{url: 'https://www.svgrepo.com/show/168546/saturn.svg', color: 1},
+            //{url: 'https://www.svgrepo.com/show/440494/international-space-station.svg', color: 1},            
+            //{url: 'https://www.svgrepo.com/show/214872/ambulance.svg', color: 1},
+            //{url: 'https://www.svgrepo.com/show/500053/fire-truck.svg', color: 1},
+*/
+
+
+            {url: 'https://www.svgrepo.com/show/405229/dna.svg', color: 1},
+            {url: 'https://www.svgrepo.com/show/484762/ambulance', color: 1},
+            {url: 'https://www.svgrepo.com/show/120944/medical-kit', color: 1},
+            {url: 'https://www.svgrepo.com/show/214842/helicopter', color: 1},
+            {url: 'https://www.svgrepo.com/show/395782/artist-medium-light-skin-tone', color: 1},
             {url: 'https://www.svgrepo.com/show/401112/artist-palette.svg', color: 1},
-            {url: 'https://www.svgrepo.com/show/500053/fire-truck.svg', color: 1},
+            
             {url: 'https://www.svgrepo.com/show/318573/tooth.svg', color: 1},
             {url: 'https://www.svgrepo.com/show/191387/squid.svg', color: 1},
-            {url: 'https://www.svgrepo.com/show/191386/sloth.svg', color: 1},
-            {url: 'https://www.svgrepo.com/show/168546/saturn.svg', color: 1},
-            {url: 'https://www.svgrepo.com/show/440494/international-space-station.svg', color: 1},
     
-
+            {url: 'Numberblocks_One.webp', color: 1},
         ];
 
         let svgObjects = [];
@@ -343,55 +354,36 @@
         }
 
 
-/*
-        function playDingSound() {
+
+		
+		function playDingSound(frequency, repetitions, timeGap = 0.3) {
             if (!audioContext) {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
             }
-            const frequency = 7 * 660; // One octave higher than before (660 Hz * 2)
             
-            for (let i = 0; i < 3; i++) {
+            // Convert single frequency to array for uniform handling
+            const frequencies = Array.isArray(frequency) ? frequency : [frequency];
+            
+            for (let i = 0; i < repetitions; i++) {
+                // Get the frequency for this iteration by cycling through the array
+                const currentFreq = frequencies[i % frequencies.length];
+                
                 const oscillator = audioContext.createOscillator();
                 const gainNode = audioContext.createGain();
                 
                 oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime + i * 0.2);
+                oscillator.frequency.setValueAtTime(currentFreq, audioContext.currentTime + i * timeGap);
                 
-                gainNode.gain.setValueAtTime(0.5, audioContext.currentTime + i * 0.2);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + i * 0.2 + 0.1);
+                gainNode.gain.setValueAtTime(0.5, audioContext.currentTime + i * timeGap);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + i * timeGap + 0.5);
                 
                 oscillator.connect(gainNode);
                 gainNode.connect(audioContext.destination);
                 
-                oscillator.start(audioContext.currentTime + i * 0.2);
-                oscillator.stop(audioContext.currentTime + i * 0.2 + 0.1);
+                oscillator.start(audioContext.currentTime + i * timeGap);
+                oscillator.stop(audioContext.currentTime + i * timeGap + 0.5);
             }
         }
-		*/
-		
-		function playDingSound(frequency, repetitions) {
-			if (!audioContext) {
-				audioContext = new (window.AudioContext || window.webkitAudioContext)();
-			}
-			//const frequency = 7 * 660;
-			
-			for (let i = 0; i < repetitions; i++) {
-				const oscillator = audioContext.createOscillator();
-				const gainNode = audioContext.createGain();
-				
-				oscillator.type = 'sine';
-				oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime + i * 0.3);
-				
-				gainNode.gain.setValueAtTime(0.5, audioContext.currentTime + i * 0.3);
-				gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + i * 0.3 + 0.5);
-				
-				oscillator.connect(gainNode);
-				gainNode.connect(audioContext.destination);
-				
-				oscillator.start(audioContext.currentTime + i * 0.3);
-				oscillator.stop(audioContext.currentTime + i * 0.3 + 0.5);
-			}
-		}
 
         function createConfetti() {
             const confettiCount = 100;
@@ -789,17 +781,35 @@
             const object = event.currentTarget;
 
             object.lives_left -= 1;
-                playDingSound((object.total_lives - object.lives_left) * 660, 1);
+                
                 if (object.lives_left == 0) {
-                    
+                    playDingSound((object.total_lives - object.lives_left) * 660, 1);
                     object.remove();
                     svgObjects = svgObjects.filter(obj => obj !== object);
                 } else {
-                    //playBubblePopSound();
-                    // Increase scale by 10% each click
-                    object.currentScale *= 2;
-                    //object.style.transform = `scale(${object.currentScale})`;
-                    object.style.transform = `scale(${object.currentScale}) rotate(${object.currentRotation}deg)`;
+
+                    if (base_object.click_effect == "grow") {
+                        
+
+                        playDingSound((object.total_lives - object.lives_left) * 660, 1);
+
+                        // Increase scale by 10% each click
+                        object.currentScale *= 2;
+                        object.style.transform = `scale(${object.currentScale}) rotate(${object.currentRotation}deg)`;
+                    } else if (base_object.click_effect == "dodge") {
+                        console.log('base_object.click_effect DODGE');
+                        playDingSound([500,400], 2,0.2);
+
+                        // move the object in a random direction
+                        let step_size = 100;
+                        let step_angle = Math.random() * 2 * Math.PI;
+                        let dx = step_size * Math.cos(step_angle);
+                        let dy = step_size * Math.sin(step_angle);
+                        console.log([dx, dy]);
+                        object.style.left = `${parseFloat(object.style.left) + dx}px`;
+                        object.style.top = `${parseFloat(object.style.top) + dy}px`;
+                    }
+
                 }
                 event.stopPropagation();
 
@@ -861,6 +871,8 @@
 
             let lives_list = [3, 3, 3, 4, 4, 5];
 
+            let click_effect_list = ["grow", "dodge"];
+
             // Create a base object with some random choices
             base_object = {
                 //--- Pick random image
@@ -878,7 +890,9 @@
                 bounce: Math.floor(Math.random() * 2),
                 //--- pick how many times the object needs to be clicked before it disappears
                 // ...mostly this should be 3, but sometimes its 4
-                total_lives: lives_list[Math.floor(Math.random() * lives_list.length)]
+                total_lives: lives_list[Math.floor(Math.random() * lives_list.length)],
+
+                click_effect: click_effect_list[Math.floor(Math.random() * click_effect_list.length)]
             };
 
 
