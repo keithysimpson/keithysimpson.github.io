@@ -278,10 +278,9 @@
 
 
 
-            {url: 'https://www.svgrepo.com/show/440472/atom.svg', color: 0},
-            {url: 'ding.svg', color: 0},
+            //{url: 'https://www.svgrepo.com/show/440472/atom.svg', color: 0},
 
-            {url: 'https://www.svgrepo.com/show/482779/brain-illustration-12', color: 0},
+            //{url: 'https://www.svgrepo.com/show/482779/brain-illustration-12', color: 0},
           
 
             //---- coloured images:
@@ -304,7 +303,16 @@
 */
 
 
-            {url: 'https://www.svgrepo.com/show/405229/dna.svg', color: 1},
+            //{url: 'ding.svg', color: 0},
+
+            {url: 'images/dna.svg', color: 1},
+            {url: 'images/ambulance.svg', color: 1},
+            {url: 'images/letter_a.svg', color: 1},
+            {url: 'images/Amber.webp', color: 1},
+            {url: 'images/pulse.svg', color: 1},
+            {url: 'Numberblocks_One.webp', color: 1},
+
+            /*
             {url: 'https://www.svgrepo.com/show/484762/ambulance', color: 1},
             {url: 'https://www.svgrepo.com/show/120944/medical-kit', color: 1},
             {url: 'https://www.svgrepo.com/show/214842/helicopter', color: 1},
@@ -314,7 +322,8 @@
             {url: 'https://www.svgrepo.com/show/318573/tooth.svg', color: 1},
             {url: 'https://www.svgrepo.com/show/191387/squid.svg', color: 1},
     
-            {url: 'Numberblocks_One.webp', color: 1},
+            
+            */
         ];
 
         let svgObjects = [];
@@ -723,7 +732,7 @@
             const object = document.createElement('img');
             object.classList.add('svg-object');
             object.src = base_object.svg_url.url; 
-
+            
             object.style.left = `${Math.random() *(initial_width - 50)}px`;
             object.style.top  = `${Math.random() *(initial_height - 50)}px`;
             
