@@ -159,8 +159,8 @@
 		
         .svg-object {
             position: absolute;
-            width: 100px;
-            height: 100px;
+            max-width: 100px;
+            max-height: 100px;
             transition: transform 0.3s;
         }
 		
@@ -188,7 +188,7 @@
     <script>
         let timer_length_seconds = 120;
 
-        const debug_mode = false;
+        const debug_mode = true;
         if (debug_mode) {
             timer_length_seconds = 5;
         }
@@ -304,14 +304,21 @@
 
 
             //{url: 'ding.svg', color: 0},
+            {url: 'images/poli_circle.png', color: 1},
+            {url: 'images/roy_circle.png', color: 1},
+            {url: 'images/amber_circle.png', color: 1},
+            {url: 'images/helly_circle.png', color: 1},
+            {url: 'images/jin_circle.png', color: 1},
 
+            /*
             {url: 'images/dna.svg', color: 1},
-            //{url: 'images/ambulance.svg', color: 1},
-            //{url: 'images/letter_a.svg', color: 1},
+            {url: 'images/ambulance.svg', color: 1},
+            {url: 'images/letter_a.svg', color: 1},
             {url: 'images/Amber.webp', color: 1},
             {url: 'images/Sandy.webp', color: 1},
             {url: 'images/anatomical-heart-svgrepo-com.svg', color: 1},
-            //{url: 'images/amber_2.jpg', color: 1},
+            */
+            //{url: 'images/amber_2.png', color: 1},
             //{url: 'images/pulse.svg', color: 1},
             //{url: 'Numberblocks_One.webp', color: 1},
 
