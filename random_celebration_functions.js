@@ -13,12 +13,12 @@ function createSVGObject(base_object) {
     // Create the object as an img element
     const object = document.createElement('img');
     object.classList.add('svg-object');
-    object.src = base_object.svg_url.url; 
+    object.src = base_object.image_url.url; 
     
     object.style.left = `${Math.random() *(initial_width - 50)}px`;
     object.style.top  = `${Math.random() *(initial_height - 50)}px`;
     
-    if (base_object.svg_url.color == 0) {
+    if (base_object.image_url.color == 0) {
         // if it doesn't have a color, use a random color
         // color the object, using the base color and a random hue rotation
         object.style.filter = `invert(38%) sepia(74%) saturate(1000%) hue-rotate(${base_object.color + Math.random() * 50}deg) brightness(100%) contrast(99%)`;
@@ -149,6 +149,36 @@ function moveSVGObjects() {
     animationId = requestAnimationFrame(moveSVGObjects);
 }
 
+function pickRandomImage() {
+    let random_image = image_url_list[Math.floor(Math.random() * image_url_list.length)];
+    let today = new Date();
+    let today_string = today.toISOString().slice(0, 10);
+    
+    // Filter entries that match today's date
+    let today_entries = dated_image_list.filter(entry => entry.date === today_string);
+    
+    if (today_entries.length > 0) {
+        let current_hour = today.getHours();
+        
+        // Check for morning entries (before 2 PM)
+        if (current_hour < 14) {
+            let morning_entries = today_entries.filter(entry => entry.time_of_day === "morning");
+            if (morning_entries.length > 0) {
+                random_image = morning_entries[Math.floor(Math.random() * morning_entries.length)];
+            }
+        } 
+        // Check for afternoon entries (2 PM and after)
+        else {
+            let afternoon_entries = today_entries.filter(entry => entry.time_of_day === "afternoon");
+            if (afternoon_entries.length > 0) {
+                random_image = afternoon_entries[Math.floor(Math.random() * afternoon_entries.length)];
+            }
+        }
+    }
+    
+    return random_image;
+}
+
 function createRandomSVGObjects() {
     // This function will create some objects to float around the screen
     // ...lots of aspects of this will be random, so each time you run it, you'll get a different result
@@ -167,7 +197,7 @@ function createRandomSVGObjects() {
     // Create a base object with some random choices
     base_object = {
         //--- Pick random image
-        svg_url: svgUrls[Math.floor(Math.random() * svgUrls.length)],
+        image_url: pickRandomImage(),
         //--- Pick random velocity angle
         velocity_angle: (2.0 * Math.PI / 360.0) * velocity_angle_list[Math.floor(Math.random() * velocity_angle_list.length)],
         //--- Pick random color

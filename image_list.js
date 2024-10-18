@@ -1,4 +1,4 @@
-const svgUrls = [
+const image_url_list = [
     /*
     // Put things here that we've seen too much, just to mix it up
     {url: 'https://www.svgrepo.com/show/481099/big-crab-with-scissors.svg', color: 0},
@@ -100,5 +100,12 @@ const svgUrls = [
 
     
     */
+];
+
+//--- make a list as above, but with a date so that we can have a specific image on a specific day
+//--- the date needs to specify if this should be shown in the morning or the afternoon
+
+const dated_image_list = [
+    {date: '2024-10-18', time_of_day: "afternoon", url: 'images/Droney2.webp', color: 1},
 ];
 
