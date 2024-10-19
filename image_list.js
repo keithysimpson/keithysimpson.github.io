@@ -72,19 +72,16 @@ const image_url_list = [
     {url: 'images/helly_circle.png', color: 1},
     {url: 'images/jin_circle.png', color: 1},
 
-
-
-    /*
-    {url: 'images/dna.svg', color: 1},
-    {url: 'images/ambulance.svg', color: 1},
-    {url: 'images/letter_a.svg', color: 1},
+    //{url: 'images/dna.svg', color: 1},
+    //{url: 'images/ambulance.svg', color: 1},
+    //{url: 'images/letter_a.svg', color: 1},
     {url: 'images/Amber.webp', color: 1},
     {url: 'images/Sandy.webp', color: 1},
     {url: 'images/Droney2.webp', color: 1},
     {url: 'images/Keaton2.webp', color: 1},
-    {url: 'images/anatomical-heart-svgrepo-com.svg', color: 1},
-    */
-    //{url: 'images/amber_2.png', color: 1},
+    //{url: 'images/anatomical-heart-svgrepo-com.svg', color: 1},
+
+    {url: 'images/amber_2.png', color: 1},
     //{url: 'images/pulse.svg', color: 1},
     //{url: 'Numberblocks_One.webp', color: 1},
 

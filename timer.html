@@ -187,16 +187,16 @@
     <div id="colorOverlay" class="color-overlay"></div>
 
     <!-- load image list from image_list.js -->
-    <script src="image_list.js"></script>
+    <script src="image_list.js?v=<?= time(); ?>"></script>
     <!-- load celbration functions -->
-    <script src="celebration_functions.js"></script>
-    <script src="random_celebration_functions.js"></script>
+    <script src="celebration_functions.js?v=<?= time(); ?>"></script>
+    <script src="random_celebration_functions.js?v=<?= time(); ?>"></script>
 
-    
+
     <script>
         let timer_length_seconds = 120;
 
-        const debug_mode = true;
+        const debug_mode = false;
         if (debug_mode) {
             timer_length_seconds = 5;
         }
@@ -329,7 +329,7 @@
 
             initial_width = window.innerWidth;
             initial_height = window.innerHeight;
-            
+
             if (celebration_effect == "confetti") {
                 //--- confetti:
                 createConfetti();

@@ -190,9 +190,9 @@ function createRandomSVGObjects() {
                                45, 135, 225, 315];
     let coherence_list = [0, 0.5, 0.75, 0.9, 1, 1];
 
-    let lives_list = [3, 3, 3, 4, 4, 5];
+    let lives_list = [3, 3, 3,3, 4, 4, 5, 6];
 
-    let click_effect_list = ["grow","grow","grow","grow","grow", "dodge"];
+    let click_effect_list = ["grow","grow","grow","grow","grow", "grow","grow","dodge"];
 
     // Create a base object with some random choices
     base_object = {
