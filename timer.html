@@ -198,7 +198,18 @@
 
         const debug_mode = false;
         if (debug_mode) {
-            timer_length_seconds = 5;
+            timer_length_seconds = 2;
+            // add a note on screen to show we are in debug mode
+            const debugNote = document.createElement('div');
+            debugNote.textContent = 'DEBUG MODE';
+            debugNote.style.position = 'fixed';
+            debugNote.style.top = '10px';
+            debugNote.style.right = '10px';
+            debugNote.style.backgroundColor = 'red';
+            debugNote.style.color = 'white';
+            debugNote.style.padding = '5px';
+            document.body.appendChild(debugNote);
+
         }
 
         const timer = document.getElementById('timer');
@@ -351,7 +362,7 @@
                 document.addEventListener('click', createBubble);
             } else if (celebration_effect == "???") {
                 //--- random svg objects:
-                createRandomSVGObjects();
+                createAllRandomImageObjects();
                 document.addEventListener('click', add1MoreSVGobject);
             }
             

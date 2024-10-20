@@ -8,28 +8,48 @@ function getRandomVelocity(base_velocity_angle, coherence) {
     };
 }
 
-function createSVGObject(base_object) {
+function createOneImageObject(base_object) {
 
     // Create the object as an img element
     const object = document.createElement('img');
     object.classList.add('svg-object');
     object.src = base_object.image_url.url; 
-    
-    object.style.left = `${Math.random() *(initial_width - 50)}px`;
-    object.style.top  = `${Math.random() *(initial_height - 50)}px`;
-    
+
+    // if it doesn't have a color, use a random color
     if (base_object.image_url.color == 0) {
-        // if it doesn't have a color, use a random color
-        // color the object, using the base color and a random hue rotation
+        // ...color the object, using the base color and a random hue rotation
         object.style.filter = `invert(38%) sepia(74%) saturate(1000%) hue-rotate(${base_object.color + Math.random() * 50}deg) brightness(100%) contrast(99%)`;
     }
-    
 
+
+    let initial_velocity;
+
+    // choose the starting position of the object
+    if (base_object.starting_position == "center") {
+        object.style.left = `${initial_width / 2 - 50}px`;
+        object.style.top = `${initial_height / 2 - 50}px`;
+
+        initial_velocity = getRandomVelocity(base_object.velocity_angle, 0);
+
+        object.acceleration_dx = 0;
+        object.acceleration_dy = 0.004;
+    } else if (base_object.starting_position == "random") {
+        object.style.left = `${Math.random() *(initial_width - 50)}px`;
+        object.style.top  = `${Math.random() *(initial_height - 50)}px`;
+
+        // set the velocity of the object
+        initial_velocity = getRandomVelocity(base_object.velocity_angle, base_object.coherence);
+
+        object.acceleration_dx = 0;
+        object.acceleration_dy = 0;
+    }
+
+
+
+    object.velocity_dx = initial_velocity.dx;
+    object.velocity_dy = initial_velocity.dy;
     
-    const velocity = getRandomVelocity(base_object.velocity_angle, base_object.coherence);
-    object.dx = velocity.dx;
-    object.dy = velocity.dy;
-    
+    // Initialize bounce property
     object.bounce = base_object.bounce;
 
     // Initialize scale property
@@ -45,24 +65,6 @@ function createSVGObject(base_object) {
 
     // Add click event listener to object
     object.addEventListener('click', clickSVGOBject);
-    /*
-    object.addEventListener('click', () => {
-        object.lives -= 1;
-        playDingSound((3 - object.lives) * 660, 1);
-        if (object.lives == 0) {
-            
-            object.remove();
-            svgObjects = svgObjects.filter(obj => obj !== object);
-        } else {
-            //playBubblePopSound();
-            // Increase scale by 10% each click
-            object.currentScale *= 2;
-            //object.style.transform = `scale(${object.currentScale})`;
-            object.style.transform = `scale(${object.currentScale}) rotate(${object.currentRotation}deg)`;
-        }
-        event.stopPropagation();
-    });
-    */
 
     document.body.appendChild(object);
     return object;
@@ -111,16 +113,23 @@ function moveSVGObjects() {
         let left = parseFloat(object.style.left);
         let top = parseFloat(object.style.top);
 
-        left += object.dx;
-        top += object.dy;
+        // new position based on velocity and acceleration
+        left += object.velocity_dx + 0.5*object.acceleration_dx;
+        top += object.velocity_dy + 0.5*object.acceleration_dy;
+
+        // update the velocity based on acceleration
+        object.velocity_dx += object.acceleration_dx;
+        object.velocity_dy += object.acceleration_dy;
+
+        // check if the object is out of bounds
         if (object.bounce == 1){
             //--- bounce off the walls
             if (left <= 0 || left >= initial_width - 50) {
-                object.dx *= -1;
+                object.velocity_dx *= -1;
                 left = Math.max(0, Math.min(left, initial_width - 50));
             }
             if (top <= 0 || top >= initial_height - 50) {
-                object.dy *= -1;
+                object.velocity_dy *= -1;
                 top = Math.max(0, Math.min(top, initial_height - 50));
             }
         } else {
@@ -137,7 +146,7 @@ function moveSVGObjects() {
             }
         }
         
-
+        // update the position of the object
         object.style.left = `${left}px`;
         object.style.top = `${top}px`;
 
@@ -179,10 +188,10 @@ function pickRandomImage() {
     return random_image;
 }
 
-function createRandomSVGObjects() {
+function createAllRandomImageObjects() {
     // This function will create some objects to float around the screen
     // ...lots of aspects of this will be random, so each time you run it, you'll get a different result
-
+    let starting_position_list = ["random", "random", "random", "center"];
     let rotation_speed_list = [0,0,0,0,0.1,1,2,5];
     let velocity_angle_list = [0, 0, 0, 
                                90, 90, 90, 
@@ -198,6 +207,8 @@ function createRandomSVGObjects() {
     base_object = {
         //--- Pick random image
         image_url: pickRandomImage(),
+        //--- Pick starting position
+        starting_position: starting_position_list[Math.floor(Math.random() * starting_position_list.length)],
         //--- Pick random velocity angle
         velocity_angle: (2.0 * Math.PI / 360.0) * velocity_angle_list[Math.floor(Math.random() * velocity_angle_list.length)],
         //--- Pick random color
@@ -218,12 +229,12 @@ function createRandomSVGObjects() {
 
 
     for (let i = 0; i < 10; i++) {
-        svgObjects.push(createSVGObject(base_object));
+        svgObjects.push(createOneImageObject(base_object));
     }
     moveSVGObjects();
 
 }
 
 function add1MoreSVGobject() {
-    svgObjects.push(createSVGObject(base_object));
+    svgObjects.push(createOneImageObject(base_object));
 }

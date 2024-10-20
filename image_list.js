@@ -84,7 +84,11 @@ const image_url_list = [
     {url: 'images/amber_2.png', color: 1},
     //{url: 'images/pulse.svg', color: 1},
     //{url: 'Numberblocks_One.webp', color: 1},
+    
+    {url: 'images/medical-kit.svg', color: 1},
+    {url: 'images/kangaroo.svg', color: 1},
 
+    {url: 'images/jin_circle.png', color: 0},
     /*
     {url: 'https://www.svgrepo.com/show/484762/ambulance', color: 1},
     {url: 'https://www.svgrepo.com/show/120944/medical-kit', color: 1},
