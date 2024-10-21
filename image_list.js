@@ -79,6 +79,8 @@ const image_url_list = [
     {url: 'images/Sandy.webp', color: 1},
     {url: 'images/Droney2.webp', color: 1},
     {url: 'images/Keaton2.webp', color: 1},
+    {url: 'images/Mark.webp', color: 1},
+    {url: 'images/Bucky.webp', color: 1},
     //{url: 'images/anatomical-heart-svgrepo-com.svg', color: 1},
 
     {url: 'images/amber_2.png', color: 1},
@@ -86,7 +88,7 @@ const image_url_list = [
     //{url: 'Numberblocks_One.webp', color: 1},
     
     {url: 'images/medical-kit.svg', color: 1},
-    {url: 'images/kangaroo.svg', color: 1},
+    //{url: 'images/kangaroo.svg', color: 1},
 
     {url: 'images/jin_circle.png', color: 0},
     /*
