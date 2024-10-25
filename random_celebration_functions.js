@@ -32,7 +32,7 @@ function createOneImageObject(base_object) {
         initial_velocity = getRandomVelocity(base_object.velocity_angle, 0);
 
         object.acceleration_dx = 0;
-        object.acceleration_dy = 0.004;
+        object.acceleration_dy = 0.005;
     } else if (base_object.starting_position == "random") {
         object.style.left = `${Math.random() *(initial_width - 50)}px`;
         object.style.top  = `${Math.random() *(initial_height - 50)}px`;
@@ -191,7 +191,7 @@ function pickRandomImage() {
 function createAllRandomImageObjects() {
     // This function will create some objects to float around the screen
     // ...lots of aspects of this will be random, so each time you run it, you'll get a different result
-    let starting_position_list = ["random", "random", "random", "center"];
+    let starting_position_list = ["random", "random", "random", "center", "center","center"];
     let rotation_speed_list = [0,0,0,0,0.1,1,2,5];
     let velocity_angle_list = [0, 0, 0, 
                                90, 90, 90, 
@@ -201,7 +201,7 @@ function createAllRandomImageObjects() {
 
     let lives_list = [3, 3, 3,3, 4, 4, 5, 6];
 
-    let click_effect_list = ["grow","grow","grow","grow","grow", "grow","grow","dodge"];
+    let click_effect_list = ["grow","grow","grow","grow","grow", "grow","grow","grow","dodge"];
 
     // Create a base object with some random choices
     base_object = {
