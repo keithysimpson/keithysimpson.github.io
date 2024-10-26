@@ -84,8 +84,20 @@ function clickSVGOBject(event) {
             if (base_object.click_effect == "grow") {
                 
 
-                playDingSound((object.total_lives - object.lives_left) * 660, 1);
+                //playDingSound((object.total_lives - object.lives_left) * 660, 1);
+                //playDingSound([392,392,440,392,523.25,493.88],6,timeGap = 0.2)
 
+                let happy_birthday_song = [
+                    [392, 392, 440, 392, 523.25, 493.88], //  # G G A G C B - "Happy birthday to you"
+                    [392, 392, 440, 392, 587.33, 523.25], //  # G G A G D C - "Happy birthday to you"
+                    [392, 392, 784, 659.26, 523.25, 493.88, 440], //  # G G G' E C B A - "Happy birthday dear [name]"
+                    [698.46, 698.46, 659.26, 523.25], //  # F F E C  - "Happy birthday ..."
+                    [ 587.33, 523.25] //  #  D C - "... to you"
+                ];
+
+                let this_song = happy_birthday_song[(object.total_lives - object.lives_left) -1];
+
+                playDingSound(this_song,this_song.length,timeGap = 0.2);
                 // Increase scale by 10% each click
                 object.currentScale *= 2;
                 object.style.transform = `scale(${object.currentScale}) rotate(${object.currentRotation}deg)`;
@@ -191,7 +203,7 @@ function pickRandomImage() {
 function createAllRandomImageObjects() {
     // This function will create some objects to float around the screen
     // ...lots of aspects of this will be random, so each time you run it, you'll get a different result
-    let starting_position_list = ["random", "random", "random", "center", "center","center"];
+    let starting_position_list = ["random", "random", "random"];//, "center", "center","center"];
     let rotation_speed_list = [0,0,0,0,0.1,1,2,5];
     let velocity_angle_list = [0, 0, 0, 
                                90, 90, 90, 
@@ -199,9 +211,9 @@ function createAllRandomImageObjects() {
                                45, 135, 225, 315];
     let coherence_list = [0, 0.5, 0.75, 0.9, 1, 1];
 
-    let lives_list = [3, 3, 3,3, 4, 4, 5, 6];
+    let lives_list = [6];//3, 3, 3,3, 4, 4, 5, 6];
 
-    let click_effect_list = ["grow","grow","grow","grow","grow", "grow","grow","grow","dodge"];
+    let click_effect_list = ["grow","grow","grow","grow","grow", "grow","grow","grow"];//,"dodge"];
 
     // Create a base object with some random choices
     base_object = {
