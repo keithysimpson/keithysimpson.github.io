@@ -139,11 +139,11 @@ function moveSVGObjects() {
         if (object.bounce == 1){
             //--- bounce off the walls
             if (left <= 0 || left >= initial_width - 50) {
-                object.velocity_dx *= -1;
+                object.velocity_dx *= -0.9;
                 left = Math.max(0, Math.min(left, initial_width - 50));
             }
             if (top <= 0 || top >= initial_height - 50) {
-                object.velocity_dy *= -1;
+                object.velocity_dy *= -0.9;
                 top = Math.max(0, Math.min(top, initial_height - 50));
             }
         } else {
