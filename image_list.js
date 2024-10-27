@@ -113,6 +113,7 @@ const dated_image_list = [
     {date: '2024-10-25', time_of_day: "afternoon", url: 'images/calendar.svg', color: 1},
     {date: '2024-10-26', time_of_day: "morning", url: 'images/6_animated.gif', color: 1},
     {date: '2024-10-26', time_of_day: "afternoon", url: 'images/lego_6_big.png', color: 1},
+    {date: '2024-10-27', time_of_day: "morning", url: 'images/6_cake.png', color: 1},
 ];
 
 //playDingSound([392,392,440,392,523.25,493.88],6,timeGap = 0.2)
