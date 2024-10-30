@@ -196,7 +196,7 @@
     <script>
         let timer_length_seconds = 120;
 
-        const debug_mode = false;
+        const debug_mode = true;
         if (debug_mode) {
             timer_length_seconds = 2;
             // add a note on screen to show we are in debug mode
@@ -330,7 +330,11 @@
             playDingSound(7 * 660, 3);
             document.body.style.backgroundColor = 'black';
             document.body.style.color = 'white';
-            
+            // change background image
+            document.body.style.backgroundImage = "url('https://media.istockphoto.com/id/115349254/vector/spider-web.jpg?s=612x612&w=0&k=20&c=ipA3fqGxN5KjiFrR87mF4EVRhNdRQb1MZ99PyJH8kmU=')";
+            document.body.style.backgroundSize = "cover";  // This makes the image cover the entire container
+            document.body.style.backgroundRepeat = "no-repeat";  // This prevents tiling
+            document.body.style.backgroundPosition = "center";  // This centers the image
             
             //--- show celebration effect:
             if (celebration_effect == -1) {
