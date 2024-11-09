@@ -24,7 +24,7 @@ function createConfetti() {
     }
 }
 //---- Fireworks -------------------------------------------------------
-function createFirework(x, y) {
+function createFirework(x, y, particle_lifetime = 1000) {
     const particles = 100;
     const colors = ['#ff0000', '#ff7700', '#ffff00', '#00ff00', '#0000ff', '#8a2be2'];
     
@@ -42,7 +42,7 @@ function createFirework(x, y) {
 
         const angle = Math.random() * Math.PI * 2;
         const velocity = 2 + Math.random() * 3; // Increased velocity for more spread
-        const lifetime = 1000 + Math.random() * 1000; // Particle lifetime
+        const lifetime = particle_lifetime + Math.random() * 1000; // Particle lifetime
 
         const animation = particle.animate([
             { transform: 'scale(1) translate(0, 0)', opacity: 1 },

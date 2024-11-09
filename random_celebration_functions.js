@@ -83,11 +83,13 @@ function clickSVGOBject(event) {
             object.remove();
             svgObjects = svgObjects.filter(obj => obj !== object);
 
-            // firework effect on end:
-            playDingSound([1000,1200,1400,1800], 4,0.05);
-            let x = event.clientX;
-            let y = event.clientY;
-            createFirework(x, y);
+            if (object.end_effect == "firework") {
+                // firework effect on end:
+                playDingSound([1000,1200,1400,1800], 4,0.05);
+                let x = event.clientX;
+                let y = event.clientY;
+                createFirework(x, y, 2000);
+            }
         } else {
 
             if (base_object.click_effect == "grow") {
@@ -130,7 +132,7 @@ function clickSVGOBject(event) {
         event.stopPropagation();
 
 }
-
+/*
 function moveSVGObjects() {
     svgObjects.forEach(object => {
         let left = parseFloat(object.style.left);
@@ -180,6 +182,123 @@ function moveSVGObjects() {
 
     animationId = requestAnimationFrame(moveSVGObjects);
 }
+*/
+
+function moveSVGObjects() {
+    // First update positions
+    svgObjects.forEach(object => {
+        // Calculate new position based on velocity and acceleration
+        let left = parseFloat(object.style.left);
+        let top = parseFloat(object.style.top);
+        left += object.velocity_dx + 0.5 * object.acceleration_dx;
+        top += object.velocity_dy + 0.5 * object.acceleration_dy;
+        
+        // Update velocities based on acceleration
+        object.velocity_dx += object.acceleration_dx;
+        object.velocity_dy += object.acceleration_dy;
+        
+        // Store new positions temporarily
+        object.nextLeft = left;
+        object.nextTop = top;
+    });
+    
+    // Check for collisions between all pairs of objects
+    for (let i = 0; i < svgObjects.length; i++) {
+        for (let j = i + 1; j < svgObjects.length; j++) {
+            const obj1 = svgObjects[i];
+            const obj2 = svgObjects[j];
+            
+            // Calculate distance between object centers
+            const dx = obj2.nextLeft - obj1.nextLeft;
+            const dy = obj2.nextTop - obj1.nextTop;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            // Define collision threshold (sum of radii of both objects)
+            // Assuming objects are roughly circular, adjust collisionThreshold as needed
+            const collisionThreshold = 100; // Adjust based on your object sizes
+            
+            if (distance < collisionThreshold) {
+                // Collision detected! Calculate collision response
+                //playDingSound(9*660, 1,0.01);
+
+                // Normal vector between centers
+                const nx = dx / distance;
+                const ny = dy / distance;
+                
+                // Relative velocity
+                const dvx = obj2.velocity_dx - obj1.velocity_dx;
+                const dvy = obj2.velocity_dy - obj1.velocity_dy;
+                
+                // Relative velocity along normal
+                const velAlongNormal = dvx * nx + dvy * ny;
+                
+                // Only resolve collision if objects are moving toward each other
+                if (velAlongNormal < 0) {
+                    // Coefficient of restitution (bounciness)
+                    const restitution = 0.8;
+                    
+                    // Assume equal mass for simplicity
+                    const j = -(1 + restitution) * velAlongNormal / 2;
+                    
+                    // Apply impulse
+                    obj1.velocity_dx -= j * nx;
+                    obj1.velocity_dy -= j * ny;
+                    obj2.velocity_dx += j * nx;
+                    obj2.velocity_dy += j * ny;
+                    
+                    // Separate objects to prevent sticking
+                    const overlap = collisionThreshold - distance;
+                    const separationX = (overlap * nx) / 2;
+                    const separationY = (overlap * ny) / 2;
+                    
+                    obj1.nextLeft -= separationX;
+                    obj1.nextTop -= separationY;
+                    obj2.nextLeft += separationX;
+                    obj2.nextTop += separationY;
+                }
+            }
+        }
+    }
+    
+    // Apply final positions and handle boundaries
+    svgObjects.forEach(object => {
+        let left = object.nextLeft;
+        let top = object.nextTop;
+        
+        // Boundary handling
+        if (object.bounce == 1) {
+            // Bounce off walls
+            if (left <= 0 || left >= initial_width - 50) {
+                object.velocity_dx *= -0.9;
+                left = Math.max(0, Math.min(left, initial_width - 50));
+            }
+            if (top <= 0 || top >= initial_height - 50) {
+                object.velocity_dy *= -0.9;
+                top = Math.max(0, Math.min(top, initial_height - 50));
+            }
+        } else {
+            // Wrap around walls
+            if (left <= -50) {
+                left = initial_width + 50;
+            } else if (left >= initial_width + 50) {
+                left = -50;
+            }
+            if (top <= -50) {
+                left = initial_height + 50;
+            } else if (top >= initial_height + 50) {
+                top = -50;
+            }
+        }
+        
+        // Update final position and rotation
+        object.style.left = `${left}px`;
+        object.style.top = `${top}px`;
+        object.currentRotation += object.rotationSpeed;
+        object.style.transform = `scale(${object.currentScale}) rotate(${object.currentRotation}deg)`;
+    });
+    
+    animationId = requestAnimationFrame(moveSVGObjects);
+}
 
 function pickRandomImage() {
     let random_image = image_url_list[Math.floor(Math.random() * image_url_list.length)];
@@ -226,6 +345,8 @@ function createAllRandomImageObjects() {
 
     let click_effect_list = ["grow"];//,"grow","grow","grow","grow", "grow","grow","grow","dodge"];
 
+    let end_effect_list = ["disappear", "disappear", "disappear", "disappear", "disappear", "firework"];
+
     // Create a base object with some random choices
     base_object = {
         //--- Pick random image
@@ -246,6 +367,8 @@ function createAllRandomImageObjects() {
         //--- pick how many times the object needs to be clicked before it disappears
         // ...mostly this should be 3, but sometimes its 4
         total_lives: lives_list[Math.floor(Math.random() * lives_list.length)],
+        //--- pick the end effect, which is what happens when the object is clicked enough times
+        end_effect: end_effect_list[Math.floor(Math.random() * end_effect_list.length)],
 
         click_effect: click_effect_list[Math.floor(Math.random() * click_effect_list.length)]
     };
