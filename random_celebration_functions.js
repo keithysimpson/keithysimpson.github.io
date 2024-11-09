@@ -38,7 +38,12 @@ function createOneImageObject(base_object) {
         object.style.top  = `${Math.random() *(initial_height - 50)}px`;
 
         // set the velocity of the object
-        initial_velocity = getRandomVelocity(base_object.velocity_angle, base_object.coherence);
+        if (base_object.moving_at_start == false) {
+            initial_velocity = {dx:0, dy:0};
+        } else {
+            initial_velocity = getRandomVelocity(base_object.velocity_angle, base_object.coherence);
+        }
+        
 
         object.acceleration_dx = 0;
         object.acceleration_dy = 0;
@@ -96,7 +101,9 @@ function clickSVGOBject(event) {
                 
 
                 playDingSound((object.total_lives - object.lives_left) * 660, 1);
-                object.velocity_dy += (-2);
+                
+                object.velocity_dx += (-4 * (Math.random() - 0.5));
+                object.velocity_dy += (-4 * (Math.random() - 0.5));
                 /*
                 let happy_birthday_song = [
                     [392, 392, 440, 392, 523.25, 493.88], //  # G G A G C B - "Happy birthday to you"
@@ -347,6 +354,8 @@ function createAllRandomImageObjects() {
 
     let end_effect_list = ["disappear", "disappear", "disappear", "disappear", "disappear", "firework"];
 
+    let moving_at_start_list = [true, true, true, false, false]; // true, true, true, true, true
+
     // Create a base object with some random choices
     base_object = {
         //--- Pick random image
@@ -355,6 +364,8 @@ function createAllRandomImageObjects() {
         starting_position: starting_position_list[Math.floor(Math.random() * starting_position_list.length)],
         //--- Pick random velocity angle
         velocity_angle: (2.0 * Math.PI / 360.0) * velocity_angle_list[Math.floor(Math.random() * velocity_angle_list.length)],
+        //--- Pick if moving at start
+        moving_at_start: moving_at_start_list[Math.floor(Math.random() * moving_at_start_list.length)],
         //--- Pick random color
         color: Math.random() * 360,
         //--- Pick if all moving in the same direction
