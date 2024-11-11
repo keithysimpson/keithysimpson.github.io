@@ -81,20 +81,22 @@ function clickSVGOBject(event) {
     object.lives_left -= 1;
         
         if (object.lives_left == 0) {
-            //let x = object.style.left;
-            //let y = object.style.top;
+            // remove the object
             
-            //playDingSound((object.total_lives - object.lives_left) * 660, 1);
-            object.remove();
-            svgObjects = svgObjects.filter(obj => obj !== object);
-
+            //...first play a sound (and/or effect)
             if (object.end_effect == "firework") {
                 // firework effect on end:
                 playDingSound([1000,1200,1400,1800], 4,0.05);
                 let x = event.clientX;
                 let y = event.clientY;
                 createFirework(x, y, 2000);
+            } else {
+                playDingSound((object.total_lives - object.lives_left) * 660, 1);
             }
+            //...then remove the object
+            object.remove();
+            svgObjects = svgObjects.filter(obj => obj !== object);
+
         } else {
 
             if (base_object.click_effect == "grow") {
@@ -222,7 +224,7 @@ function moveSVGObjects() {
             
             // Define collision threshold (sum of radii of both objects)
             // Assuming objects are roughly circular, adjust collisionThreshold as needed
-            const collisionThreshold = 100; // Adjust based on your object sizes
+            const collisionThreshold = 50; // Adjust based on your object sizes
             
             if (distance < collisionThreshold) {
                 // Collision detected! Calculate collision response
@@ -291,7 +293,7 @@ function moveSVGObjects() {
                 left = -50;
             }
             if (top <= -50) {
-                left = initial_height + 50;
+                top = initial_height + 50;
             } else if (top >= initial_height + 50) {
                 top = -50;
             }
@@ -352,7 +354,7 @@ function createAllRandomImageObjects() {
 
     let click_effect_list = ["grow"];//,"grow","grow","grow","grow", "grow","grow","grow","dodge"];
 
-    let end_effect_list = ["disappear", "disappear", "disappear", "disappear", "disappear", "firework"];
+    let end_effect_list = ["disappear", "disappear", "disappear", "disappear", "firework", "firework"];
 
     let moving_at_start_list = [true, true, true, false, false]; // true, true, true, true, true
 
