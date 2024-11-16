@@ -224,7 +224,7 @@ function moveSVGObjects() {
             
             // Define collision threshold (sum of radii of both objects)
             // Assuming objects are roughly circular, adjust collisionThreshold as needed
-            const collisionThreshold = 50; // Adjust based on your object sizes
+            const collisionThreshold = 75; // Adjust based on your object sizes
             
             if (distance < collisionThreshold) {
                 // Collision detected! Calculate collision response
@@ -342,7 +342,7 @@ function pickRandomImage() {
 function createAllRandomImageObjects() {
     // This function will create some objects to float around the screen
     // ...lots of aspects of this will be random, so each time you run it, you'll get a different result
-    let starting_position_list = ["random", "random", "random", "random", "random","center"];
+    let starting_position_list = ["random", "random", "random", "random", "center","center"];
     let rotation_speed_list = [0,0,0,0,0.1,1,2,5];
     let velocity_angle_list = [0, 0, 0, 
                                90, 90, 90, 
@@ -354,7 +354,7 @@ function createAllRandomImageObjects() {
 
     let click_effect_list = ["grow"];//,"grow","grow","grow","grow", "grow","grow","grow","dodge"];
 
-    let end_effect_list = ["disappear", "disappear", "disappear", "disappear", "firework", "firework"];
+    let end_effect_list = ["disappear", "disappear", "disappear", "firework", "firework", "firework"];
 
     let moving_at_start_list = [true, true, true, false, false]; // true, true, true, true, true
 

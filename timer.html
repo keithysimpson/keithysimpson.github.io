@@ -225,6 +225,15 @@
             'blue': 'BLUE',
             'purple': 'PURPLE'
         };
+
+        const colorSoundLookup = {
+            'red': 'C5',
+            'orange': 'D5',
+            'yellow': 'E5',
+            'green': 'F5',
+            'blue': 'G5',
+            'purple': 'A5'
+        };
 		
         const colorOverlay = document.getElementById('colorOverlay');
         let time = 0;
@@ -249,6 +258,7 @@
         colors.forEach(color => {
             const colorSection = document.getElementById(`color-section-${color}`);
             colorSection.addEventListener('click', () => {
+                playDingSound(noteToFrequency([colorSoundLookup[color]]), 1);
                 celebration_effect = effectLookup[color];
                 showFadeText(effectLookup[color]);
             });
@@ -324,6 +334,51 @@
         }
 		
 
+        function noteToFrequency(notes) {
+            // Base frequency for A4 = 440 Hz
+            const A4 = 440;
+            
+            // Create a lookup table for note to semitone conversion
+            const noteToSemitone = {
+                'C': -9,
+                'C#': -8,
+                'DB': -8,
+                'D': -7,
+                'D#': -6,
+                'EB': -6,
+                'E': -5,
+                'F': -4,
+                'F#': -3,
+                'GB': -3,
+                'G': -2,
+                'G#': -1,
+                'AB': -1,
+                'A': 0,
+                'A#': 1,
+                'BB': 1,
+                'B': 2
+            };
+
+            return notes.map(note => {
+                // Convert note to uppercase for case-insensitive comparison
+                note = note.toUpperCase();
+                
+                // Extract the note name and octave
+                const matches = note.match(/^([A-G][#B]?)(\d+)$/);
+                if (!matches) {
+                    throw new Error(`Invalid note format: ${note}`);
+                }
+                
+                const [, noteName, octave] = matches;
+                
+                // Calculate semitones from A4
+                const semitoneFromA4 = noteToSemitone[noteName] + (parseInt(octave) - 4) * 12;
+                
+                // Calculate frequency using the formula: f = A4 * 2^(n/12)
+                // where n is the number of semitones from A4
+                return A4 * Math.pow(2, semitoneFromA4 / 12);
+            });
+        }
         function showCelebration() {
             startPauseBtn.textContent = 'Start';
             sectionText.textContent = 'Ding!';
