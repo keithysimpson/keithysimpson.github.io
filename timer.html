@@ -240,7 +240,7 @@
         let isRunning = false;
         let celebration_showing = false;
         let interval;
-        let audioContext;
+        //let audioContext;
         let celebration_effect = -1;
         let initial_width;
         let initial_height;
@@ -258,9 +258,12 @@
         colors.forEach(color => {
             const colorSection = document.getElementById(`color-section-${color}`);
             colorSection.addEventListener('click', () => {
-                playDingSound(noteToFrequency([colorSoundLookup[color]]), 1);
                 celebration_effect = effectLookup[color];
                 showFadeText(effectLookup[color]);
+            });
+
+            colorSection.addEventListener('mousedown', () => {
+                playDingSound(noteToFrequency([colorSoundLookup[color]]), 1);
             });
 
         });
@@ -302,24 +305,26 @@
         }
 
 
+        
+/*
 
-		
 		function playDingSound(frequency, repetitions, timeGap = 0.3) {
             if (!audioContext) {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
             }
-            
+
             // Convert single frequency to array for uniform handling
             const frequencies = Array.isArray(frequency) ? frequency : [frequency];
             
             for (let i = 0; i < repetitions; i++) {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                oscillator.type = 'sine';
+
+
                 // Get the frequency for this iteration by cycling through the array
                 const currentFreq = frequencies[i % frequencies.length];
                 
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-                
-                oscillator.type = 'sine';
                 oscillator.frequency.setValueAtTime(currentFreq, audioContext.currentTime + i * timeGap);
                 
                 gainNode.gain.setValueAtTime(0.5, audioContext.currentTime + i * timeGap);
@@ -332,7 +337,60 @@
                 oscillator.stop(audioContext.currentTime + i * timeGap + 0.5);
             }
         }
-		
+*/
+
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        let bufferSource = null;
+
+        function playDingSound(frequency, repetitions, timeGap = 0.3) {
+            // Resume audio context if it's suspended (needed for some browsers)
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+
+            // Schedule all sounds at once instead of in a loop
+            const frequencies = Array.isArray(frequency) ? frequency : [frequency];
+            const duration = 0.5; // Duration of each sound
+            const sampleRate = audioContext.sampleRate;
+            const totalDuration = (repetitions * timeGap) + duration;
+            
+            // Create a buffer for the entire sequence
+            const audioBuffer = audioContext.createBuffer(
+                1, // mono
+                Math.ceil(totalDuration * sampleRate),
+                sampleRate
+            );
+            const channelData = audioBuffer.getChannelData(0);
+
+            // Generate all samples at once
+            for (let i = 0; i < repetitions; i++) {
+                const currentFreq = frequencies[i % frequencies.length];
+                const startSample = Math.floor(i * timeGap * sampleRate);
+                const endSample = Math.floor((i * timeGap + duration) * sampleRate);
+                
+                // Generate one complete sine wave cycle
+                for (let sample = startSample; sample < endSample; sample++) {
+                    const t = (sample - startSample) / sampleRate;
+                    // Apply envelope
+                    const envelope = Math.max(0, 1 - (t / duration) * 2);
+                    channelData[sample] = 
+                        Math.sin(2 * Math.PI * currentFreq * t) * // sine wave
+                        0.5 * // volume
+                        envelope; // fade out
+                }
+            }
+
+            // Stop any currently playing sound
+            if (bufferSource) {
+                bufferSource.stop();
+            }
+
+            // Play the buffer
+            bufferSource = audioContext.createBufferSource();
+            bufferSource.buffer = audioBuffer;
+            bufferSource.connect(audioContext.destination);
+            bufferSource.start();
+        }
 
         function noteToFrequency(notes) {
             // Base frequency for A4 = 440 Hz
