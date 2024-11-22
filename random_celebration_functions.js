@@ -67,6 +67,7 @@ function createOneImageObject(base_object) {
     // select how many times the object need to be clicked before it disappears
     object.total_lives = base_object.total_lives;
     object.lives_left = base_object.total_lives;
+    object.end_effect = base_object.end_effect;
 
     // Add click event listener to object
     object.addEventListener('click', clickSVGOBject);
