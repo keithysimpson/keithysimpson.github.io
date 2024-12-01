@@ -66,6 +66,7 @@ const image_url_list = [
 
 
     //{url: 'ding.svg', color: 0},
+    /*
     {url: 'images/poli_circle.png', color: 1},
     {url: 'images/roy_circle.png', color: 1},
     {url: 'images/amber_circle.png', color: 1},
@@ -94,8 +95,10 @@ const image_url_list = [
     {url: 'images/Camp.png', color: 1},
     {url: 'images/Jin_standing.webp', color: 1},
     {url: 'images/Carey.webp', color: 1},
-    
-    
+    */
+    {url: 'images/PAW_Patrol_Skye.webp', color: 1},
+    {url: 'images/Chase_PNG.webp', color: 1},
+
     /*
     {url: 'https://www.svgrepo.com/show/484762/ambulance', color: 1},
     {url: 'https://www.svgrepo.com/show/120944/medical-kit', color: 1},
