@@ -98,6 +98,9 @@ const image_url_list = [
     */
     {url: 'images/PAW_Patrol_Skye.webp', color: 1},
     {url: 'images/Chase_PNG.webp', color: 1},
+    {url: 'images/paw_patrol_liberty.webp', color: 1},
+    {url: 'images/paw_patrol_everest.webp', color: 1},
+    {url: 'images/paw_patrol_ella.webp', color: 1},
 
     /*
     {url: 'https://www.svgrepo.com/show/484762/ambulance', color: 1},
