@@ -230,7 +230,7 @@ function moveSVGObjects() {
             if (distance < collisionThreshold) {
                 // Collision detected! Calculate collision response
                 //playDingSound(9*660, 1,0.01);
-                playDingSound(200, 1);
+                //
 
                 // Normal vector between centers
                 const nx = dx / distance;
@@ -266,6 +266,8 @@ function moveSVGObjects() {
                     obj1.nextTop -= separationY;
                     obj2.nextLeft += separationX;
                     obj2.nextTop += separationY;
+
+                    playDingSound(200, 1,0.01);
                 }
             }
         }
