@@ -126,7 +126,22 @@ const dated_image_list = [
     {date: '2024-10-26', time_of_day: "afternoon", url: 'images/lego_6_big.png', color: 1},
     {date: '2024-10-27', time_of_day: "morning", url: 'images/6_cake.png', color: 1},
     {date: '2024-10-31', time_of_day: "morning", url: 'images/spider.svg', color: 0},
+
+    // dec 23rd
+    {date: '2024-12-23', time_of_day: "morning", url: 'images/christmas-tree-svgrepo-com.svg', color: 1},
+    {date: '2024-12-23', time_of_day: "afternoon", url: 'images/christmas-snow-snowman-svgrepo-com', color: 1},
+
+    // christmas eve
+    {date: '2024-12-24', time_of_day: "morning", url: 'images/elf.svg', color: 1},
+    {date: '2024-12-24', time_of_day: "afternoon", url: 'images/christmas-santa-sledge-svgrepo-com.svg', color: 1},
+
+    // christmas day
+    {date: '2024-12-25', time_of_day: "morning", url: 'images/christmas-gift-presents-svgrepo-com.svg', color: 1},
+    {date: '2024-12-25', time_of_day: "afternoon", url: 'images/christmas-clous-santa-svgrepo-com.svg', color: 1},
+    
     
 ];
+
+
 
 //playDingSound([392,392,440,392,523.25,493.88],6,timeGap = 0.2)
