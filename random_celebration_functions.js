@@ -267,7 +267,6 @@ function moveSVGObjects() {
                     obj2.nextLeft += separationX;
                     obj2.nextTop += separationY;
 
-                    playDingSound(200, 1,0.01);
                 }
             }
         }
