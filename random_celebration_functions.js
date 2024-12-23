@@ -103,11 +103,12 @@ function clickSVGOBject(event) {
             if (base_object.click_effect == "grow") {
                 
 
-                playDingSound((object.total_lives - object.lives_left) * 660, 1);
+                //playDingSound((object.total_lives - object.lives_left) * 660, 1);
                 
                 object.velocity_dx += (-4 * (Math.random() - 0.5));
                 object.velocity_dy += (-4 * (Math.random() - 0.5));
                 /*
+                // Play happy birthday song
                 let happy_birthday_song = [
                     [392, 392, 440, 392, 523.25, 493.88], //  # G G A G C B - "Happy birthday to you"
                     [392, 392, 440, 392, 587.33, 523.25], //  # G G A G D C - "Happy birthday to you"
@@ -120,6 +121,19 @@ function clickSVGOBject(event) {
 
                 playDingSound(this_song,this_song.length,timeGap = 0.2);
                 */
+
+                // Play jingle bells song
+                let jingle_bells_song = [
+                    [659.26, 659.26, 659.26], // E E E - "Jingle bells"
+                    [659.26, 659.26, 659.26], // E E E - "Jingle bells"
+                    [659.26, 783.99, 523.25, 587.33, 659.26], // E G C D E - "jingle all the way"
+                    [698.46, 698.46, 698.46, 698.46, 698.46, 659.26, 659.26], // F F F F F E E - "oh what fun it is to ride"
+                    [659.26, 659.26, 587.33, 587.33, 659.26, 587.33, 783.99], // E E D D E D G - "in a one horse open sleigh"
+                ];
+
+                let this_song = jingle_bells_song[(object.total_lives - object.lives_left) -1];
+
+                playDingSound(this_song,this_song.length,timeGap = 0.2);
 
                 // Increase scale by 10% each click
                 object.currentScale *= 2;
@@ -353,7 +367,8 @@ function createAllRandomImageObjects() {
                                45, 135, 225, 315];
     let coherence_list = [0, 0.5, 0.75, 0.9, 1, 1];
 
-    let lives_list = [3, 3, 3,3, 4, 4, 5, 6];
+    //let lives_list = [3, 3, 3,3, 4, 4, 5, 6];
+    let lives_list = [6, 6];
 
     let click_effect_list = ["grow"];//,"grow","grow","grow","grow", "grow","grow","grow","dodge"];
 
