@@ -177,9 +177,18 @@
             z-index: 9998;
         }
 
+        .planet {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            width: 50px;
+            height: 50px;
+        }
 		
     </style>
 </head>
+
+
 <body>
     <div class="color-bar">
         <div id="color-section-red" class="color-section" style="background-color: red;"></div>
@@ -207,6 +216,23 @@
     <script src="random_celebration_functions.js?v=<?= time(); ?>"></script>
 
 
+    <svg id="planet1" style="display: none" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="45" fill="#ff6b6b"/>
+        <circle cx="30" cy="30" r="10" fill="#ff8787" opacity="0.6"/>
+        <circle cx="70" cy="60" r="15" fill="#ff8787" opacity="0.6"/>
+    </svg>
+    
+    <svg id="planet2" style="display: none" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="45" fill="#4d96ff"/>
+        <ellipse cx="50" cy="50" rx="45" ry="10" fill="#6ba5ff" opacity="0.6"/>
+    </svg>
+    
+    <svg id="planet3" style="display: none" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="45" fill="#ffd93d"/>
+        <circle cx="50" cy="50" r="35" fill="#ffe066"/>
+        <circle cx="50" cy="50" r="25" fill="#fff3bf"/>
+    </svg>
+    
     <script>
         let timer_length_seconds = 120;
 

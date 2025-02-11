@@ -351,6 +351,7 @@ function createSnow() {
 
 
 //---- star field -------------------------------------------------------
+/*
 function createSpaceTravel() {
     //const wrapper = document.createElement('div');
     //wrapper.className = 'space-wrapper';
@@ -440,17 +441,7 @@ function createSpaceTravel() {
     // Start animation
     updateStars();
     
-    
-    // Clean up after duration
-    /*
-    if (duration) {
-        setTimeout(() => {
-            cancelAnimationFrame(animationFrameId);
-            wrapper.remove();
-            stars.forEach(star => star.element.remove());
-        }, duration);
-    }
-    */
+
     
     // Return cleanup function
     return () => {
@@ -459,3 +450,181 @@ function createSpaceTravel() {
         stars.forEach(star => star.element.remove());
     };
 }
+*/
+
+function createSpaceTravel() {
+    const max_depth = 5000;
+    const numStars = 100;
+    const stars = [];
+    const planets = [];
+    
+    function createStar(starArray, startAtRandom = true) {
+        const star = document.createElement('div');
+        star.className = 'star';
+        
+        const x = Math.random() * window.innerWidth;
+        const y = Math.random() * window.innerHeight;
+        const z = startAtRandom ? Math.random() * 1500 : 1500;
+        
+        star.style.left = `${x}px`;
+        star.style.top = `${y}px`;
+        
+        const scale = (1500 - z) / 1500;
+        star.style.transform = `scale(${scale})`;
+        star.style.opacity = scale;
+        
+        document.body.appendChild(star);
+        starArray.push({
+            element: star,
+            x,
+            y,
+            z
+        });
+    }
+    
+    function createPlanet(clickX, clickY) {
+        /*
+        const planetTemplates = ['planet1', 'planet2', 'planet3'];
+        const randomPlanet = planetTemplates[Math.floor(Math.random() * planetTemplates.length)];
+        
+        const planet = document.createElement('div');
+        planet.className = 'planet';
+        planet.innerHTML = document.getElementById(randomPlanet).outerHTML;
+        planet.firstChild.style.display = 'block';
+        */
+
+        const planetFiles = [
+            'images/planet_mercury.svg',
+            'images/planet_venus.svg',
+            'images/planet_earth.svg', 
+            'images/planet_mars.svg', 
+            'images/planet_jupiter.svg',
+            'images/planet_saturn.svg',
+            'images/planet_uranus.svg',
+            'images/planet_neptune.svg'
+        ];
+
+        const randomPlanet = planetFiles[Math.floor(Math.random() * planetFiles.length)];
+        
+        const planet = document.createElement('img');
+        planet.className = 'planet';
+        
+        planet.classList.add('svg-object');
+        planet.src = randomPlanet; 
+
+        /*
+        // Fetch and insert the SVG
+        fetch(randomPlanet)
+            .then(response => response.text())
+            .then(svgContent => {
+                planet.innerHTML = svgContent;
+                const svgElement = planet.querySelector('svg');
+                svgElement.style.display = 'block';
+            });
+
+        */
+
+        const z = 1500; // Start from far away
+        
+        planet.style.left = `${clickX - 25}px`; // Center the planet on click
+        planet.style.top = `${clickY - 25}px`;
+        
+        document.body.appendChild(planet);
+        planets.push({
+            element: planet,
+            x: clickX,
+            y: clickY,
+            z
+        });
+    }
+
+
+
+    
+    // Create initial stars
+    for (let i = 0; i < numStars; i++) {
+        createStar(stars, true);
+    }
+    
+    let animationFrameId;
+    const speed = 2;
+    
+    function updateStars() {
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2;
+        const margin = 50;
+        
+        stars.forEach((star, index) => {
+            star.z -= speed * 10;
+            
+            const scale = (1500 - star.z) / 1500;
+            
+            const newX = centerX + (star.x - centerX) * scale;
+            const newY = centerY + (star.y - centerY) * scale;
+            
+            const isOffScreen = 
+                newX < -margin || 
+                newX > window.innerWidth + margin || 
+                newY < -margin || 
+                newY > window.innerHeight + margin;
+            
+            if (isOffScreen || scale > 2) {
+                star.element.remove();
+                stars.splice(index, 1);
+                createStar(stars, false);
+            } else {
+                star.element.style.left = `${newX}px`;
+                star.element.style.top = `${newY}px`;
+                star.element.style.transform = `scale(${scale})`;
+                star.element.style.opacity = scale;
+            }
+        });
+        
+        // Update planets
+        planets.forEach((planet, index) => {
+            planet.z -= speed * 10;
+            
+            const scale = (1500 - planet.z) / 1500;
+            
+            const newX = centerX + (planet.x - centerX) * scale;
+            const newY = centerY + (planet.y - centerY) * scale;
+            
+            const isOffScreen = 
+                newX < -margin || 
+                newX > window.innerWidth + margin || 
+                newY < -margin || 
+                newY > window.innerHeight + margin;
+            
+            if (isOffScreen || scale > 2) {
+                planet.element.remove();
+                planets.splice(index, 1);
+            } else {
+                planet.element.style.left = `${newX - 25 * scale}px`;
+                planet.element.style.top = `${newY - 25 * scale}px`;
+                planet.element.style.transform = `scale(${scale})`;
+                planet.element.style.opacity = scale;
+            }
+        });
+        
+        animationFrameId = requestAnimationFrame(updateStars);
+    }
+    
+    // Start animation
+    updateStars();
+    
+    // Add click handler
+    document.addEventListener('click', (event) => {
+        createPlanet(event.clientX, event.clientY);
+    });
+    
+    // Return cleanup function
+    return () => {
+        cancelAnimationFrame(animationFrameId);
+        stars.forEach(star => star.element.remove());
+        planets.forEach(planet => planet.element.remove());
+        document.removeEventListener('click', createPlanet);
+    };
+}
+
+// Start the space travel effect
+//createSpaceTravel();
