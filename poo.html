@@ -17,8 +17,8 @@
         }
         
         #colorSquare {
-            width: 200px;
-            height: 200px;
+            width: 60%;
+            height: 40vh;
             margin: 20px auto;
             border: 2px solid #333;
             background-color: #000; /* Initial color */
@@ -103,7 +103,7 @@
             
             const colorPoint = findColorAtPosition(position);
             square.style.backgroundColor = colorPoint.hex_color;
-            positionDisplay.textContent = `Colour Score:: ${(10 * position).toFixed(0)}`;
+            positionDisplay.textContent = `Colour Score: ${(10 * position).toFixed(0)}`;
             
             // Prevent scrolling on touch devices
             if (e.type.includes('touch')) {
