@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        
+        #imageContainer {
+            position: relative;
+            width: 100%;
+            height: 40vh;
+            background: linear-gradient(to right, #4C7237, #577843); /* Initial gradient */
+            cursor: pointer;
+        }
+        
+        #colorSquare {
+            width: 200px;
+            height: 200px;
+            margin: 20px auto;
+            border: 2px solid #333;
+            background-color: #000; /* Initial color */
+        }
+        
+        #positionValue {
+            text-align: center;
+            font-size: 24px;
+            margin: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="imageContainer"></div>
+    <div id="colorSquare"></div>
+    <div id="positionValue">Select a colour</div>
+
+    <!--   -->
+    <script src="color_scale.js"></script>
+
+    <script>
+       
+        
+        const container = document.getElementById('imageContainer');
+        const square = document.getElementById('colorSquare');
+        const positionDisplay = document.getElementById('positionValue');
+
+        // Create gradient from color data
+        function updateGradient() {
+            const gradientStops = colorData.map(point => 
+                `${point.hex_color} ${point.position * 10}%`
+            ).join(', ');
+            container.style.background = `linear-gradient(to right, ${gradientStops})`;
+        }
+
+        // Find closest color for a given position
+        function findColorAtPosition(position) {
+            return colorData.reduce((prev, curr) => {
+                return (Math.abs(curr.position - position) < Math.abs(prev.position - position) ? curr : prev);
+            });
+        }
+
+        // Initialize gradient
+        updateGradient();
+
+        /*
+        // Handle clicks
+        container.addEventListener('click', function(e) {
+            const rect = container.getBoundingClientRect();
+            const position = ((e.clientX - rect.left) / rect.width) * 10;
+            
+            const colorPoint = findColorAtPosition(position);
+            square.style.backgroundColor = colorPoint.hex_color;
+            positionDisplay.textContent = `Colour Score: ${(10 * position).toFixed(0)}`;
+        });
+        */
+
+
+        let isPressed = false;
+
+        // Mouse events
+        container.addEventListener('mousedown', () => isPressed = true);
+        container.addEventListener('mouseup', () => isPressed = false);
+        container.addEventListener('mouseleave', () => isPressed = false);
+        container.addEventListener('mousemove', handleMove);
+
+        // Touch events
+        container.addEventListener('touchstart', () => isPressed = true);
+        container.addEventListener('touchend', () => isPressed = false);
+        container.addEventListener('touchcancel', () => isPressed = false);
+        container.addEventListener('touchmove', handleMove);
+
+        // Combined handler for both mouse and touch events
+        function handleMove(e) {
+            // If mouse is not pressed and this is a mouse event, return
+            if (!isPressed && e.type === 'mousemove') return;
+            
+            const rect = container.getBoundingClientRect();
+            // Get position from either mouse or touch event
+            const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+            const position = ((clientX - rect.left) / rect.width) * 10;
+            
+            const colorPoint = findColorAtPosition(position);
+            square.style.backgroundColor = colorPoint.hex_color;
+            positionDisplay.textContent = `Colour Score:: ${(10 * position).toFixed(0)}`;
+            
+            // Prevent scrolling on touch devices
+            if (e.type.includes('touch')) {
+                e.preventDefault();
+            }
+        }
+
+
+
+    </script>
+</body>
+</html>
