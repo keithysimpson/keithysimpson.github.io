@@ -163,6 +163,20 @@
             max-height: 100px;
             transition: transform 0.3s;
         }
+
+
+
+
+        .star {
+            position: fixed;
+            background-color: #ffffff;
+            width: 2px;
+            height: 2px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9998;
+        }
+
 		
     </style>
 </head>
@@ -248,7 +262,7 @@
         const effectLookup = {
             'red': 'confetti',
             'orange': 'fireworks',
-            'yellow': 'balloons',
+            'yellow': 'stars',
             'green': 'rainbow',
             'blue': 'bubbles',
             'purple': '???'
@@ -271,6 +285,8 @@
         let svgObjects = [];
         let animationId;
         let base_object;
+
+        let cleanupStarfield = () => {};
 
         function showFadeText(text) {
             const fadeText = document.createElement('div');
@@ -478,6 +494,10 @@
                 //--- balloons:
                 releaseBalloons();
                 document.addEventListener('click', releaseBalloons);
+            } else if (celebration_effect == "stars") {
+                //--- star field:
+                cleanupStarfield = createSpaceTravel();
+                //document.addEventListener('click', releaseBalloons);
             } else if (celebration_effect == "rainbow") {
                 //--- balloons:
                 startRainbowEffect();
@@ -559,6 +579,9 @@
             svgObjects = [];
             cancelAnimationFrame(animationId);
             document.removeEventListener('click', add1MoreSVGobject);
+
+
+            cleanupStarfield();
             
         }
 

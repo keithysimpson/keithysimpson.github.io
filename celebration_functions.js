@@ -348,3 +348,114 @@ function createSnow() {
         });
     }
 }
+
+
+//---- star field -------------------------------------------------------
+function createSpaceTravel() {
+    //const wrapper = document.createElement('div');
+    //wrapper.className = 'space-wrapper';
+    //document.body.appendChild(wrapper);
+
+    const max_depth = 5000;
+    const numStars = 100;
+    const stars = [];
+    
+    function createStar(starArray, startAtRandom = true) {
+        const star = document.createElement('div');
+        star.className = 'star';
+        
+        // If startAtRandom is true, place stars throughout space
+        // If false, place them at the far end (for replacement stars)
+        const x = Math.random() * window.innerWidth;
+        const y = Math.random() * window.innerHeight;
+        const z = startAtRandom ? Math.random() * 1500 : 1500;
+        
+        star.style.left = `${x}px`;
+        star.style.top = `${y}px`;
+        
+        const scale = (1500 - z) / 1500;
+        star.style.transform = `scale(${scale})`;
+        star.style.opacity = scale;
+        
+        document.body.appendChild(star);
+        starArray.push({
+            element: star,
+            x,
+            y,
+            z
+        });
+    }
+    
+    // Create initial stars
+    for (let i = 0; i < numStars; i++) {
+        createStar( stars, true);
+    }
+
+    let animationFrameId;
+    const speed = 2;
+    
+    function updateStars() {
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2;
+        const margin = 50; // Margin for when to consider stars "off screen"
+        
+        stars.forEach((star, index) => {
+            // Move star closer
+            star.z -= speed * 10;
+            
+            // Calculate new position based on perspective
+            const scale = (1500 - star.z) / 1500;
+            
+            // Calculate screen position
+            const newX = centerX + (star.x - centerX) * scale;
+            const newY = centerY + (star.y - centerY) * scale;
+            
+            // Check if star is off screen
+            const isOffScreen = 
+                newX < -margin || 
+                newX > window.innerWidth + margin || 
+                newY < -margin || 
+                newY > window.innerHeight + margin;
+            
+            // Only reset if star is actually off screen
+            if (isOffScreen || scale > 2) {
+                // Remove old star
+                star.element.remove();
+                stars.splice(index, 1);
+                
+                // Create new star at far distance
+                createStar(stars, false);
+            } else {
+                // Update star position and appearance
+                star.element.style.left = `${newX}px`;
+                star.element.style.top = `${newY}px`;
+                star.element.style.transform = `scale(${scale})`;
+                star.element.style.opacity = scale;
+            }
+        });
+        
+        animationFrameId = requestAnimationFrame(updateStars);
+    }
+    
+    // Start animation
+    updateStars();
+    
+    
+    // Clean up after duration
+    /*
+    if (duration) {
+        setTimeout(() => {
+            cancelAnimationFrame(animationFrameId);
+            wrapper.remove();
+            stars.forEach(star => star.element.remove());
+        }, duration);
+    }
+    */
+    
+    // Return cleanup function
+    return () => {
+        cancelAnimationFrame(animationFrameId);
+        //wrapper.remove();
+        stars.forEach(star => star.element.remove());
+    };
+}
