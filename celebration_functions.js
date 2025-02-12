@@ -452,6 +452,8 @@ function createSpaceTravel() {
 }
 */
 
+let planet_counter = 0;
+
 function createSpaceTravel() {
     const max_depth = 5000;
     const numStars = 100;
@@ -494,23 +496,30 @@ function createSpaceTravel() {
         */
 
         const planetFiles = [
-            'images/planet_mercury.svg',
-            'images/planet_venus.svg',
-            'images/planet_earth.svg', 
-            'images/planet_mars.svg', 
-            'images/planet_jupiter.svg',
-            'images/planet_saturn.svg',
-            'images/planet_uranus.svg',
-            'images/planet_neptune.svg'
+            {url: 'images/the_sun.svg', size: 400},
+            {url: 'images/planet_mercury.svg', size: 20},
+            {url: 'images/planet_venus.svg', size: 40},
+            {url: 'images/planet_earth.svg', size: 40},
+            {url: 'images/planet_mars.svg', size: 35}, 
+            {url: 'images/planet_jupiter.svg', size: 100},
+            {url: 'images/planet_saturn.svg', size: 55},
+            {url: 'images/planet_uranus.svg', size: 50},
+            {url: 'images/planet_neptune.svg', size: 50},
         ];
 
-        const randomPlanet = planetFiles[Math.floor(Math.random() * planetFiles.length)];
+        //const randomPlanet = planetFiles[Math.floor(Math.random() * planetFiles.length)];
         
+        // rather than random, lets choose the next planet in the list
+        const randomPlanet = planetFiles[planet_counter];
+
+        // increment the global variable planet_counter
+        planet_counter = (planet_counter + 1) % planetFiles.length;
+
         const planet = document.createElement('img');
         planet.className = 'planet';
         
         planet.classList.add('svg-object');
-        planet.src = randomPlanet; 
+        planet.src = randomPlanet.url; 
 
         /*
         // Fetch and insert the SVG
@@ -528,6 +537,8 @@ function createSpaceTravel() {
         
         planet.style.left = `${clickX - 25}px`; // Center the planet on click
         planet.style.top = `${clickY - 25}px`;
+        planet.style.width = `${randomPlanet.size}px`;
+        planet.style.height = `${randomPlanet.size}px`;
         
         document.body.appendChild(planet);
         planets.push({
@@ -595,7 +606,7 @@ function createSpaceTravel() {
                 newY < -margin || 
                 newY > window.innerHeight + margin;
             
-            if (isOffScreen || scale > 2) {
+            if (isOffScreen || scale > 5) {
                 planet.element.remove();
                 planets.splice(index, 1);
             } else {
