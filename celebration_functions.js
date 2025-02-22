@@ -455,7 +455,7 @@ function createSpaceTravel() {
 let planet_counter = 0;
 
 function createSpaceTravel() {
-    const max_depth = 5000;
+    //const max_depth = 5000;
     const numStars = 100;
     const stars = [];
     const planets = [];
@@ -559,16 +559,19 @@ function createSpaceTravel() {
     
     let animationFrameId;
     const speed = 2;
-    
+    const max_star_scale = 2;
+    const max_planet_scale = 5;
+
     function updateStars() {
         const centerX = window.innerWidth / 2;
         const centerY = window.innerHeight / 2;
         const margin = 50;
         
         stars.forEach((star, index) => {
-            star.z -= speed * 10;
-            
+            // Update stars z position based on perspective
             const scale = (1500 - star.z) / 1500;
+            const speedFactor = Math.pow(scale, 1.1); // Speed increases as stars get closer
+            star.z -= speed * 10 * (1 + speedFactor);
             
             const newX = centerX + (star.x - centerX) * scale;
             const newY = centerY + (star.y - centerY) * scale;
@@ -579,26 +582,29 @@ function createSpaceTravel() {
                 newY < -margin || 
                 newY > window.innerHeight + margin;
             
-            if (isOffScreen || scale > 2) {
+            if (isOffScreen) {
                 star.element.remove();
                 stars.splice(index, 1);
                 createStar(stars, false);
             } else {
                 star.element.style.left = `${newX}px`;
                 star.element.style.top = `${newY}px`;
-                star.element.style.transform = `scale(${scale})`;
+                star.element.style.transform = `scale(${Math.min(scale, max_star_scale)})`;
                 star.element.style.opacity = scale;
             }
         });
         
         // Update planets
         planets.forEach((planet, index) => {
-            planet.z -= speed * 10;
-            
+            // Update planets z position based on perspective
             const scale = (1500 - planet.z) / 1500;
+            const speedFactor = Math.pow(scale, 1.1); // Speed increases as planets get closer
+            planet.z -= speed * 5 * (1 + speedFactor);
             
             const newX = centerX + (planet.x - centerX) * scale;
             const newY = centerY + (planet.y - centerY) * scale;
+
+            //console.log(`scale: ${scale}, speedFactor: ${speedFactor}, z: ${planet.z}, newX: ${newX}, newY: ${newY}`);
             
             const isOffScreen = 
                 newX < -margin || 
@@ -606,13 +612,13 @@ function createSpaceTravel() {
                 newY < -margin || 
                 newY > window.innerHeight + margin;
             
-            if (isOffScreen || scale > 5) {
+            if (isOffScreen) {
                 planet.element.remove();
                 planets.splice(index, 1);
             } else {
                 planet.element.style.left = `${newX - 25 * scale}px`;
                 planet.element.style.top = `${newY - 25 * scale}px`;
-                planet.element.style.transform = `scale(${scale})`;
+                planet.element.style.transform = `scale(${Math.min(scale, max_planet_scale)})`;
                 planet.element.style.opacity = scale;
             }
         });
