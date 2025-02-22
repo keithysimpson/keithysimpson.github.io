@@ -485,15 +485,12 @@ function createSpaceTravel() {
     }
     
     function createPlanet(clickX, clickY) {
-        /*
-        const planetTemplates = ['planet1', 'planet2', 'planet3'];
-        const randomPlanet = planetTemplates[Math.floor(Math.random() * planetTemplates.length)];
-        
-        const planet = document.createElement('div');
-        planet.className = 'planet';
-        planet.innerHTML = document.getElementById(randomPlanet).outerHTML;
-        planet.firstChild.style.display = 'block';
-        */
+        // we will pick a planet from the list
+        // and increment the planet_counter
+        // but on a few random occasions, we will pick a random image
+
+        // chose_planet is a random true or false, but is true most of the time
+        let chose_planet = Math.random() > 0.1;
 
         const planetFiles = [
             {url: 'images/the_sun.svg', size: 400},
@@ -507,13 +504,27 @@ function createSpaceTravel() {
             {url: 'images/planet_neptune.svg', size: 50},
         ];
 
-        //const randomPlanet = planetFiles[Math.floor(Math.random() * planetFiles.length)];
-        
-        // rather than random, lets choose the next planet in the list
-        const randomPlanet = planetFiles[planet_counter];
+        const randomFiles = [
+            {url: 'images/alien_1.svg', size: 20},
+            {url: 'images/alien_2.svg', size: 20},
+            {url: 'images/alien_spaceship.svg', size: 20},
+            {url: 'images/astronaut.svg', size: 20},
+        ];
 
-        // increment the global variable planet_counter
-        planet_counter = (planet_counter + 1) % planetFiles.length;
+        let randomPlanet;
+
+        if (chose_planet) {
+            // chose the next planet from the list
+            randomPlanet = planetFiles[planet_counter];
+            // increment the global variable planet_counter
+            planet_counter = (planet_counter + 1) % planetFiles.length;
+
+        } else {
+            // chose a random planet from the list
+            randomPlanet = randomFiles[Math.floor(Math.random() * randomFiles.length)];
+        }
+        
+
 
         const planet = document.createElement('img');
         planet.className = 'planet';
