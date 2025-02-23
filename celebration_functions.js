@@ -490,7 +490,7 @@ function createSpaceTravel() {
         // but on a few random occasions, we will pick a random image
 
         // chose_planet is a random true or false, but is true most of the time
-        let chose_planet = Math.random() > 0.1;
+        let chose_planet = Math.random() > 0.075;
 
         const planetFiles = [
             {url: 'images/the_sun.svg', size: 400},
@@ -507,8 +507,15 @@ function createSpaceTravel() {
         const randomFiles = [
             {url: 'images/alien_1.svg', size: 20},
             {url: 'images/alien_2.svg', size: 20},
+            {url: 'images/alien_3.svg', size: 20},
             {url: 'images/alien_spaceship.svg', size: 20},
             {url: 'images/astronaut.svg', size: 20},
+            {url: 'images/55transparent.webp', size: 20},
+            {url: 'images/cow.svg', size: 20},
+            {url: 'images/asteroid.svg', size: 20},
+            {url: 'images/galaxy.svg', size: 20},
+            {url: 'images/iss.svg', size: 20},
+
         ];
 
         let randomPlanet;
