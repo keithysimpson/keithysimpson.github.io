@@ -510,11 +510,11 @@ function createSpaceTravel() {
             {url: 'images/alien_3.svg', size: 20},
             {url: 'images/alien_spaceship.svg', size: 20},
             {url: 'images/astronaut.svg', size: 20},
-            {url: 'images/55transparent.webp', size: 20},
+            {url: 'images/55transparent.webp', size: 40},
             {url: 'images/cow.svg', size: 20},
             {url: 'images/asteroid.svg', size: 20},
             {url: 'images/galaxy.svg', size: 20},
-            {url: 'images/iss.svg', size: 20},
+            {url: 'images/iss.svg', size: 30},
 
         ];
 
@@ -555,8 +555,9 @@ function createSpaceTravel() {
         
         planet.style.left = `${clickX - 25}px`; // Center the planet on click
         planet.style.top = `${clickY - 25}px`;
-        planet.style.width = `${randomPlanet.size}px`;
+        //planet.style.width = `${randomPlanet.size}px`;
         planet.style.height = `${randomPlanet.size}px`;
+        planet.style.width = 'auto';
         
         document.body.appendChild(planet);
         planets.push({
