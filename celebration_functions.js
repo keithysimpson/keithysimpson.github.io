@@ -705,12 +705,11 @@ function createFlower(x, y) {
     flowerContainer.style.top = `${y}px`;
     flowerContainer.style.width = '10px';
     flowerContainer.style.height = '10px';
-    flowerContainer.style.transform = 'scale(0)';
+    flowerContainer.style.transform = 'scale(0.5)'; // Start with visible container but no contents
     document.body.appendChild(flowerContainer);
     
-    // Create petals
-    // choose a random number of petals from the following list
-    let petalCount_list = [3, 4, 5, 6, 8,10,12,15];
+    // Choose a random number of petals
+    let petalCount_list = [3, 4, 5, 6, 8, 10, 12, 15];
     const petalCount = petalCount_list[Math.floor(Math.random() * petalCount_list.length)];
 
     const petalColors = [
@@ -725,10 +724,10 @@ function createFlower(x, y) {
         'rgba(1, 9, 123, 0.7)',       // Dark Blue
         'rgba(138, 43, 226, 0.7)',    // Purple
         'rgba(91, 32, 85, 0.7)',     
-
     ];
     const petalColor = petalColors[Math.floor(Math.random() * petalColors.length)];
     
+    // Create petals (initially hidden with width/height of 0)
     for (let i = 0; i < petalCount; i++) {
         const petal = document.createElement('div');
         petal.style.width = '0';
@@ -743,21 +742,25 @@ function createFlower(x, y) {
         flowerContainer.appendChild(petal);
     }
     
-    // Create stem
+    // Create stem (initially with height 0, positioned to grow upward)
     const stem = document.createElement('div');
     stem.className = 'container stem animated-stem';
     stem.style.position = 'absolute';
     stem.style.zIndex = '-1';
     stem.style.width = '5px';
     stem.style.height = '0';
-    stem.style.borderLeft = '5px solid transparent';
-    stem.style.borderRight = '5px solid transparent';
-    stem.style.borderBottom = '0px solid rgba(58, 183, 27, 0.9)';
+    stem.style.background = 'rgba(58, 183, 27, 0.9)';
     stem.style.borderRadius = '2px';
-    stem.style.transformOrigin = '50% 0%';
-    stem.style.transform = `rotate(${Math.random() * 30 - 30}deg)`;
-    stem.style.left = '-5px';
-    stem.style.top = '20px';
+    stem.style.transformOrigin = '50% 100%'; // Change transform origin to bottom
+    stem.style.transform = `rotate(${Math.random() * 10 - 5}deg)`;
+    stem.style.left = '-2.5px';  // Center the stem
+    stem.style.top = '20px';     // Position below the flower head
+    
+    // Important: reposition the stem to grow upward
+    stem.style.transformOrigin = 'bottom center';
+    stem.style.bottom = '-150px'; // Start from below
+    stem.style.top = 'auto';      // Override top property
+    
     flowerContainer.appendChild(stem);
     
     // Create leaf
@@ -768,12 +771,13 @@ function createFlower(x, y) {
     leaf.style.width = '10px';
     leaf.style.height = '10px';
     leaf.style.left = '-30px';
-    leaf.style.top = '100px';
+    leaf.style.bottom = '50px';  // Position relative to bottom now
+    leaf.style.top = 'auto';     // Override top property
     leaf.style.transform = 'rotate(-110deg) scale(0)';
     flowerContainer.appendChild(leaf);
     
     // Create leaf segments
-    const leafSegments = 1;
+    const leafSegments = 2;
     for (let i = 0; i < leafSegments; i++) {
         const leafSegment = document.createElement('div');
         leafSegment.style.boxSizing = 'border-box';
@@ -783,45 +787,30 @@ function createFlower(x, y) {
         leafSegment.style.transformOrigin = '0% 0%';
         leafSegment.style.transform = `rotate(${i * 3}deg)`;
         
-        // Size increases exponentially
-        //const leaf_size = Math.pow(1.618, i) * 4;
         const leaf_size = 5;
         leafSegment.style.width = `${leaf_size}px`;
         leafSegment.style.height = `${leaf_size}px`;
-        
-        // Darker green as segments get bigger
-        //const green = 7 + (i * 7);
-        //leafSegment.style.background = `rgba(${i}, ${green}, ${Math.floor(green * 0.7)}, 1)`;
         leafSegment.style.background = `rgba(58, 183, 27, 0.9)`;
         leafSegment.style.zIndex = leafSegments - i;
         
         leaf.appendChild(leafSegment);
     }
     
-    // Animate the flower growth
+    // First animate the stem growing upward
+    stem.animate([
+        { height: '0px' },
+        { height: '150px' }
+    ], {
+        duration: 500,
+        fill: 'forwards',
+        easing: 'cubic-bezier(0.2, 0.8, 0.2, 1.2)'
+    });
+    
+    // Then animate the petals after the stem has mostly grown
     setTimeout(() => {
-        // Grow stem
-        stem.animate([
-            { borderBottom: '0px solid rgba(58, 183, 27, 0.9)' },
-            { borderBottom: '150px solid rgba(58, 183, 27, 0.9)' }
-        ], {
-            duration: 1500,
-            fill: 'forwards'
-        });
-        
-        // Scale up flower
-        flowerContainer.animate([
-            { transform: 'scale(0)' },
-            { transform: 'scale(0.5)' }
-        ], {
-            duration: 1500,
-            easing: 'cubic-bezier(0.2, 0.8, 0.2, 1.2)',
-            fill: 'forwards'
-        });
-        
         // Grow petals
-        const petals = flowerContainer.children;
-        for (let i = 0; i < petalCount; i++) {
+        const petals = Array.from(flowerContainer.children).filter(el => !el.classList.contains('stem') && !el.classList.contains('leaf'));
+        for (let i = 0; i < petals.length; i++) {
             setTimeout(() => {
                 petals[i].animate([
                     { width: '0px', height: '0px' },
@@ -831,10 +820,10 @@ function createFlower(x, y) {
                     easing: 'cubic-bezier(0.2, 0.8, 0.2, 1.2)',
                     fill: 'forwards'
                 });
-            }, i * 100);
+            }, i * 100); // Staggered effect for petals
         }
         
-        // Grow leaf after stem
+        // Grow leaf after petals start appearing
         setTimeout(() => {
             leaf.animate([
                 { transform: 'rotate(-110deg) scale(0)' },
@@ -844,9 +833,9 @@ function createFlower(x, y) {
                 easing: 'cubic-bezier(0.2, 0.8, 0.2, 1.2)',
                 fill: 'forwards'
             });
-        }, 1000);
+        }, 500);
         
-        // Add simple wiggle animation to the flower
+        // Add simple wiggle animation to the entire flower
         setTimeout(() => {
             flowerContainer.animate([
                 { transform: 'scale(0.5) rotate(-2deg)' },
@@ -858,11 +847,13 @@ function createFlower(x, y) {
                 easing: 'ease-in-out'
             });
         }, 2000);
-    }, 300);
+    }, 500); // Start petals after stem has had time to grow
 
     // Add click interaction to make the flower burst with particles
     flowerContainer.addEventListener('click', () => {
         createFlowerBurst(x, y, petalColor);
+        event.stopPropagation();
+
         setTimeout(() => {
             flowerContainer.remove();
         }, 100);
