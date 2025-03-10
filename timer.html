@@ -232,7 +232,7 @@
         <circle cx="50" cy="50" r="35" fill="#ffe066"/>
         <circle cx="50" cy="50" r="25" fill="#fff3bf"/>
     </svg>
-    
+
     <script>
         let timer_length_seconds = 120;
 
@@ -311,6 +311,7 @@
         let svgObjects = [];
         let animationId;
         let base_object;
+        
 
         let cleanupStarfield = () => {};
 
@@ -510,8 +511,9 @@
 
             if (celebration_effect == "confetti") {
                 //--- confetti:
-                createConfetti();
-                document.addEventListener('click', createConfetti);
+                //createConfetti();
+                //document.addEventListener('click', createConfetti);
+                cleanupFlowerGarden = createFlowerGarden();
             } else if (celebration_effect == "fireworks") {
                 //--- fireworks:
                 launchMultipleFireworks();
@@ -535,8 +537,10 @@
                 //--- random svg objects:
                 createAllRandomImageObjects();
                 document.addEventListener('click', add1MoreSVGobject);
+            } else if (celebration_effect == "flowers") {
+                //--- flowers:
+                cleanupFlowerGarden = createFlowerGarden();
             }
-            
             
             /*
             // Other potential effects
@@ -609,6 +613,7 @@
 
             cleanupStarfield();
             
+            cleanupFlowerGarden();
         }
 
         startPauseBtn.addEventListener('click', toggleTimer);
