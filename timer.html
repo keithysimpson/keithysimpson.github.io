@@ -287,7 +287,7 @@
 
         const effectLookup = {
             'red': 'confetti',
-            'orange': 'fireworks',
+            'orange': 'flowers', //'fireworks',
             'yellow': 'stars',
             'green': 'rainbow',
             'blue': 'bubbles',
@@ -511,9 +511,9 @@
 
             if (celebration_effect == "confetti") {
                 //--- confetti:
-                //createConfetti();
-                //document.addEventListener('click', createConfetti);
-                cleanupFlowerGarden = createFlowerGarden();
+                createConfetti();
+                document.addEventListener('click', createConfetti);
+                //cleanupFlowerGarden = createFlowerGarden();
             } else if (celebration_effect == "fireworks") {
                 //--- fireworks:
                 launchMultipleFireworks();
