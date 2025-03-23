@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RT60 Room Reverberation Estimator</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .card {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .visualization {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        canvas {
+            width: 100%;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .results {
+            margin-top: 20px;
+            text-align: center;
+        }
+        #rt60Value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        .instructions {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #e9f7ef;
+            border-left: 4px solid #4CAF50;
+            border-radius: 4px;
+        }
+        .frequency-selector {
+            margin: 10px 0;
+        }
+        select {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        .status {
+            text-align: center;
+            font-style: italic;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>RT60 Room Reverberation Estimator</h1>
+    
+    <div class="container">
+        <div class="card instructions">
+            <h3>How to use:</h3>
+            <ol>
+                <li>Place your phone in the center of the room</li>
+                <li>Make sure the room is quiet</li>
+                <li>Select test frequency (or use pink noise)</li>
+                <li>Click "Run RT60 Test"</li>
+                <li>Stay quiet during the test (about 5 seconds)</li>
+                <li>Results will be displayed automatically</li>
+            </ol>
+        </div>
+        
+        <div class="card controls">
+            <div class="frequency-selector">
+                <label for="testSignal">Test signal:</label>
+                <select id="testSignal">
+                    <option value="pink">Pink Noise</option>
+                    <option value="125">125 Hz Tone</option>
+                    <option value="250">250 Hz Tone</option>
+                    <option value="500">500 Hz Tone</option>
+                    <option value="1000">1000 Hz Tone</option>
+                    <option value="2000">2000 Hz Tone</option>
+                    <option value="4000">4000 Hz Tone</option>
+                </select>
+            </div>
+            <button id="startButton">Run RT60 Test</button>
+            <button id="stopButton" disabled>Stop</button>
+            <p id="statusText" class="status">Ready</p>
+        </div>
+        
+        <div class="card visualization">
+            <h3>Audio Waveform</h3>
+            <canvas id="waveformCanvas" height="150"></canvas>
+            <h3>Decay Curve</h3>
+            <canvas id="decayCurveCanvas" height="200"></canvas>
+        </div>
+        
+        <div class="card results">
+            <h3>RT60 Result</h3>
+            <div id="rt60Value">--</div>
+            <p id="rt60Description">Run a test to get results</p>
+        </div>
+    </div>
+
+    <script>
+        // Audio context and variables
+        let audioContext;
+        let micStream;
+        let recorder;
+        let analyzers = {};
+        let isRecording = false;
+        let audioBuffer = null;
+        let testToneNode = null;
+        let noiseNode = null;
+        
+        // User interface elements
+        const startButton = document.getElementById('startButton');
+        const stopButton = document.getElementById('stopButton');
+        const statusText = document.getElementById('statusText');
+        const testSignalSelect = document.getElementById('testSignal');
+        const rt60Value = document.getElementById('rt60Value');
+        const rt60Description = document.getElementById('rt60Description');
+        const waveformCanvas = document.getElementById('waveformCanvas');
+        const decayCurveCanvas = document.getElementById('decayCurveCanvas');
+        const waveformCtx = waveformCanvas.getContext('2d');
+        const decayCurveCtx = decayCurveCanvas.getContext('2d');
+        
+        // Initialize application
+        async function initialize() {
+            try {
+                // Request audio context
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // Setup canvas sizes
+                setupCanvases();
+                
+                // Setup event listeners
+                startButton.addEventListener('click', startTest);
+                stopButton.addEventListener('click', stopTest);
+                
+                // Draw empty visualizations
+                drawEmptyWaveform();
+                drawEmptyDecayCurve();
+                
+                statusText.textContent = "Ready. Click 'Run RT60 Test' to begin.";
+            } catch (error) {
+                console.error("Error initializing app:", error);
+                statusText.textContent = "Error: " + error.message;
+            }
+        }
+        
+        // Setup canvas dimensions
+        function setupCanvases() {
+            const dpr = window.devicePixelRatio || 1;
+            
+            // Waveform canvas
+            waveformCanvas.width = waveformCanvas.offsetWidth * dpr;
+            waveformCanvas.height = waveformCanvas.offsetHeight * dpr;
+            waveformCtx.scale(dpr, dpr);
+            
+            // Decay curve canvas
+            decayCurveCanvas.width = decayCurveCanvas.offsetWidth * dpr;
+            decayCurveCanvas.height = decayCurveCanvas.offsetHeight * dpr;
+            decayCurveCtx.scale(dpr, dpr);
+        }
+        
+        // Start the RT60 test
+        async function startTest() {
+            try {
+                if (isRecording) return;
+                
+                // Reset UI
+                rt60Value.textContent = "--";
+                rt60Description.textContent = "Test in progress...";
+                startButton.disabled = true;
+                stopButton.disabled = false;
+                isRecording = true;
+                
+                // Resume audio context if suspended
+                if (audioContext.state === 'suspended') {
+                    await audioContext.resume();
+                }
+                
+                // Get microphone access
+                statusText.textContent = "Requesting microphone access...";
+                micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                // Create microphone source
+                const micSource = audioContext.createMediaStreamSource(micStream);
+                
+                // Setup analyzer for microphone input
+                const analyzer = audioContext.createAnalyser();
+                analyzer.fftSize = 2048;
+                micSource.connect(analyzer);
+                analyzers.mic = analyzer;
+                
+                // Setup recorder
+                const recordingLength = 5; // seconds
+                const sampleRate = audioContext.sampleRate;
+                const bufferSize = recordingLength * sampleRate;
+                let recordedData = new Float32Array(bufferSize);
+                let recordingPosition = 0;
+                
+                // Create script processor for recording
+                const processorNode = audioContext.createScriptProcessor(4096, 1, 1);
+                
+                processorNode.onaudioprocess = function(e) {
+                    if (!isRecording) return;
+                    
+                    const input = e.inputBuffer.getChannelData(0);
+                    
+                    // Copy input data to recording buffer
+                    if (recordingPosition + input.length <= recordedData.length) {
+                        recordedData.set(input, recordingPosition);
+                        recordingPosition += input.length;
+                        
+                        // Update status
+                        const progress = Math.min(100, Math.round((recordingPosition / recordedData.length) * 100));
+                        statusText.textContent = `Recording... ${progress}%`;
+                        
+                        // Visualize waveform
+                        drawWaveform(input);
+                    } else {
+                        // Recording complete
+                        stopRecording(recordedData, sampleRate);
+                    }
+                };
+                
+                micSource.connect(processorNode);
+                processorNode.connect(audioContext.destination);
+                
+                // Create and play test signal
+                const testSignal = testSignalSelect.value;
+                statusText.textContent = "Playing test signal...";
+                
+                // Set up a small delay before starting the test signal
+                setTimeout(() => {
+                    if (testSignal === 'pink') {
+                        playPinkNoise(0.5); // 0.5 seconds
+                    } else {
+                        const frequency = parseInt(testSignal);
+                        playTestTone(frequency, 0.5); // 0.5 seconds
+                    }
+                    
+                    // Update status
+                    statusText.textContent = "Recording room response...";
+                }, 500);
+                
+            } catch (error) {
+                console.error("Error starting test:", error);
+                statusText.textContent = "Error: " + error.message;
+                stopTest();
+            }
+        }
+        
+        // Generate and play a test tone
+        function playTestTone(frequency, duration) {
+            // Create oscillator
+            testToneNode = audioContext.createOscillator();
+            testToneNode.type = 'sine';
+            testToneNode.frequency.value = frequency;
+            
+            // Create gain node for envelope
+            const gainNode = audioContext.createGain();
+            gainNode.gain.value = 0;
+            
+            // Connect nodes
+            testToneNode.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            // Start oscillator
+            testToneNode.start();
+            
+            // Apply envelope
+            const now = audioContext.currentTime;
+            gainNode.gain.setValueAtTime(0, now);
+            gainNode.gain.linearRampToValueAtTime(0.7, now + 0.01); // Quick fade in
+            gainNode.gain.setValueAtTime(0.7, now + duration - 0.05);
+            gainNode.gain.linearRampToValueAtTime(0, now + duration); // Quick fade out
+            
+            // Stop oscillator after duration
+            testToneNode.stop(now + duration + 0.1);
+            
+            // Clean up
+            testToneNode.onended = function() {
+                testToneNode.disconnect();
+                gainNode.disconnect();
+                testToneNode = null;
+            };
+        }
+        
+        // Generate and play pink noise
+        function playPinkNoise(duration) {
+            // Create buffer for noise
+            const bufferSize = audioContext.sampleRate * duration;
+            const noiseBuffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+            const output = noiseBuffer.getChannelData(0);
+            
+            // Generate pink noise using Paul Kellet's method
+            let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+            
+            for (let i = 0; i < bufferSize; i++) {
+                // White noise
+                const white = Math.random() * 2 - 1;
+                
+                // Pink noise filter
+                b0 = 0.99886 * b0 + white * 0.0555179;
+                b1 = 0.99332 * b1 + white * 0.0750759;
+                b2 = 0.96900 * b2 + white * 0.1538520;
+                b3 = 0.86650 * b3 + white * 0.3104856;
+                b4 = 0.55000 * b4 + white * 0.5329522;
+                b5 = -0.7616 * b5 - white * 0.0168980;
+                
+                // Combine filter outputs
+                output[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
+                
+                // Scale to keep in range [-1, 1]
+                output[i] *= 0.11;
+            }
+            
+            // Create source node
+            noiseNode = audioContext.createBufferSource();
+            noiseNode.buffer = noiseBuffer;
+            
+            // Create gain node for envelope
+            const gainNode = audioContext.createGain();
+            gainNode.gain.value = 0;
+            
+            // Connect nodes
+            noiseNode.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            // Start noise
+            noiseNode.start();
+            
+            // Apply envelope
+            const now = audioContext.currentTime;
+            gainNode.gain.setValueAtTime(0, now);
+            gainNode.gain.linearRampToValueAtTime(0.7, now + 0.01); // Quick fade in
+            gainNode.gain.setValueAtTime(0.7, now + duration - 0.05);
+            gainNode.gain.linearRampToValueAtTime(0, now + duration); // Quick fade out
+            
+            // Stop noise after duration
+            noiseNode.stop(now + duration + 0.1);
+            
+            // Clean up
+            noiseNode.onended = function() {
+                noiseNode.disconnect();
+                gainNode.disconnect();
+                noiseNode = null;
+            };
+        }
+        
+        // Stop recording and process results
+        function stopRecording(recordedData, sampleRate) {
+            // Create audio buffer from recorded data
+            audioBuffer = audioContext.createBuffer(1, recordedData.length, sampleRate);
+            audioBuffer.getChannelData(0).set(recordedData);
+            
+            // Process the recorded audio for RT60
+            processRT60(audioBuffer);
+            
+            // Stop recording
+            isRecording = false;
+            statusText.textContent = "Analysis complete.";
+            stopTest();
+        }
+        
+        // Process audio to calculate RT60
+        function processRT60(buffer) {
+            // Get audio data
+            const audioData = buffer.getChannelData(0);
+            const sampleRate = buffer.sampleRate;
+            
+            // Calculate energy over time (using RMS in small windows)
+            const windowSize = Math.floor(sampleRate * 0.03); // 30ms windows
+            const numWindows = Math.floor(audioData.length / windowSize);
+            const energyProfile = [];
+            
+            for (let i = 0; i < numWindows; i++) {
+                let sum = 0;
+                const offset = i * windowSize;
+                
+                for (let j = 0; j < windowSize; j++) {
+                    if (offset + j < audioData.length) {
+                        // Square the sample (for energy)
+                        sum += audioData[offset + j] * audioData[offset + j];
+                    }
+                }
+                
+                // Calculate RMS for this window
+                const rms = Math.sqrt(sum / windowSize);
+                
+                // Convert to dB
+                const energy_db = 20 * Math.log10(Math.max(rms, 1e-10));
+                
+                energyProfile.push({
+                    time: i * (windowSize / sampleRate),
+                    energy: energy_db
+                });
+            }
+            
+            // Find the peak in the energy profile
+            let peakEnergy = -Infinity;
+            let peakIndex = 0;
+            
+            for (let i = 0; i < energyProfile.length; i++) {
+                if (energyProfile[i].energy > peakEnergy) {
+                    peakEnergy = energyProfile[i].energy;
+                    peakIndex = i;
+                }
+            }
+            
+            // Only consider the decay portion (after the peak)
+            const decayProfile = energyProfile.slice(peakIndex);
+            
+            // Normalize dB values relative to peak
+            for (let i = 0; i < decayProfile.length; i++) {
+                decayProfile[i].energy = decayProfile[i].energy - peakEnergy;
+            }
+            
+            // Find -5dB and -25dB points for RT60 calculation
+            // (Using -5dB to -25dB drop to avoid direct sound and noise floor)
+            let index5dB = null;
+            let index25dB = null;
+            
+            for (let i = 0; i < decayProfile.length; i++) {
+                if (index5dB === null && decayProfile[i].energy <= -5) {
+                    index5dB = i;
+                }
+                if (index25dB === null && decayProfile[i].energy <= -25) {
+                    index25dB = i;
+                    break;
+                }
+            }
+            
+            // Calculate RT60 value (extrapolating from -5dB to -25dB to get -60dB)
+            let rt60 = 0;
+            if (index5dB !== null && index25dB !== null) {
+                const time5dB = decayProfile[index5dB].time;
+                const time25dB = decayProfile[index25dB].time;
+                const timeFor20dBDecay = time25dB - time5dB;
+                rt60 = (timeFor20dBDecay / 20) * 60; // Scale to 60dB decay
+            } else {
+                // If we couldn't find the points, make an estimate based on available data
+                rt60 = estimateRT60FromDecay(decayProfile);
+            }
+            
+            // Display the result
+            if (rt60 > 0) {
+                rt60Value.textContent = rt60.toFixed(2) + "s";
+                
+                // Describe the acoustic characteristics
+                let description = "";
+                if (rt60 < 0.3) {
+                    description = "Very dry room, highly damped (like a recording studio)";
+                } else if (rt60 < 0.5) {
+                    description = "Well damped room, good for speech clarity";
+                } else if (rt60 < 0.8) {
+                    description = "Balanced acoustics, good for music and speech";
+                } else if (rt60 < 1.2) {
+                    description = "Live room, favorable for music";
+                } else if (rt60 < 2.0) {
+                    description = "Very reverberant space (like a concert hall)";
+                } else {
+                    description = "Extremely reverberant (like a cathedral)";
+                }
+                
+                rt60Description.textContent = description;
+            } else {
+                rt60Value.textContent = "Error";
+                rt60Description.textContent = "Could not calculate RT60. Try again in a quieter environment.";
+            }
+            
+            // Draw the decay curve
+            drawDecayCurve(decayProfile);
+        }
+        
+        // Estimate RT60 when standard points aren't available
+        function estimateRT60FromDecay(decayProfile) {
+            // Find the linear regression line for the decay
+            let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+            let n = 0;
+            
+            // Only use points that are below -3dB and above -40dB for better fit
+            const validPoints = decayProfile.filter(p => p.energy < -3 && p.energy > -40);
+            
+            if (validPoints.length < 10) {
+                return 0; // Not enough points for a good estimate
+            }
+            
+            n = validPoints.length;
+            
+            for (let i = 0; i < n; i++) {
+                sumX += validPoints[i].time;
+                sumY += validPoints[i].energy;
+                sumXY += validPoints[i].time * validPoints[i].energy;
+                sumX2 += validPoints[i].time * validPoints[i].time;
+            }
+            
+            // Calculate slope of regression line
+            const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+            
+            // Slope gives dB/second, so calculate how many seconds for -60dB
+            if (slope < 0) {
+                return Math.abs(60 / slope);
+            } else {
+                return 0; // Positive slope means no decay
+            }
+        }
+        
+        // Stop the RT60 test
+        function stopTest() {
+            // Stop recording
+            isRecording = false;
+            
+            // Stop test tone if playing
+            if (testToneNode) {
+                testToneNode.stop();
+                testToneNode = null;
+            }
+            
+            // Stop noise if playing
+            if (noiseNode) {
+                noiseNode.stop();
+                noiseNode = null;
+            }
+            
+            // Stop microphone
+            if (micStream) {
+                micStream.getTracks().forEach(track => track.stop());
+                micStream = null;
+            }
+            
+            // Reset UI
+            startButton.disabled = false;
+            stopButton.disabled = true;
+            
+            if (statusText.textContent === "Recording... 100%") {
+                statusText.textContent = "Processing results...";
+            } else if (!statusText.textContent.includes("Error") && !statusText.textContent.includes("Analysis complete")) {
+                statusText.textContent = "Test stopped.";
+            }
+        }
+        
+        // Draw the waveform visualization
+        function drawWaveform(data) {
+            const width = waveformCanvas.width;
+            const height = waveformCanvas.height;
+            const ctx = waveformCtx;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, width, height);
+            
+            // Set style
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#4CAF50';
+            
+            // Draw waveform
+            const sliceWidth = width / data.length;
+            let x = 0;
+            
+            ctx.beginPath();
+            ctx.moveTo(0, height / 2);
+            
+            for (let i = 0; i < data.length; i++) {
+                const y = (data[i] * height / 2) + (height / 2);
+                ctx.lineTo(x, y);
+                x += sliceWidth;
+            }
+            
+            ctx.lineTo(width, height / 2);
+            ctx.stroke();
+        }
+        
+        // Draw empty waveform
+        function drawEmptyWaveform() {
+            const width = waveformCanvas.width;
+            const height = waveformCanvas.height;
+            const ctx = waveformCtx;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, width, height);
+            
+            // Draw center line
+            ctx.beginPath();
+            ctx.moveTo(0, height / 2);
+            ctx.lineTo(width, height / 2);
+            ctx.strokeStyle = '#ddd';
+            ctx.stroke();
+            
+            // Text
+            ctx.font = '14px sans-serif';
+            ctx.fillStyle = '#999';
+            ctx.textAlign = 'center';
+            ctx.fillText('Waveform will appear here during recording', width / 2, height / 2 - 15);
+        }
+        
+        // Draw the decay curve
+        function drawDecayCurve(decayProfile) {
+            const width = decayCurveCanvas.width;
+            const height = decayCurveCanvas.height;
+            const ctx = decayCurveCtx;
+            const padding = 30; // Padding for labels
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, width, height);
+            
+            // If no data, show message
+            if (!decayProfile || decayProfile.length === 0) {
+                ctx.font = '14px sans-serif';
+                ctx.fillStyle = '#999';
+                ctx.textAlign = 'center';
+                ctx.fillText('Decay curve will appear here after testing', width / 2, height / 2);
+                return;
+            }
+            
+            // Calculate scale
+            const graphWidth = width - padding * 2;
+            const graphHeight = height - padding * 2;
+            
+            // Find max time
+            const maxTime = decayProfile[decayProfile.length - 1].time;
+            
+            // Draw axes
+            ctx.beginPath();
+            ctx.moveTo(padding, padding);
+            ctx.lineTo(padding, height - padding);
+            ctx.lineTo(width - padding, height - padding);
+            ctx.strokeStyle = '#666';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            
+            // Draw y-axis labels (dB)
+            ctx.font = '10px sans-serif';
+            ctx.fillStyle = '#666';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            
+            for (let db = 0; db >= -60; db -= 10) {
+                const y = padding + (graphHeight * Math.abs(db) / 60);
+                
+                ctx.beginPath();
+                ctx.moveTo(padding - 5, y);
+                ctx.lineTo(padding, y);
+                ctx.stroke();
+                
+                ctx.fillText(db + ' dB', padding - 8, y);
+            }
+            
+            // Draw x-axis labels (time)
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            
+            for (let t = 0; t <= maxTime; t += Math.max(0.5, Math.ceil(maxTime / 5))) {
+                const x = padding + (graphWidth * t / maxTime);
+                
+                ctx.beginPath();
+                ctx.moveTo(x, height - padding);
+                ctx.lineTo(x, height - padding + 5);
+                ctx.stroke();
+                
+                ctx.fillText(t.toFixed(1) + 's', x, height - padding + 8);
+            }
+            
+            // Draw decay curve
+            ctx.beginPath();
+            let firstPoint = true;
+            
+            for (let i = 0; i < decayProfile.length; i++) {
+                const point = decayProfile[i];
+                const x = padding + (graphWidth * point.time / maxTime);
+                const y = padding + (graphHeight * Math.min(60, Math.abs(point.energy)) / 60);
+                
+                if (firstPoint) {
+                    ctx.moveTo(x, y);
+                    firstPoint = false;
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            
+            ctx.strokeStyle = '#4CAF50';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Draw lines at -5dB and -25dB (RT60 calculation points)
+            ctx.beginPath();
+            ctx.moveTo(padding, padding + (graphHeight * 5 / 60));
+            ctx.lineTo(width - padding, padding + (graphHeight * 5 / 60));
+            ctx.moveTo(padding, padding + (graphHeight * 25 / 60));
+            ctx.lineTo(width - padding, padding + (graphHeight * 25 / 60));
+            ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Label the reference lines
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.7)';
+            ctx.textAlign = 'left';
+            ctx.fillText('-5 dB', padding + 5, padding + (graphHeight * 5 / 60) - 5);
+            ctx.fillText('-25 dB', padding + 5, padding + (graphHeight * 25 / 60) - 5);
+        }
+        
+        // Draw empty decay curve
+        function drawEmptyDecayCurve() {
+            const width = decayCurveCanvas.width;
+            const height = decayCurveCanvas.height;
+            const ctx = decayCurveCtx;
+            const padding = 30;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, width, height);
+            
+            // Draw axes
+            ctx.beginPath();
+            ctx.moveTo(padding, padding);
+            ctx.lineTo(padding, height - padding);
+            ctx.lineTo(width - padding, height - padding);
+            ctx.strokeStyle = '#ddd';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            
+            // Text
+            ctx.font = '14px sans-serif';
+            ctx.fillStyle = '#999';
+            ctx.textAlign = 'center';
+            ctx.fillText('Decay curve will appear here after testing', width / 2, height / 2);
+        }
+        
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            setupCanvases();
+            
+            if (audioBuffer) {
+                drawDecayCurve(audioBuffer.getChannelData(0));
+            } else {
+                drawEmptyWaveform();
+                drawEmptyDecayCurve();
+            }
+        });
+        
+        // Initialize on load
+        window.addEventListener('load', initialize);
+    </script>
+</body>
+</html>
