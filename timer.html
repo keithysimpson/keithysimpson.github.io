@@ -521,7 +521,12 @@
             if (celebration_effect == "confetti") {
                 //--- confetti:
                 createConfetti();
-                document.addEventListener('click', createConfetti);
+                //document.addEventListener('click', createConfetti);
+
+                document.addEventListener('click', (event) => {
+                    confettiBurst(event.clientX, event.clientY);
+                    createConfetti();
+                });
                 //cleanupFlowerGarden = createFlowerGarden();
             } else if (celebration_effect == "fireworks") {
                 //--- fireworks:
