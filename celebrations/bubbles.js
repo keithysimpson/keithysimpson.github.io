@@ -1,143 +1,195 @@
 //---- Bubbles -------------------------------------------------------
-function createBubbles() {
-    for (let i = 0; i < 20; i++) {
-        createBubble();
-    }
-}
+let activeBubbles = [];
+let bubbleAnimationFrame;
 
-function createBubble_0() {
-    const bubble = document.createElement('div');
-    bubble.classList.add('bubble');
+function createBubble(event) {
+    const x = event ? event.clientX : Math.random() * window.innerWidth;
+    const y = event ? event.clientY : Math.random() * window.innerHeight * 0.8 + window.innerHeight * 0.2;
     
-    const size = Math.random() * 90 + 20;
+    // Create bubble element
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    
+    // Random size 
+    const size = Math.random() * 90 + 50;
     bubble.style.width = `${size}px`;
     bubble.style.height = `${size}px`;
     
-    bubble.style.left = `${Math.random() * initial_width}px`;
-    bubble.style.top = `${Math.random() * initial_height * 0.8}px`;
+    // Set position
+    bubble.style.left = `${x - size/2}px`;
+    bubble.style.top = `${y - size/2}px`;
     
-    //const hue = Math.floor(Math.random() * 360);
-    //bubble.style.background = `radial-gradient(circle at 30% 30%, hsla(${hue}, 100%, 90%, 0.6), hsla(${hue}, 100%, 50%, 0.2))`;
-    //bubble.style.boxShadow = `2px 2px 5px hsla(${hue}, 100%, 80%, 0.3)`;
+    // Random light color with increased transparency
+    const hue = Math.floor(Math.random() * 360);
+    const saturation = Math.floor(Math.random() * 40) + 60; // 60-100%
+    const lightness = Math.floor(Math.random() * 20) + 70;  // 70-90%
+    bubble.style.backgroundColor = `hsla(${hue}, ${saturation}%, ${lightness}%, 0.2)`;
     
-    document.body.appendChild(bubble);
+    // Improved reflection effect using gradients
+    bubble.style.borderRadius = '50%';
+    bubble.style.border = '1px solid rgba(255, 255, 255, 0.3)';
+    bubble.style.background = `
+        radial-gradient(circle at 30% 30%, 
+            hsla(${hue}, ${saturation}%, ${lightness+10}%, 0.4) 0%, 
+            hsla(${hue}, ${saturation}%, ${lightness}%, 0.2) 40%, 
+            hsla(${hue}, ${saturation}%, ${lightness-10}%, 0.1) 100%)
+    `;
     
-    bubble.addEventListener('click', popBubble);
-    
-    animateBubble(bubble);
-}
-
-function createBubble() {
-    const bubble = document.createElement('div');
-    bubble.classList.add('bubble');
-    
-    const size = Math.random() * 70 + 20;
-    bubble.style.width = `${size}px`;
-    bubble.style.height = `${size}px`;
-    
-    //bubble.style.left = `${x}px`;
-    //bubble.style.top = `${y}px`;
-    
-    bubble.style.left = `${Math.random() * initial_width}px`;
-    bubble.style.top = `${Math.random() * initial_height * 0.8}px`;
-    
-    const hue = Math.floor(Math.random() * 360); // Random hue for each bubble
-    
-    // Create the main bubble gradient
-    bubble.style.background = `radial-gradient(circle at 30% 30%, 
-        hsla(${hue}, 100%, 80%, 0.4) 0%, 
-        hsla(${hue}, 100%, 70%, 0.2) 30%, 
-        hsla(${hue}, 100%, 60%, 0.1) 70%, 
-        hsla(${hue}, 100%, 50%, 0.05) 100%)`;
-    
-    // Add shadow effects
-    bubble.style.boxShadow = `
-        inset 0 0 20px hsla(${hue}, 100%, 80%, 0.2),
-        0 0 15px hsla(${hue}, 100%, 70%, 0.2)`;
-    
-    // Create highlight
+    // Add shine highlight
     const highlight = document.createElement('div');
     highlight.style.position = 'absolute';
-    highlight.style.top = '10%';
-    highlight.style.left = '15%';
-    highlight.style.width = '30%';
-    highlight.style.height = '30%';
-    highlight.style.background = `radial-gradient(circle at center, 
-        rgba(255, 255, 255, 0.6) 0%, 
-        hsla(${hue}, 100%, 90%, 0.1) 100%)`;
+    highlight.style.width = '40%';
+    highlight.style.height = '40%';
     highlight.style.borderRadius = '50%';
-    highlight.style.transform = 'rotate(-40deg)';
+    highlight.style.background = 'radial-gradient(circle at center, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.1) 60%, rgba(255,255,255,0) 100%)';
+    highlight.style.top = '20%';
+    highlight.style.left = '20%';
+    highlight.style.pointerEvents = 'none'; // Make sure it doesn't interfere with clicks
     
     bubble.appendChild(highlight);
+    
+    // Add to document and store reference
     document.body.appendChild(bubble);
     
-    bubble.addEventListener('click', popBubble);
+    // Add physics properties to bubble
+    const physics = {
+        x: parseFloat(bubble.style.left),
+        y: parseFloat(bubble.style.top),
+        // Random velocity between -0.8 and 0.8 px per frame
+        vx: (Math.random() - 0.5) * 1.6,
+        vy: (Math.random() - 0.5) * 1.6,
+        size: size
+    };
     
-    animateBubble(bubble);
+    // Store reference with physics data
+    bubble.physics = physics;
+    activeBubbles.push(bubble);
+    
+    // Add click event to pop the bubble
+    bubble.addEventListener('click', (event) => {
+        event.stopPropagation(); // Prevent the event from creating a new bubble
+        popBubble(bubble);
+    });
+    
+    return bubble;
 }
 
-function animateBubble(bubble) {
-    let x = parseFloat(bubble.style.left);
-    let y = parseFloat(bubble.style.top);
-    const maxX = initial_width - parseFloat(bubble.style.width);
-    const maxY = initial_height - parseFloat(bubble.style.height);
-
-    const speed = Math.random() * 0.5 + 0.1;
-    let dx = (Math.random() - 0.5) * speed;
-    let dy = Math.random() * speed + 0.1;
-
-    function move() {
-        x += dx;
-        y += dy;
-
-        if (x <= 0 || x >= maxX) dx = -dx;
-        if (y <= 0 || y >= maxY) dy = -dy;
-
-        bubble.style.left = `${x}px`;
-        bubble.style.top = `${y}px`;
-
-        if (document.body.contains(bubble)) {
-            requestAnimationFrame(move);
+function updateBubbles() {
+    // Calculate edges of screen accounting for bubble size
+    const leftEdge = 0;
+    const rightEdge = window.innerWidth;
+    const topEdge = 0;
+    const bottomEdge = window.innerHeight;
+    
+    for (let i = 0; i < activeBubbles.length; i++) {
+        const bubble = activeBubbles[i];
+        const physics = bubble.physics;
+        
+        // Update position based on velocity
+        physics.x += physics.vx;
+        physics.y += physics.vy;
+        
+        // Bounce off edges
+        if (physics.x - physics.size/2 < leftEdge) {
+            physics.x = leftEdge + physics.size/2;
+            physics.vx *= -0.9; // Slightly damped bounce
+        } else if (physics.x + physics.size/2 > rightEdge) {
+            physics.x = rightEdge - physics.size/2;
+            physics.vx *= -0.9;
         }
+        
+        if (physics.y - physics.size/2 < topEdge) {
+            physics.y = topEdge + physics.size/2;
+            physics.vy *= -0.9;
+        } else if (physics.y + physics.size/2 > bottomEdge) {
+            physics.y = bottomEdge - physics.size/2;
+            physics.vy *= -0.9;
+        }
+        
+        // Apply updated position to bubble
+        bubble.style.left = `${physics.x - physics.size/2}px`;
+        bubble.style.top = `${physics.y - physics.size/2}px`;
+        
+        // Optional: Very slight rotation for more natural movement
+        const angle = Math.atan2(physics.vy, physics.vx) * (180/Math.PI);
+        bubble.style.transform = `rotate(${angle * 0.2}deg)`;
     }
-
-    requestAnimationFrame(move);
+    
+    // Continue animation loop
+    bubbleAnimationFrame = requestAnimationFrame(updateBubbles);
 }
 
-function playBubblePopSound() {
-    if (!audioContext) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    }
+function popBubble(bubble) {
+    // Play pop sound effect with a random pitch
+    const frequency = 500 + Math.random() * 1000;
+    playDingSound([frequency], 1);
     
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
+    // Create popping animation
+    const popAnimation = bubble.animate([
+        { transform: 'scale(1)', opacity: 0.7 },
+        { transform: 'scale(1.4)', opacity: 0 }
+    ], {
+        duration: 300,
+        easing: 'ease-out',
+        fill: 'forwards'
+    });
     
-    const initial_freq = Math.random() * 3000 + 1000;
-    
-    // Use a higher frequency for the bubble pop
-    oscillator.type = 'saw';
-    oscillator.frequency.setValueAtTime(initial_freq, audioContext.currentTime);
-    oscillator.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.04);
-    
-    // Create a quick attack and decay
-    gainNode.gain.setValueAtTime(1, audioContext.currentTime);
-    gainNode.gain.linearRampToValueAtTime(1, audioContext.currentTime + 0.001);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + 0.02);
+    // Remove bubble after animation
+    popAnimation.onfinish = () => {
+        removeBubbleFromArray(bubble);
+        bubble.remove();
+    };
 }
 
-function popBubble(event) {
-    playBubblePopSound();
-    event.target.remove();
-    event.stopPropagation();
+function removeBubbleFromArray(bubble) {
+    const index = activeBubbles.indexOf(bubble);
+    if (index > -1) {
+        activeBubbles.splice(index, 1);
+    }
 }
 
 function removeAllBubbles() {
-    const bubbles = document.querySelectorAll('.bubble');
-    bubbles.forEach(bubble => bubble.remove());
+    // Cancel animation loop
+    if (bubbleAnimationFrame) {
+        cancelAnimationFrame(bubbleAnimationFrame);
+        bubbleAnimationFrame = null;
+    }
+    
+    // Clear any generation intervals
+    if (window.bubbleGenerationInterval) {
+        clearInterval(window.bubbleGenerationInterval);
+        window.bubbleGenerationInterval = null;
+    }
+    
+    // Remove all bubble elements
+    activeBubbles.forEach(bubble => {
+        bubble.remove();
+    });
+    activeBubbles = [];
+}
+
+function createBubbles() {
+    // Create initial batch of bubbles
+    const bubbleCount = 10;
+    for (let i = 0; i < bubbleCount; i++) {
+        setTimeout(() => {
+            createBubble();
+        }, i * 100); // Stagger bubble creation
+    }
+    
+    // Start bubble animation loop
+    bubbleAnimationFrame = requestAnimationFrame(updateBubbles);
+    
+    // Set up click handler to create bubbles when user clicks
+    document.addEventListener('click', (event) => {
+        // Only create a bubble if the click wasn't on an existing bubble
+        // (bubble clicks are already handled with stopPropagation)
+        createBubble(event);
+    });
+    
+    // Return cleanup function
+    return () => {
+        removeAllBubbles();
+        document.removeEventListener('click', createBubble);
+    };
 }
