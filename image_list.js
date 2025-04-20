@@ -144,7 +144,8 @@ const dated_image_list = [
     {date: '2024-12-25', time_of_day: "morning", url: 'images/christmas-gift-presents-svgrepo-com.svg', color: 1},
     {date: '2024-12-25', time_of_day: "afternoon", url: 'images/christmas-clous-santa-svgrepo-com.svg', color: 1},
     
-    
+    // easter
+    {date: '2025-04-20', time_of_day: "morning", url: 'images/easter.gif', color: 1},
 ];
 
 
