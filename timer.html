@@ -246,7 +246,7 @@
     <script>
         let timer_length_seconds = 120;
 
-        const debug_mode = true;
+        const debug_mode = false;
         if (debug_mode) {
             timer_length_seconds = 2;
             // add a note on screen to show we are in debug mode
@@ -628,11 +628,15 @@
             cancelAnimationFrame(animationId);
             document.removeEventListener('click', add1MoreSVGobject);
 
-
-            cleanupStarfield();
-            
-            cleanupFlowerGarden();
-            
+            // if cleanupStarfield exists then call it 
+            if (typeof cleanupStarfield === 'function') {
+                cleanupStarfield();
+            }
+            // if cleanupFlowerGarden exists then call it
+            if (typeof cleanupFlowerGarden === 'function') {
+                cleanupFlowerGarden();
+            }            
+                        
             if (typeof cleanupNumbers === 'function') {
                 cleanupNumbers();
             }

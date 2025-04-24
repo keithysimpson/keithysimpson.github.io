@@ -19,7 +19,7 @@ function createNumberCelebration() {
         width: 50px;
         height: 50px;
         border-radius: 50%;
-        background-color: ${numbersMode === 'addition' ? '#00aa00' : '#007bff'};
+        background-color: ${numbersMode === 'addition' ? '#00aa00' : '#888888'};
         color: white;
         display: flex;
         align-items: center;
@@ -28,6 +28,8 @@ function createNumberCelebration() {
         cursor: pointer;
         z-index: 1000;
         box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        transform: ${numbersMode === 'addition' ? 'scale(1.2)' : 'scale(1)'};
+        transition: transform 0.2s, background-color 0.2s;
     `;
     
     const multiplyButton = document.createElement('div');
@@ -41,7 +43,7 @@ function createNumberCelebration() {
         width: 50px;
         height: 50px;
         border-radius: 50%;
-        background-color: ${numbersMode === 'multiplication' ? '#00aa00' : '#007bff'};
+        background-color: ${numbersMode === 'multiplication' ? '#00aa00' : '#888888'};
         color: white;
         display: flex;
         align-items: center;
@@ -50,6 +52,8 @@ function createNumberCelebration() {
         cursor: pointer;
         z-index: 1000;
         box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        transform: ${numbersMode === 'multiplication' ? 'scale(1.2)' : 'scale(1)'};
+        transition: transform 0.2s, background-color 0.2s;
     `;
     
     document.body.appendChild(addButton);
@@ -76,6 +80,7 @@ function createNumberCelebration() {
     
     // Return cleanup function
     return function() {
+        // Set flag to inactive first to prevent new elements from being created
         numbersActive = false;
         
         // Remove all number elements
@@ -86,12 +91,18 @@ function createNumberCelebration() {
         });
         numberElements = [];
         
-        // Remove mode buttons
-        if (addButton.parentNode) addButton.parentNode.removeChild(addButton);
-        if (multiplyButton.parentNode) multiplyButton.parentNode.removeChild(multiplyButton);
+        // Remove mode buttons - use getElementById to make sure we get them
+        const addBtn = document.getElementById('add-mode-button');
+        const multBtn = document.getElementById('multiply-mode-button');
         
-        // Remove event listener
+        if (addBtn) addBtn.parentNode.removeChild(addBtn);
+        if (multBtn) multBtn.parentNode.removeChild(multBtn);
+        
+        // Remove event listener for clicks
         document.removeEventListener('click', handleNumberClick);
+        
+        // Reset mode to default for next time
+        numbersMode = 'addition';
     };
 }
 
@@ -103,15 +114,28 @@ function setNumbersMode(mode) {
     const multiplyButton = document.getElementById('multiply-mode-button');
     
     if (addButton && multiplyButton) {
-        addButton.style.backgroundColor = mode === 'addition' ? '#00aa00' : '#007bff';
-        multiplyButton.style.backgroundColor = mode === 'multiplication' ? '#00aa00' : '#007bff';
+        // Update addition button styling
+        addButton.style.backgroundColor = mode === 'addition' ? '#00aa00' : '#888888';
+        addButton.style.transform = mode === 'addition' ? 'scale(1.2)' : 'scale(1)';
+        
+        // Update multiplication button styling
+        multiplyButton.style.backgroundColor = mode === 'multiplication' ? '#00aa00' : '#888888';
+        multiplyButton.style.transform = mode === 'multiplication' ? 'scale(1.2)' : 'scale(1)';
     }
     
     // Play a sound when switching modes
     playDingSound(mode === 'addition' ? 880 : 660, 1);
 }
 
+// Helper function to format numbers with commas
+function formatNumberWithCommas(number) {
+    return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
 function handleNumberClick(event) {
+    // First check if we're still active - this prevents adding numbers after cleanup
+    if (!numbersActive) return;
+    
     // Don't create a number if we clicked on an existing number or button
     if (event.target.classList.contains('number') || 
         event.target.classList.contains('mode-button')) {
@@ -130,7 +154,7 @@ function createRandomNumber(x, y) {
     const posY = y || Math.random() * (window.innerHeight - 100);
     
     numberElement.className = 'number';
-    numberElement.textContent = number.toString();
+    numberElement.textContent = formatNumberWithCommas(number);
     numberElement.dataset.value = number;
     
     // Generate a random hue for each number
@@ -314,7 +338,7 @@ function createNumberWithValue(value, x, y) {
     const numberElement = document.createElement('div');
     
     numberElement.className = 'number';
-    numberElement.textContent = value.toString();
+    numberElement.textContent = formatNumberWithCommas(value);
     numberElement.dataset.value = value;
     
     // Use value to determine color (higher numbers are more vibrant)
@@ -323,7 +347,7 @@ function createNumberWithValue(value, x, y) {
     const lightness = Math.max(30, 60 - value/3);
     
     // Adjust size based on value
-    const size = Math.min(120, 60 + value/2);
+    const size = Math.min(200, 60 + value/2);
     
     numberElement.style.cssText = `
         position: absolute;
