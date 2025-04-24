@@ -221,6 +221,7 @@
     <script src="celebrations/rainbow.js?v=<?= time(); ?>"></script>
     <script src="celebrations/snow.js?v=<?= time(); ?>"></script>
     <script src="celebrations/starfield.js?v=<?= time(); ?>"></script>
+    <script src="celebrations/numbers.js?v=<?= time(); ?>"></script>
         
     <script src="celebrations/random_objects.js?v=<?= time(); ?>"></script>
 
@@ -245,7 +246,7 @@
     <script>
         let timer_length_seconds = 120;
 
-        const debug_mode = false;
+        const debug_mode = true;
         if (debug_mode) {
             timer_length_seconds = 2;
             // add a note on screen to show we are in debug mode
@@ -299,7 +300,7 @@
             'orange': 'flowers', //'fireworks',
             'yellow': 'stars',
             'green': 'rainbow',
-            'blue': 'bubbles',
+            'blue': 'numbers',
             'purple': '???'
         };
 
@@ -554,6 +555,9 @@
             } else if (celebration_effect == "flowers") {
                 //--- flowers:
                 cleanupFlowerGarden = createFlowerGarden();
+            } else if (celebration_effect == "numbers") {
+                //--- numbers:
+                cleanupNumbers = createNumberCelebration();
             }
             
             /*
@@ -628,6 +632,10 @@
             cleanupStarfield();
             
             cleanupFlowerGarden();
+            
+            if (typeof cleanupNumbers === 'function') {
+                cleanupNumbers();
+            }
         }
 
         startPauseBtn.addEventListener('click', toggleTimer);
