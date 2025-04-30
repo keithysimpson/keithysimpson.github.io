@@ -1,5 +1,5 @@
 let numbersActive = false;
-let numbersMode = 'addition'; // 'addition' or 'multiplication'
+let numbersMode = 'addition'; // 'addition', 'subtraction', 'multiplication', or 'division'
 let numberElements = [];
 let cleanupNumbers = () => {};
 
@@ -32,6 +32,31 @@ function createNumberCelebration() {
         transition: transform 0.2s, background-color 0.2s;
     `;
     
+    // Add subtract button
+    const subtractButton = document.createElement('div');
+    subtractButton.className = 'mode-button';
+    subtractButton.id = 'subtract-mode-button';
+    subtractButton.innerHTML = '-';
+    subtractButton.style.cssText = `
+        position: fixed;
+        bottom: 80px;
+        left: 20px;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background-color: ${numbersMode === 'subtraction' ? '#00aa00' : '#888888'};
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        cursor: pointer;
+        z-index: 1000;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        transform: ${numbersMode === 'subtraction' ? 'scale(1.2)' : 'scale(1)'};
+        transition: transform 0.2s, background-color 0.2s;
+    `;
+    
     const multiplyButton = document.createElement('div');
     multiplyButton.className = 'mode-button';
     multiplyButton.id = 'multiply-mode-button';
@@ -56,8 +81,35 @@ function createNumberCelebration() {
         transition: transform 0.2s, background-color 0.2s;
     `;
     
+    // Add divide button
+    const divideButton = document.createElement('div');
+    divideButton.className = 'mode-button';
+    divideButton.id = 'divide-mode-button';
+    divideButton.innerHTML = '÷';
+    divideButton.style.cssText = `
+        position: fixed;
+        bottom: 80px;
+        right: 20px;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background-color: ${numbersMode === 'division' ? '#00aa00' : '#888888'};
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        cursor: pointer;
+        z-index: 1000;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        transform: ${numbersMode === 'division' ? 'scale(1.2)' : 'scale(1)'};
+        transition: transform 0.2s, background-color 0.2s;
+    `;
+    
     document.body.appendChild(addButton);
+    document.body.appendChild(subtractButton);
     document.body.appendChild(multiplyButton);
+    document.body.appendChild(divideButton);
     
     // Create some initial numbers
     for (let i = 0; i < 8; i++) {
@@ -73,8 +125,18 @@ function createNumberCelebration() {
         e.stopPropagation(); // Prevent creating a new number
     });
     
+    subtractButton.addEventListener('click', (e) => {
+        setNumbersMode('subtraction');
+        e.stopPropagation(); // Prevent creating a new number
+    });
+    
     multiplyButton.addEventListener('click', (e) => {
         setNumbersMode('multiplication');
+        e.stopPropagation(); // Prevent creating a new number
+    });
+    
+    divideButton.addEventListener('click', (e) => {
+        setNumbersMode('division');
         e.stopPropagation(); // Prevent creating a new number
     });
     
@@ -93,10 +155,14 @@ function createNumberCelebration() {
         
         // Remove mode buttons - use getElementById to make sure we get them
         const addBtn = document.getElementById('add-mode-button');
+        const subtractBtn = document.getElementById('subtract-mode-button');
         const multBtn = document.getElementById('multiply-mode-button');
+        const divideBtn = document.getElementById('divide-mode-button');
         
         if (addBtn) addBtn.parentNode.removeChild(addBtn);
+        if (subtractBtn) subtractBtn.parentNode.removeChild(subtractBtn);
         if (multBtn) multBtn.parentNode.removeChild(multBtn);
+        if (divideBtn) divideBtn.parentNode.removeChild(divideBtn);
         
         // Remove event listener for clicks
         document.removeEventListener('click', handleNumberClick);
@@ -111,24 +177,44 @@ function setNumbersMode(mode) {
     
     // Update button colors
     const addButton = document.getElementById('add-mode-button');
+    const subtractButton = document.getElementById('subtract-mode-button');
     const multiplyButton = document.getElementById('multiply-mode-button');
+    const divideButton = document.getElementById('divide-mode-button');
     
-    if (addButton && multiplyButton) {
+    if (addButton && subtractButton && multiplyButton && divideButton) {
         // Update addition button styling
         addButton.style.backgroundColor = mode === 'addition' ? '#00aa00' : '#888888';
         addButton.style.transform = mode === 'addition' ? 'scale(1.2)' : 'scale(1)';
         
+        // Update subtraction button styling
+        subtractButton.style.backgroundColor = mode === 'subtraction' ? '#00aa00' : '#888888';
+        subtractButton.style.transform = mode === 'subtraction' ? 'scale(1.2)' : 'scale(1)';
+        
         // Update multiplication button styling
         multiplyButton.style.backgroundColor = mode === 'multiplication' ? '#00aa00' : '#888888';
         multiplyButton.style.transform = mode === 'multiplication' ? 'scale(1.2)' : 'scale(1)';
+        
+        // Update division button styling
+        divideButton.style.backgroundColor = mode === 'division' ? '#00aa00' : '#888888';
+        divideButton.style.transform = mode === 'division' ? 'scale(1.2)' : 'scale(1)';
     }
     
     // Play a sound when switching modes
-    playDingSound(mode === 'addition' ? 880 : 660, 1);
+    const frequencies = {
+        addition: 880,
+        subtraction: 770,
+        multiplication: 660,
+        division: 550
+    };
+    playDingSound(frequencies[mode] || 440, 1);
 }
 
 // Helper function to format numbers with commas
 function formatNumberWithCommas(number) {
+    // Round decimal values to 3 places
+    if (Number.isFinite(number) && !Number.isInteger(number)) {
+        number = parseFloat(number.toFixed(3));
+    }
     return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
@@ -292,15 +378,32 @@ function checkNumberOverlap(draggedElement, x, y) {
 
 function mergeNumbers(element1, element2) {
     // Get the values of both elements
-    const value1 = parseInt(element1.dataset.value);
-    const value2 = parseInt(element2.dataset.value);
+    const value1 = parseFloat(element1.dataset.value);
+    const value2 = parseFloat(element2.dataset.value);
     
     // Calculate the new value based on the current mode
     let newValue;
     if (numbersMode === 'addition') {
         newValue = value1 + value2;
-    } else { // multiplication mode
+    } else if (numbersMode === 'subtraction') {
+        newValue = value2 - value1;
+    } else if (numbersMode === 'multiplication') {
         newValue = value1 * value2;
+    } else { // division mode
+        // Prevent division by zero
+        if (value2 === 0) {
+            // Create an error animation on element2
+            element2.animate([
+                { transform: 'scale(1)', backgroundColor: 'red' },
+                { transform: 'scale(1.2)', backgroundColor: 'red' },
+                { transform: 'scale(1)', backgroundColor: element2.style.backgroundColor }
+            ], {
+                duration: 300,
+                easing: 'ease-out'
+            });
+            return; // Exit without merging
+        }
+        newValue = value2 / value1;
     }
     
     // Animation effect before merging
@@ -308,7 +411,13 @@ function mergeNumbers(element1, element2) {
     element2.style.transform = 'scale(1.2)';
     
     // Play a sound based on the operation
-    const baseFreq = numbersMode === 'addition' ? 440 : 330;
+    const baseFrequencies = {
+        addition: 440,
+        subtraction: 400,
+        multiplication: 330,
+        division: 300
+    };
+    const baseFreq = baseFrequencies[numbersMode] || 440;
     playDingSound([baseFreq, baseFreq * 1.2, baseFreq * 1.5], 3, 0.1);
     
     setTimeout(() => {
@@ -326,9 +435,9 @@ function mergeNumbers(element1, element2) {
         const newElement = createNumberWithValue(newValue, x, y);
         
         // Special effects for milestone numbers
-        if (newValue > 50) {
+        if (Math.abs(newValue) > 50) {
             launchFirework(x, y, 1000);
-        } else if (newValue > 25) {
+        } else if (Math.abs(newValue) > 25) {
             confettiBurst(x, y);
         }
     }, 200);
