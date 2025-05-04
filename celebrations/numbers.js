@@ -451,9 +451,9 @@ function createNumberWithValue(value, x, y) {
     numberElement.dataset.value = value;
     
     // Use value to determine color (higher numbers are more vibrant)
-    const hue = (value * 30) % 360;
-    const saturation = Math.min(100, 60 + value);
-    const lightness = Math.max(30, 60 - value/3);
+    const hue = (Math.abs(value) * 30) % 360;
+    const saturation = Math.min(100, 60 + Math.abs(value));
+    const lightness = Math.max(30, 60 - Math.abs(value)/3);
     
     // Adjust size based on value
     const size = Math.min(200, 60 + Math.abs(value)/2);
@@ -477,7 +477,9 @@ function createNumberWithValue(value, x, y) {
         box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         transform: scale(0);
         z-index: 100;
+        ${value < 0 ? 'border: 2px dashed white;' : ''}
     `;
+
     
     document.body.appendChild(numberElement);
     
