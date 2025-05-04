@@ -456,7 +456,7 @@ function createNumberWithValue(value, x, y) {
     const lightness = Math.max(30, 60 - value/3);
     
     // Adjust size based on value
-    const size = Math.min(200, 60 + value/2);
+    const size = Math.min(200, 60 + Math.abs(value)/2);
     
     numberElement.style.cssText = `
         position: absolute;
@@ -470,7 +470,7 @@ function createNumberWithValue(value, x, y) {
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: ${Math.min(28, 18 + value/10)}px;
+        font-size: ${Math.min(28, 18 + Math.abs(value)/10)}px;
         font-weight: bold;
         cursor: move;
         user-select: none;
