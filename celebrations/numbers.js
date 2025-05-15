@@ -1,5 +1,11 @@
+// Numbers Celebration
+// This file contains the code for a numbers celebration where users can create, drag, and merge numbers.
+// The numbers can be added, subtracted, multiplied, or divided based on the selected mode.
+// The numbers are displayed in colorful circles, and the user can click to create new numbers.
+// The numbers can be merged by dragging them close to each other
+
 let numbersActive = false;
-let numbersMode = 'addition'; // 'addition', 'subtraction', 'multiplication', or 'division'
+let numbersMode = 'addition'; // 'addition', 'subtraction', 'multiplication', 'division', or 'doubling'
 let numberElements = [];
 let cleanupNumbers = () => {};
 
@@ -56,7 +62,32 @@ function createNumberCelebration() {
         transform: ${numbersMode === 'subtraction' ? 'scale(1.2)' : 'scale(1)'};
         transition: transform 0.2s, background-color 0.2s;
     `;
-    
+
+    // Add doubling button (above multiply/divide on right)
+    const doublingButton = document.createElement('div');
+    doublingButton.className = 'mode-button';
+    doublingButton.id = 'doubling-mode-button';
+    doublingButton.innerHTML = '2×';
+    doublingButton.style.cssText = `
+        position: fixed;
+        bottom: 160px;
+        right: 20px;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background-color: ${numbersMode === 'doubling' ? '#00aa00' : '#888888'};
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        cursor: pointer;
+        z-index: 1000;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        transform: ${numbersMode === 'doubling' ? 'scale(1.2)' : 'scale(1)'};
+        transition: transform 0.2s, background-color 0.2s;
+    `;
+
     const multiplyButton = document.createElement('div');
     multiplyButton.className = 'mode-button';
     multiplyButton.id = 'multiply-mode-button';
@@ -110,10 +141,20 @@ function createNumberCelebration() {
     document.body.appendChild(subtractButton);
     document.body.appendChild(multiplyButton);
     document.body.appendChild(divideButton);
+    document.body.appendChild(doublingButton);
     
     // Create some initial numbers
-    for (let i = 0; i < 8; i++) {
-        createRandomNumber();
+    if (numbersMode === 'doubling') {
+        for (let i = 0; i < 8; i++) {
+            // Use random positions for each 1
+            const posX = Math.random() * (window.innerWidth - 100);
+            const posY = Math.random() * (window.innerHeight - 100);
+            createNumberWithValue(1, posX, posY);
+        }
+    } else {
+        for (let i = 0; i < 8; i++) {
+            createRandomNumber();
+        }
     }
     
     // Add event listener for clicks to create new numbers
@@ -139,6 +180,11 @@ function createNumberCelebration() {
         setNumbersMode('division');
         e.stopPropagation(); // Prevent creating a new number
     });
+
+    doublingButton.addEventListener('click', (e) => {
+        setNumbersMode('doubling');
+        e.stopPropagation();
+    });
     
     // Return cleanup function
     return function() {
@@ -158,11 +204,13 @@ function createNumberCelebration() {
         const subtractBtn = document.getElementById('subtract-mode-button');
         const multBtn = document.getElementById('multiply-mode-button');
         const divideBtn = document.getElementById('divide-mode-button');
+        const doublingBtn = document.getElementById('doubling-mode-button');
         
         if (addBtn) addBtn.parentNode.removeChild(addBtn);
         if (subtractBtn) subtractBtn.parentNode.removeChild(subtractBtn);
         if (multBtn) multBtn.parentNode.removeChild(multBtn);
         if (divideBtn) divideBtn.parentNode.removeChild(divideBtn);
+        if (doublingBtn) doublingBtn.parentNode.removeChild(doublingBtn);
         
         // Remove event listener for clicks
         document.removeEventListener('click', handleNumberClick);
@@ -173,6 +221,13 @@ function createNumberCelebration() {
 }
 
 function setNumbersMode(mode) {
+    // Remove all numbers from the screen when switching modes
+    numberElements.forEach(el => {
+        if (el && el.parentNode) {
+            el.parentNode.removeChild(el);
+        }
+    });
+    numberElements = [];
     numbersMode = mode;
     
     // Update button colors
@@ -180,8 +235,9 @@ function setNumbersMode(mode) {
     const subtractButton = document.getElementById('subtract-mode-button');
     const multiplyButton = document.getElementById('multiply-mode-button');
     const divideButton = document.getElementById('divide-mode-button');
+    const doublingButton = document.getElementById('doubling-mode-button');
     
-    if (addButton && subtractButton && multiplyButton && divideButton) {
+    if (addButton && subtractButton && multiplyButton && divideButton && doublingButton) {
         // Update addition button styling
         addButton.style.backgroundColor = mode === 'addition' ? '#00aa00' : '#888888';
         addButton.style.transform = mode === 'addition' ? 'scale(1.2)' : 'scale(1)';
@@ -197,6 +253,10 @@ function setNumbersMode(mode) {
         // Update division button styling
         divideButton.style.backgroundColor = mode === 'division' ? '#00aa00' : '#888888';
         divideButton.style.transform = mode === 'division' ? 'scale(1.2)' : 'scale(1)';
+
+        // Update doubling button styling
+        doublingButton.style.backgroundColor = mode === 'doubling' ? '#00aa00' : '#888888';
+        doublingButton.style.transform = mode === 'doubling' ? 'scale(1.2)' : 'scale(1)';
     }
     
     // Play a sound when switching modes
@@ -204,9 +264,25 @@ function setNumbersMode(mode) {
         addition: 880,
         subtraction: 770,
         multiplication: 660,
-        division: 550
+        division: 550,
+        doubling: 990
     };
     playDingSound(frequencies[mode] || 440, 1);
+
+    // When switching to doubling mode, add only 1s
+    if (mode === 'doubling') {
+        for (let i = 0; i < 8; i++) {
+            // Use random positions for each 1
+            const posX = Math.random() * (window.innerWidth - 100);
+            const posY = Math.random() * (window.innerHeight - 100);
+            createNumberWithValue(1, posX, posY);
+        }
+    } else {
+        // When switching away from doubling, add random numbers
+        for (let i = 0; i < 8; i++) {
+            createRandomNumber();
+        }
+    }
 }
 
 // Helper function to format numbers with commas
@@ -228,7 +304,11 @@ function handleNumberClick(event) {
         return;
     }
     
-    createRandomNumber(event.clientX, event.clientY);
+    if (numbersMode === 'doubling') {
+        createNumberWithValue(1, event.clientX, event.clientY);
+    } else {
+        createRandomNumber(event.clientX, event.clientY);
+    }
 }
 
 function createRandomNumber(x, y) {
@@ -358,10 +438,10 @@ function makeNumberDraggable(element) {
 
 function checkNumberOverlap(draggedElement, x, y) {
     const draggedRect = draggedElement.getBoundingClientRect();
-    
+    let merged = false;
     numberElements.forEach(targetElement => {
         if (targetElement === draggedElement) return;
-        
+        if (merged) return; // Only allow one merge per drag
         const targetRect = targetElement.getBoundingClientRect();
         
         // Calculate distance between centers
@@ -372,6 +452,7 @@ function checkNumberOverlap(draggedElement, x, y) {
         // If centers are close enough, merge the numbers
         if (distance < 40) {
             mergeNumbers(draggedElement, targetElement);
+            merged = true;
         }
     });
 }
@@ -381,6 +462,47 @@ function mergeNumbers(element1, element2) {
     const value1 = parseFloat(element1.dataset.value);
     const value2 = parseFloat(element2.dataset.value);
     
+    // Doubling mode logic
+    if (numbersMode === 'doubling') {
+        if (value1 === value2) {
+            const newValue = value1 * 2;
+            // Animation effect before merging
+            element1.style.transform = 'scale(1.2)';
+            element2.style.transform = 'scale(1.2)';
+            playDingSound([660, 880], 2, 0.1);
+            setTimeout(() => {
+                // Get the position of the second element (target)
+                const rect = element2.getBoundingClientRect();
+                const x = rect.left + rect.width/2;
+                const y = rect.top + rect.height/2;
+                // Remove both elements from the DOM and the array
+                numberElements = numberElements.filter(el => el !== element1 && el !== element2);
+                element1.parentNode.removeChild(element1);
+                element2.parentNode.removeChild(element2);
+                // Create a new element with the doubled value
+                const newElement = createNumberWithValue(newValue, x, y);
+                // Special effects for milestone numbers
+                if (Math.abs(newValue) > 50) {
+                    launchFirework(x, y, 1000);
+                } else if (Math.abs(newValue) > 25) {
+                    confettiBurst(x, y);
+                }
+            }, 200);
+        } else {
+            // Error chime and shake animation
+            playDingSound(220, 1, 0.15);
+            element2.animate([
+                { transform: 'scale(1)', backgroundColor: element2.style.backgroundColor },
+                { transform: 'scale(1.1) translateX(-10px)', backgroundColor: '#ff3333' },
+                { transform: 'scale(1.1) translateX(10px)', backgroundColor: '#ff3333' },
+                { transform: 'scale(1)', backgroundColor: element2.style.backgroundColor }
+            ], {
+                duration: 300,
+                easing: 'ease-out'
+            });
+        }
+        return;
+    }
     // Calculate the new value based on the current mode
     let newValue;
     if (numbersMode === 'addition') {
