@@ -126,6 +126,10 @@
                     <option value="4000">4000 Hz Tone</option>
                 </select>
             </div>
+            <div class="run-count-selector" style="margin: 10px 0;">
+                <label for="runCount">Number of runs:</label>
+                <input type="number" id="runCount" value="1" min="1" max="10" style="padding: 8px; border-radius: 4px; border: 1px solid #ddd; width: 60px;">
+            </div>
             <button id="startButton">Run RT60 Test</button>
             <button id="stopButton" disabled>Stop</button>
             <p id="statusText" class="status">Ready</p>
@@ -139,9 +143,14 @@
         </div>
         
         <div class="card results">
-            <h3>RT60 Result</h3>
+            <h3>RT60 Results</h3>
             <div id="rt60Value">--</div>
             <p id="rt60Description">Run a test to get results</p>
+            <div id="multiRunResults" style="margin-top: 15px; text-align: left; max-height: 150px; overflow-y: auto; background-color: #eee; padding: 10px; border-radius: 4px; display: none;">
+                <h4>Individual Runs:</h4>
+                <ul id="individualResultsList" style="list-style: none; padding: 0;"></ul>
+                <p><strong>Average RT60: <span id="averageRt60Value">--</span></strong></p>
+            </div>
         </div>
     </div>
 
@@ -149,20 +158,30 @@
         // Audio context and variables
         let audioContext;
         let micStream;
-        let recorder;
+        let recorder; // Note: recorder variable is declared but not used. Consider removing.
         let analyzers = {};
         let isRecording = false;
         let audioBuffer = null;
         let testToneNode = null;
         let noiseNode = null;
+        let micSource = null; // Make global for cleanup
+        let processorNode = null; // Make global for cleanup
+        let currentRun = 0;
+        let totalRuns = 1;
+        let allRt60Results = [];
+        let stopRequested = false; // Flag to stop multi-run sequence
         
         // User interface elements
         const startButton = document.getElementById('startButton');
         const stopButton = document.getElementById('stopButton');
         const statusText = document.getElementById('statusText');
         const testSignalSelect = document.getElementById('testSignal');
+        const runCountInput = document.getElementById('runCount');
         const rt60Value = document.getElementById('rt60Value');
         const rt60Description = document.getElementById('rt60Description');
+        const multiRunResultsDiv = document.getElementById('multiRunResults');
+        const individualResultsList = document.getElementById('individualResultsList');
+        const averageRt60ValueSpan = document.getElementById('averageRt60Value');
         const waveformCanvas = document.getElementById('waveformCanvas');
         const decayCurveCanvas = document.getElementById('decayCurveCanvas');
         const waveformCtx = waveformCanvas.getContext('2d');
@@ -171,15 +190,17 @@
         // Initialize application
         async function initialize() {
             try {
-                // Request audio context
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                // Request audio context only once
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
                 
                 // Setup canvas sizes
                 setupCanvases();
                 
                 // Setup event listeners
-                startButton.addEventListener('click', startTest);
-                stopButton.addEventListener('click', stopTest);
+                startButton.addEventListener('click', startMultiRunTest);
+                stopButton.addEventListener('click', requestStop); // Use requestStop to handle multi-run interruption
                 
                 // Draw empty visualizations
                 drawEmptyWaveform();
@@ -189,6 +210,7 @@
             } catch (error) {
                 console.error("Error initializing app:", error);
                 statusText.textContent = "Error: " + error.message;
+                alert("Could not initialize audio. Please ensure microphone access is allowed and refresh the page.");
             }
         }
         
@@ -206,96 +228,187 @@
             decayCurveCanvas.height = decayCurveCanvas.offsetHeight * dpr;
             decayCurveCtx.scale(dpr, dpr);
         }
-        
-        // Start the RT60 test
-        async function startTest() {
-            try {
-                if (isRecording) return;
-                
-                // Reset UI
-                rt60Value.textContent = "--";
-                rt60Description.textContent = "Test in progress...";
-                startButton.disabled = true;
-                stopButton.disabled = false;
-                isRecording = true;
-                
-                // Resume audio context if suspended
-                if (audioContext.state === 'suspended') {
-                    await audioContext.resume();
+
+        // Start the multi-run test sequence
+        async function startMultiRunTest() {
+            stopRequested = false;
+            allRt60Results = [];
+            currentRun = 0;
+            totalRuns = parseInt(runCountInput.value) || 1;
+            if (totalRuns < 1) totalRuns = 1;
+            if (totalRuns > 10) totalRuns = 10; // Limit runs
+            runCountInput.value = totalRuns; // Update input if adjusted
+
+            // Reset UI for multi-run
+            rt60Value.textContent = "--";
+            rt60Description.textContent = "Starting tests...";
+            multiRunResultsDiv.style.display = 'none';
+            individualResultsList.innerHTML = '';
+            averageRt60ValueSpan.textContent = '--';
+            startButton.disabled = true;
+            stopButton.disabled = false;
+
+            for (let i = 0; i < totalRuns; i++) {
+                if (stopRequested) {
+                    statusText.textContent = "Test sequence stopped by user.";
+                    break;
                 }
+                currentRun = i + 1;
+                statusText.textContent = `Starting run ${currentRun} of ${totalRuns}...`;
                 
-                // Get microphone access
-                statusText.textContent = "Requesting microphone access...";
-                micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                
-                // Create microphone source
-                const micSource = audioContext.createMediaStreamSource(micStream);
-                
-                // Setup analyzer for microphone input
-                const analyzer = audioContext.createAnalyser();
-                analyzer.fftSize = 2048;
-                micSource.connect(analyzer);
-                analyzers.mic = analyzer;
-                
-                // Setup recorder
-                const recordingLength = 5; // seconds
-                const sampleRate = audioContext.sampleRate;
-                const bufferSize = recordingLength * sampleRate;
-                let recordedData = new Float32Array(bufferSize);
-                let recordingPosition = 0;
-                
-                // Create script processor for recording
-                const processorNode = audioContext.createScriptProcessor(4096, 1, 1);
-                
-                processorNode.onaudioprocess = function(e) {
-                    if (!isRecording) return;
-                    
-                    const input = e.inputBuffer.getChannelData(0);
-                    
-                    // Copy input data to recording buffer
-                    if (recordingPosition + input.length <= recordedData.length) {
-                        recordedData.set(input, recordingPosition);
-                        recordingPosition += input.length;
-                        
-                        // Update status
-                        const progress = Math.min(100, Math.round((recordingPosition / recordedData.length) * 100));
-                        statusText.textContent = `Recording... ${progress}%`;
-                        
-                        // Visualize waveform
-                        drawWaveform(input);
-                    } else {
-                        // Recording complete
-                        stopRecording(recordedData, sampleRate);
+                try {
+                    // Ensure audio context is running before each test
+                    if (audioContext.state === 'suspended') {
+                        await audioContext.resume();
                     }
-                };
-                
-                micSource.connect(processorNode);
-                processorNode.connect(audioContext.destination);
-                
-                // Create and play test signal
-                const testSignal = testSignalSelect.value;
-                statusText.textContent = "Playing test signal...";
-                
-                // Set up a small delay before starting the test signal
-                setTimeout(() => {
-                    if (testSignal === 'pink') {
-                        playPinkNoise(0.5); // 0.5 seconds
+                    const result = await runSingleTest();
+                    if (result !== null && !isNaN(result)) {
+                        allRt60Results.push(result);
+                        // Display result immediately (optional)
+                        // rt60Value.textContent = result.toFixed(2) + "s (Run " + currentRun + ")";
                     } else {
-                        const frequency = parseInt(testSignal);
-                        playTestTone(frequency, 0.5); // 0.5 seconds
+                         individualResultsList.innerHTML += `<li>Run ${currentRun}: Error or invalid result</li>`;
                     }
-                    
-                    // Update status
-                    statusText.textContent = "Recording room response...";
-                }, 500);
-                
-            } catch (error) {
-                console.error("Error starting test:", error);
-                statusText.textContent = "Error: " + error.message;
-                stopTest();
+                    // Add a small delay between runs (optional, helps ensure resources are released)
+                    await new Promise(resolve => setTimeout(resolve, 300)); 
+                } catch (error) {
+                    console.error(`Error during run ${currentRun}:`, error);
+                    statusText.textContent = `Error in run ${currentRun}: ${error.message}`;
+                    individualResultsList.innerHTML += `<li>Run ${currentRun}: Error (${error.message})</li>`;
+                    // Optionally stop the whole sequence on error, or continue
+                    // stopRequested = true; // Uncomment to stop on first error
+                }
+            }
+
+            // Process and display final results
+            processMultiRunResults();
+            
+            // Final cleanup and UI reset
+            isRecording = false; // Ensure this is false
+            stopTestCleanup(); // Perform final cleanup
+            if (!stopRequested) {
+                 statusText.textContent = "All tests complete.";
             }
         }
-        
+
+        // Function to run a single RT60 test
+        function runSingleTest() {
+            return new Promise(async (resolve, reject) => {
+                try {
+                    if (isRecording) {
+                        console.warn("Already recording, skipping new test start.");
+                        return reject(new Error("Already recording"));
+                    }
+                    isRecording = true;
+                    audioBuffer = null; // Reset previous buffer
+
+                    // Update status for the current run
+                    statusText.textContent = `Run ${currentRun}/${totalRuns}: Requesting microphone...`;
+
+                    // Get microphone access
+                    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    
+                    // Create microphone source
+                    micSource = audioContext.createMediaStreamSource(micStream);
+                    
+                    // Setup analyzer for microphone input (optional, keep if waveform needed during recording)
+                    const analyzer = audioContext.createAnalyser();
+                    analyzer.fftSize = 2048;
+                    micSource.connect(analyzer);
+                    analyzers.mic = analyzer; // Store if needed elsewhere
+                    
+                    // Setup recorder
+                    const recordingLength = 5; // seconds
+                    const sampleRate = audioContext.sampleRate;
+                    const bufferSize = recordingLength * sampleRate;
+                    let recordedData = new Float32Array(bufferSize);
+                    let recordingPosition = 0;
+                    
+                    // Create script processor for recording
+                    // Ensure previous node is disconnected if somehow exists (shouldn't with proper cleanup)
+                    if (processorNode) {
+                        processorNode.disconnect();
+                        processorNode = null;
+                    }
+                    processorNode = audioContext.createScriptProcessor(4096, 1, 1);
+                    
+                    processorNode.onaudioprocess = function(e) {
+                        if (!isRecording) return; // Check recording flag
+                        
+                        const input = e.inputBuffer.getChannelData(0);
+                        
+                        // Copy input data to recording buffer
+                        if (recordingPosition + input.length <= recordedData.length) {
+                            recordedData.set(input, recordingPosition);
+                            recordingPosition += input.length;
+                            
+                            // Update status
+                            const progress = Math.min(100, Math.round((recordingPosition / recordedData.length) * 100));
+                            statusText.textContent = `Run ${currentRun}/${totalRuns}: Recording... ${progress}%`;
+                            
+                            // Visualize waveform (optional during recording)
+                            drawWaveform(input);
+                        } else {
+                            // Recording complete for this run
+                            isRecording = false; // Set flag immediately
+                            
+                            // Disconnect processor node *before* processing to prevent further events
+                            if (processorNode) {
+                                processorNode.disconnect(); 
+                                // processorNode = null; // Keep reference until cleanup? No, disconnect is enough.
+                            }
+                            if (micSource) {
+                                micSource.disconnect(); // Disconnect source as well
+                            }
+                             // Stop mic stream tracks *after* processing node is done
+                            if (micStream) {
+                                micStream.getTracks().forEach(track => track.stop());
+                                micStream = null;
+                            }
+
+                            statusText.textContent = `Run ${currentRun}/${totalRuns}: Processing...`;
+                            
+                            // Create audio buffer from recorded data
+                            audioBuffer = audioContext.createBuffer(1, recordedData.length, sampleRate);
+                            audioBuffer.getChannelData(0).set(recordedData.slice(0, recordingPosition)); // Use actual recorded length
+
+                            // Process the recorded audio for RT60
+                            const rt60 = processRT60(audioBuffer);
+                            resolve(rt60); // Resolve the promise with the result
+                        }
+                    };
+                    
+                    micSource.connect(processorNode);
+                    processorNode.connect(audioContext.destination); // Connect to destination to keep graph alive
+                    
+                    // Create and play test signal
+                    const testSignal = testSignalSelect.value;
+                    statusText.textContent = `Run ${currentRun}/${totalRuns}: Playing test signal...`;
+                    
+                    // Set up a small delay before starting the test signal
+                    setTimeout(() => {
+                        if (!isRecording) return; // Check if stopped before signal plays
+                        if (testSignal === 'pink') {
+                            playPinkNoise(0.5); // 0.5 seconds
+                        } else {
+                            const frequency = parseInt(testSignal);
+                            playTestTone(frequency, 0.5); // 0.5 seconds
+                        }
+                        
+                        // Update status
+                        statusText.textContent = `Run ${currentRun}/${totalRuns}: Recording room response...`;
+                    }, 500); // Delay before playing sound
+                    
+                } catch (error) {
+                    console.error(`Error during single test run ${currentRun}:`, error);
+                    statusText.textContent = `Error in run ${currentRun}: ${error.message}`;
+                    isRecording = false; // Ensure flag is reset on error
+                    stopTestCleanup(); // Clean up resources on error
+                    reject(error); // Reject the promise
+                }
+            });
+        }
+
         // Generate and play a test tone
         function playTestTone(frequency, duration) {
             // Create oscillator
@@ -394,22 +507,7 @@
             };
         }
         
-        // Stop recording and process results
-        function stopRecording(recordedData, sampleRate) {
-            // Create audio buffer from recorded data
-            audioBuffer = audioContext.createBuffer(1, recordedData.length, sampleRate);
-            audioBuffer.getChannelData(0).set(recordedData);
-            
-            // Process the recorded audio for RT60
-            processRT60(audioBuffer);
-            
-            // Stop recording
-            isRecording = false;
-            statusText.textContent = "Analysis complete.";
-            stopTest();
-        }
-        
-        // Process audio to calculate RT60
+        // Process audio to calculate RT60 - returns the value
         function processRT60(buffer) {
             // Get audio data
             const audioData = buffer.getChannelData(0);
@@ -478,45 +576,71 @@
             }
             
             // Calculate RT60 value (extrapolating from -5dB to -25dB to get -60dB)
-            let rt60 = 0;
-            if (index5dB !== null && index25dB !== null) {
+            let rt60 = 0; // Initialize rt60
+            if (index5dB !== null && index25dB !== null && index25dB > index5dB) { // Add check index25dB > index5dB
                 const time5dB = decayProfile[index5dB].time;
                 const time25dB = decayProfile[index25dB].time;
                 const timeFor20dBDecay = time25dB - time5dB;
-                rt60 = (timeFor20dBDecay / 20) * 60; // Scale to 60dB decay
+                if (timeFor20dBDecay > 0) { // Avoid division by zero or negative time
+                   rt60 = (timeFor20dBDecay / 20) * 60; // Scale to 60dB decay
+                } else {
+                    console.warn("T20 calculation resulted in non-positive time difference.");
+                    rt60 = estimateRT60FromDecay(decayProfile); // Fallback if times are weird
+                }
             } else {
                 // If we couldn't find the points, make an estimate based on available data
                 rt60 = estimateRT60FromDecay(decayProfile);
             }
-            
-            // Display the result
-            if (rt60 > 0) {
-                rt60Value.textContent = rt60.toFixed(2) + "s";
-                
-                // Describe the acoustic characteristics
-                let description = "";
-                if (rt60 < 0.3) {
-                    description = "Very dry room, highly damped (like a recording studio)";
-                } else if (rt60 < 0.5) {
-                    description = "Well damped room, good for speech clarity";
-                } else if (rt60 < 0.8) {
-                    description = "Balanced acoustics, good for music and speech";
-                } else if (rt60 < 1.2) {
-                    description = "Live room, favorable for music";
-                } else if (rt60 < 2.0) {
-                    description = "Very reverberant space (like a concert hall)";
-                } else {
-                    description = "Extremely reverberant (like a cathedral)";
-                }
-                
-                rt60Description.textContent = description;
+
+            // Draw the decay curve for the *last* processed buffer
+            drawDecayCurve(decayProfile); 
+
+            // Return the calculated value
+            if (rt60 > 0 && !isNaN(rt60)) {
+                 return rt60;
             } else {
-                rt60Value.textContent = "Error";
-                rt60Description.textContent = "Could not calculate RT60. Try again in a quieter environment.";
+                console.warn("RT60 calculation failed or resulted in zero/NaN.");
+                return null; // Indicate failure
             }
-            
-            // Draw the decay curve
-            drawDecayCurve(decayProfile);
+        }
+
+        // Function to process and display results after all runs
+        function processMultiRunResults() {
+            if (allRt60Results.length === 0) {
+                rt60Value.textContent = "Error";
+                rt60Description.textContent = "No valid results obtained.";
+                multiRunResultsDiv.style.display = 'none';
+                return;
+            }
+
+            let sum = 0;
+            individualResultsList.innerHTML = ''; // Clear previous list items
+            allRt60Results.forEach((result, index) => {
+                sum += result;
+                const listItem = document.createElement('li');
+                listItem.textContent = `Run ${index + 1}: ${result.toFixed(2)}s`;
+                individualResultsList.appendChild(listItem);
+            });
+
+            const averageRt60 = sum / allRt60Results.length;
+
+            // Display average result prominently
+            rt60Value.textContent = averageRt60.toFixed(2) + "s (Average)";
+            rt60Description.textContent = getRt60Description(averageRt60); // Use helper for description
+
+            // Show multi-run details
+            averageRt60ValueSpan.textContent = averageRt60.toFixed(2) + "s";
+            multiRunResultsDiv.style.display = 'block';
+        }
+
+        // Helper function to get description text based on RT60 value
+        function getRt60Description(rt60) {
+            if (rt60 < 0.3) return "Very dry room, highly damped (like a recording studio)";
+            if (rt60 < 0.5) return "Well damped room, good for speech clarity";
+            if (rt60 < 0.8) return "Balanced acoustics, good for music and speech";
+            if (rt60 < 1.2) return "Live room, favorable for music";
+            if (rt60 < 2.0) return "Very reverberant space (like a concert hall)";
+            return "Extremely reverberant (like a cathedral)";
         }
         
         // Estimate RT60 when standard points aren't available
@@ -552,38 +676,63 @@
             }
         }
         
-        // Stop the RT60 test
-        function stopTest() {
-            // Stop recording
-            isRecording = false;
+        // Request stop - sets flag for multi-run loop and calls cleanup
+        function requestStop() {
+            statusText.textContent = "Stop requested...";
+            stopRequested = true;
+            isRecording = false; // Force recording stop
             
-            // Stop test tone if playing
-            if (testToneNode) {
-                testToneNode.stop();
+            // Immediately try to stop any active sound generation
+             if (testToneNode) {
+                try { testToneNode.stop(); } catch(e) {}
                 testToneNode = null;
             }
-            
-            // Stop noise if playing
             if (noiseNode) {
-                noiseNode.stop();
+                 try { noiseNode.stop(); } catch(e) {}
                 noiseNode = null;
             }
-            
-            // Stop microphone
+
+            // Call cleanup function
+            stopTestCleanup();
+        }
+
+        // Cleanup function for resources - safe to call multiple times
+        function stopTestCleanup() {
+            isRecording = false; // Ensure flag is false
+
+            // Stop microphone stream tracks
             if (micStream) {
                 micStream.getTracks().forEach(track => track.stop());
                 micStream = null;
+            }
+
+            // Disconnect audio nodes
+            if (micSource) {
+                try { micSource.disconnect(); } catch(e) {}
+                micSource = null;
+            }
+            if (processorNode) {
+                 try { processorNode.disconnect(); } catch(e) {}
+                processorNode = null; 
+            }
+             // Stop test tone/noise again just in case
+            if (testToneNode) {
+                try { testToneNode.stop(); } catch(e) {}
+                testToneNode = null;
+            }
+            if (noiseNode) {
+                 try { noiseNode.stop(); } catch(e) {}
+                noiseNode = null;
             }
             
             // Reset UI
             startButton.disabled = false;
             stopButton.disabled = true;
             
-            if (statusText.textContent === "Recording... 100%") {
-                statusText.textContent = "Processing results...";
-            } else if (!statusText.textContent.includes("Error") && !statusText.textContent.includes("Analysis complete")) {
-                statusText.textContent = "Test stopped.";
-            }
+            // Don't overwrite final status messages like "All tests complete" or "Error"
+             if (statusText.textContent.startsWith("Run") || statusText.textContent.startsWith("Starting") || statusText.textContent.startsWith("Recording") || statusText.textContent.startsWith("Playing") || statusText.textContent.startsWith("Requesting")) {
+                 statusText.textContent = "Test stopped.";
+             }
         }
         
         // Draw the waveform visualization
@@ -639,7 +788,7 @@
             ctx.fillText('Waveform will appear here during recording', width / 2, height / 2 - 15);
         }
         
-        // Draw the decay curve
+        // Draw the decay curve - minor update to handle potential empty profile better
         function drawDecayCurve(decayProfile) {
             const width = decayCurveCanvas.width;
             const height = decayCurveCanvas.height;
@@ -649,12 +798,9 @@
             // Clear canvas
             ctx.clearRect(0, 0, width, height);
             
-            // If no data, show message
-            if (!decayProfile || decayProfile.length === 0) {
-                ctx.font = '14px sans-serif';
-                ctx.fillStyle = '#999';
-                ctx.textAlign = 'center';
-                ctx.fillText('Decay curve will appear here after testing', width / 2, height / 2);
+            // If no data or not enough data, show message
+            if (!decayProfile || decayProfile.length < 2) { // Need at least 2 points to draw a line
+                drawEmptyDecayCurve(); // Use the empty state drawing function
                 return;
             }
             
@@ -664,7 +810,12 @@
             
             // Find max time
             const maxTime = decayProfile[decayProfile.length - 1].time;
-            
+             // Ensure maxTime is positive to avoid drawing issues
+            if (maxTime <= 0) {
+                 drawEmptyDecayCurve();
+                 return;
+            }
+
             // Draw axes
             ctx.beginPath();
             ctx.moveTo(padding, padding);
@@ -775,9 +926,18 @@
         // Handle window resize
         window.addEventListener('resize', function() {
             setupCanvases();
-            
+            // Redraw based on the *last* calculated decay profile if available
+            // This part is tricky as decayProfile is local to processRT60 now.
+            // We might need to store the last valid decayProfile globally if redraw on resize is critical.
+            // For now, let's just redraw empty state or potentially the last audioBuffer's waveform.
             if (audioBuffer) {
-                drawDecayCurve(audioBuffer.getChannelData(0));
+                 // Option 1: Redraw last decay curve (requires storing decayProfile globally)
+                 // if (lastDecayProfile) drawDecayCurve(lastDecayProfile); 
+                 // else drawEmptyDecayCurve();
+
+                 // Option 2: Just draw empty curves on resize for simplicity after multi-run
+                 drawEmptyWaveform(); 
+                 drawEmptyDecayCurve();
             } else {
                 drawEmptyWaveform();
                 drawEmptyDecayCurve();
