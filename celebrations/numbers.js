@@ -221,14 +221,23 @@ function createNumberCelebration() {
 }
 
 function setNumbersMode(mode) {
-    // Remove all numbers from the screen when switching modes
-    numberElements.forEach(el => {
-        if (el && el.parentNode) {
-            el.parentNode.removeChild(el);
-        }
-    });
-    numberElements = [];
+    // save the previous mode
+    const previousMode = numbersMode;
+    // Set the new mode
     numbersMode = mode;
+
+
+    if (mode === 'doubling' || previousMode === 'doubling') {
+        // Remove all numbers from the screen when switching modes
+        numberElements.forEach(el => {
+            if (el && el.parentNode) {
+                el.parentNode.removeChild(el);
+            }
+        });
+        numberElements = [];
+    }
+    
+    
     
     // Update button colors
     const addButton = document.getElementById('add-mode-button');
@@ -279,8 +288,10 @@ function setNumbersMode(mode) {
         }
     } else {
         // When switching away from doubling, add random numbers
-        for (let i = 0; i < 8; i++) {
-            createRandomNumber();
+        if (previousMode === 'doubling') {
+            for (let i = 0; i < 8; i++) {
+                createRandomNumber();
+            }
         }
     }
 }
