@@ -7,12 +7,28 @@
 let numbersActive = false;
 let numbersMode = 'addition'; // 'addition', 'subtraction', 'multiplication', 'division', or 'doubling'
 let available2xValue = 1; // The value that can added in doubling mode
+let availableValues = [1]; // Array to track all available values in doubling mode
+let colorBarElements = []; // References to the color bar elements
 let numberElements = [];
 let cleanupNumbers = () => {};
 
 function createNumberCelebration() {
     if (numbersActive) return cleanupNumbers;
     numbersActive = true;
+    
+    // Reset available values to just 1 when starting
+    availableValues = [1];
+    available2xValue = 1;
+    
+    // Store references to the color bar elements (first 6 elements)
+    colorBarElements = [
+        document.getElementById('color-section-red'),
+        document.getElementById('color-section-orange'),
+        document.getElementById('color-section-yellow'),
+        document.getElementById('color-section-green'),
+        document.getElementById('color-section-blue'),
+        document.getElementById('color-section-purple')
+    ];
     
     // Create the mode toggle buttons
     const addButton = document.createElement('div');
@@ -187,6 +203,9 @@ function createNumberCelebration() {
         e.stopPropagation();
     });
     
+    // Update color bar with available values
+    updateColorBarValues();
+    
     // Return cleanup function
     return function() {
         // Set flag to inactive first to prevent new elements from being created
@@ -218,7 +237,78 @@ function createNumberCelebration() {
         
         // Reset mode to default for next time
         numbersMode = 'addition';
+        
+        // Clear value display from color bar
+        clearColorBarValues();
     };
+}
+
+// New function to update the color bar with available values
+function updateColorBarValues() {
+    // Clear any existing value displays
+    clearColorBarValues();
+    
+    // Only show values if in doubling mode
+    if (numbersMode !== 'doubling') return;
+    
+    // Add each available value to a color bar section
+    availableValues.forEach((value, index) => {
+        if (index < colorBarElements.length) {
+            const valueDisplay = document.createElement('div');
+            valueDisplay.className = 'doubling-value-display';
+            valueDisplay.textContent = value;
+            valueDisplay.style.cssText = `
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                font-size: 24px;
+                font-weight: bold;
+                color: white;
+                text-shadow: 1px 1px 2px black;
+                pointer-events: none;
+            `;
+            
+            // Mark the currently selected value
+            if (value === available2xValue) {
+                valueDisplay.style.transform = 'translate(-50%, -50%) scale(1.3)';
+                valueDisplay.style.textShadow = '0 0 10px white, 0 0 20px white';
+            }
+            
+            // Add the value display to the color section
+            colorBarElements[index].style.position = 'relative';
+            colorBarElements[index].appendChild(valueDisplay);
+            
+            // Make the color section clickable to select this value
+            colorBarElements[index].style.cursor = 'pointer';
+            colorBarElements[index].addEventListener('click', () => {
+                if (numbersMode === 'doubling') {
+                    setDoubling2xValue(value);
+                }
+            });
+        }
+    });
+}
+
+// New function to clear value displays from color bar
+function clearColorBarValues() {
+    colorBarElements.forEach(element => {
+        // Remove any existing value displays
+        const displays = element.querySelectorAll('.doubling-value-display');
+        displays.forEach(display => display.remove());
+    });
+}
+
+// New function to set the doubling value and update UI
+function setDoubling2xValue(value) {
+    if (availableValues.includes(value)) {
+        available2xValue = value;
+        updateColorBarValues();
+        
+        // Play a sound to indicate change
+        const frequency = 440 + (Math.log2(value) * 100);
+        playDingSound(frequency, 1);
+    }
 }
 
 function setNumbersMode(mode) {
@@ -226,7 +316,6 @@ function setNumbersMode(mode) {
     const previousMode = numbersMode;
     // Set the new mode
     numbersMode = mode;
-
 
     if (mode === 'doubling' || previousMode === 'doubling') {
         // Remove all numbers from the screen when switching modes
@@ -236,9 +325,16 @@ function setNumbersMode(mode) {
             }
         });
         numberElements = [];
+        
+        // When entering doubling mode, reset available values if starting fresh
+        if (mode === 'doubling' && previousMode !== 'doubling') {
+            availableValues = [1];
+            available2xValue = 1;
+        }
+        
+        // Update the color bar with available values
+        updateColorBarValues();
     }
-    
-    
     
     // Update button colors
     const addButton = document.getElementById('add-mode-button');
@@ -279,10 +375,10 @@ function setNumbersMode(mode) {
     };
     playDingSound(frequencies[mode] || 440, 1);
 
-    // When switching to doubling mode, add only 1s
+    // When switching to doubling mode, add only current available2xValues
     if (mode === 'doubling') {
         for (let i = 0; i < 8; i++) {
-            // Use random positions for each 1
+            // Use random positions for each value
             const posX = Math.random() * (window.innerWidth - 100);
             const posY = Math.random() * (window.innerHeight - 100);
             createNumberWithValue(available2xValue, posX, posY);
@@ -293,6 +389,8 @@ function setNumbersMode(mode) {
             for (let i = 0; i < 8; i++) {
                 createRandomNumber();
             }
+            // Clear value display from color bar
+            clearColorBarValues();
         }
     }
 }
@@ -478,6 +576,17 @@ function mergeNumbers(element1, element2) {
     if (numbersMode === 'doubling') {
         if (value1 === value2) {
             const newValue = value1 * 2;
+            
+            // Check if this is a new value and add to available values if needed
+            if (!availableValues.includes(newValue) && newValue <= 32) {
+                availableValues.push(newValue);
+                availableValues.sort((a, b) => a - b);
+                updateColorBarValues();
+                
+                // Show notification for new value
+                showFadeText(`New value unlocked: ${newValue}`);
+            }
+            
             // Animation effect before merging
             element1.style.transform = 'scale(1.2)';
             element2.style.transform = 'scale(1.2)';
