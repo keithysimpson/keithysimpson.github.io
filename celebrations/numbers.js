@@ -6,6 +6,7 @@
 
 let numbersActive = false;
 let numbersMode = 'addition'; // 'addition', 'subtraction', 'multiplication', 'division', or 'doubling'
+let available2xValue = 1; // The value that can added in doubling mode
 let numberElements = [];
 let cleanupNumbers = () => {};
 
@@ -149,7 +150,7 @@ function createNumberCelebration() {
             // Use random positions for each 1
             const posX = Math.random() * (window.innerWidth - 100);
             const posY = Math.random() * (window.innerHeight - 100);
-            createNumberWithValue(1, posX, posY);
+            createNumberWithValue(available2xValue, posX, posY);
         }
     } else {
         for (let i = 0; i < 8; i++) {
@@ -284,7 +285,7 @@ function setNumbersMode(mode) {
             // Use random positions for each 1
             const posX = Math.random() * (window.innerWidth - 100);
             const posY = Math.random() * (window.innerHeight - 100);
-            createNumberWithValue(1, posX, posY);
+            createNumberWithValue(available2xValue, posX, posY);
         }
     } else {
         // When switching away from doubling, add random numbers
@@ -316,7 +317,7 @@ function handleNumberClick(event) {
     }
     
     if (numbersMode === 'doubling') {
-        createNumberWithValue(1, event.clientX, event.clientY);
+        createNumberWithValue(available2xValue, event.clientX, event.clientY);
     } else {
         createRandomNumber(event.clientX, event.clientY);
     }
