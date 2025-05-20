@@ -241,12 +241,20 @@
         <circle cx="50" cy="50" r="45" fill="#ffd93d"/>
         <circle cx="50" cy="50" r="35" fill="#ffe066"/>
         <circle cx="50" cy="50" r="25" fill="#fff3bf"/>
-    </svg>
-
-    <script>
+    </svg>    <script>
         let timer_length_seconds = 120;
 
-        const debug_mode = false;
+        // Function to check if debug mode is enabled via URL parameter
+        function checkDebugMode() {
+            // Check for debug parameter in URL
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.has('debug');
+        }
+
+        // Initialize debug mode based on URL parameter
+        const debug_mode = checkDebugMode();
+        
+        // Apply debug settings if enabled
         if (debug_mode) {
             timer_length_seconds = 2;
             // add a note on screen to show we are in debug mode
@@ -259,7 +267,6 @@
             debugNote.style.color = 'white';
             debugNote.style.padding = '5px';
             document.body.appendChild(debugNote);
-
         }
 
         const timer = document.getElementById('timer');
@@ -639,9 +646,9 @@
                         
             if (typeof cleanupNumbers === 'function') {
                 cleanupNumbers();
-            }
-        }
-
+            }        }
+        
+        // Initialize event listeners
         startPauseBtn.addEventListener('click', toggleTimer);
         resetBtn.addEventListener('click', resetTimer);
 
