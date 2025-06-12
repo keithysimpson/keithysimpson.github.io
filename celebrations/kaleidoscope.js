@@ -103,18 +103,172 @@ function createKaleidoscope() {
 }
     */
 function createKaleidoscope() {
+
+    // adapted from https://codepen.io/AAMutlu20/pen/mdYxroj by Andrey Mutlu
     
-    // get the kaleidoscope canvas element
-    let kaleidoscopeContainer = document.querySelector('#kaleidoscope-container');
-    if (kaleidoscopeContainer) {
-        kaleidoscopeContainer.style.visibility = 'visible';
-    } else {
-        console.error('Kaleidoscope canvas not found');
-    }
+    // create a canvas element with id 'kaleidoscope-canvas'
+    var canvas = document.createElement('canvas');
+    canvas.id = 'kaleidoscope-canvas';
+
+    
+    var canvas_context = canvas.getContext('2d');
+
+    var ease = 0.1;
+
+    var kaleido_settings = {
+        offsetRotation: 0,
+        offsetScale: 0.8,
+        offsetX: 0,
+        offsetY: 0,
+        radius: 1100,
+        slices: 24,
+        zoom: 1
+    };
+
+    document.body.appendChild(canvas);
+    canvas.width = kaleido_settings.radius * 2;
+    canvas.height = kaleido_settings.radius * 2;
+
+    var img = new Image();
+    img.crossOrigin = "Anonymous";
+    img.onload = function() {
+        var fill = canvas_context.createPattern(img, 'repeat');
+
+        var scale, step, cx;
+
+        scale = kaleido_settings.zoom * (kaleido_settings.radius / Math.min(img.width, img.height));
+        step = 2 * Math.PI / kaleido_settings.slices;
+        cx = img.width / 2;
+
+        function draw() {
+            canvas_context.clearRect(0, 0, canvas.width, canvas.height);
+            canvas_context.fillStyle = fill;
+
+            for (var i = 0; i <= kaleido_settings.slices; i++) {
+                canvas_context.save();
+                canvas_context.translate(kaleido_settings.radius, kaleido_settings.radius);
+                canvas_context.rotate(i * step);
+                canvas_context.beginPath();
+                canvas_context.moveTo(-0.5, -0.5);
+                canvas_context.arc(0, 0, kaleido_settings.radius, step * -0.51, step * 0.51);
+                canvas_context.rotate(Math.PI / 2);
+                canvas_context.scale(scale, scale);
+                canvas_context.scale([-1, 1][i % 2], 1);
+                canvas_context.translate(kaleido_settings.offsetX - cx, kaleido_settings.offsetY);
+                canvas_context.rotate(kaleido_settings.offsetRotation);
+                canvas_context.scale(kaleido_settings.offsetScale, kaleido_settings.offsetScale);
+                canvas_context.fill();
+
+                canvas_context.restore();
+            }
+        }
+
+        var tx = kaleido_settings.offsetX;
+        var ty = kaleido_settings.offsetY;
+        var tr = kaleido_settings.offsetRotation;
+
+        // Drag state variables
+        var isDragging = false;
+        var lastMouseX = 0;
+        var lastMouseY = 0;
+        var sensitivity = 1.0;
+
+        // Mouse events for dragging
+        window.addEventListener('mousedown', function(e) {
+            isDragging = true;
+            lastMouseX = e.pageX;
+            lastMouseY = e.pageY;
+            e.preventDefault();
+        }, false);
+
+        window.addEventListener('mousemove', function(e) {
+            if (isDragging) {
+                var deltaX = e.pageX - lastMouseX;
+                var deltaY = e.pageY - lastMouseY;
+                
+                // Move the image in the same direction as the drag
+                tx += deltaX * sensitivity;
+                ty += deltaY * sensitivity;
+                
+                lastMouseX = e.pageX;
+                lastMouseY = e.pageY;
+            }
+        }, false);
+
+        window.addEventListener('mouseup', function(e) {
+            isDragging = false;
+        }, false);
+
+        // Touch events for mobile dragging
+        window.addEventListener('touchstart', function(e) {
+            isDragging = true;
+            var touch = e.touches[0];
+            lastMouseX = touch.pageX;
+            lastMouseY = touch.pageY;
+            e.preventDefault();
+        }, false);
+
+        window.addEventListener('touchmove', function(e) {
+            if (isDragging && e.touches.length === 1) {
+                var touch = e.touches[0];
+                var deltaX = touch.pageX - lastMouseX;
+                var deltaY = touch.pageY - lastMouseY;
+                
+                // Move the image in the same direction as the drag
+                tx += deltaX * sensitivity;
+                ty += deltaY * sensitivity;
+                
+                lastMouseX = touch.pageX;
+                lastMouseY = touch.pageY;
+                e.preventDefault();
+            }
+        }, false);
+
+        window.addEventListener('touchend', function(e) {
+            isDragging = false;
+        }, false);
+
+        // Set styles via CSS instead of directly on the element
+        const style = document.createElement('style');
+        style.textContent = `
+            #kaleidoscope-canvas {
+            position: fixed;
+            margin-left: -${kaleido_settings.radius}px;
+            margin-top: -${kaleido_settings.radius}px;
+            left: 50%;
+            top: 50%;
+            z-index: 1;
+            }
+        `;
+        document.head.appendChild(style);
+
+         
+
+        function update() {
+            // Remove automatic rotation - let dragging control everything
+            // tr -= 0.002;  // Commented out automatic rotation
+
+            kaleido_settings.offsetX += (tx - kaleido_settings.offsetX) * ease;
+            kaleido_settings.offsetY += (ty - kaleido_settings.offsetY) * ease;
+            // kaleido_settings.offsetRotation += (tr - kaleido_settings.offsetRotation) * ease;  // No auto rotation
+
+            draw();
+
+            requestAnimationFrame(update);
+        }
+
+        update();
+    };
+
+    img.src = 'images/Beautiful_Rainbow.jpg';
        
     // return a cleanup function, that sets the visibility to hidden
     return function cleanupKaleidoscope() {
-        let kaleidoscopeContainer = document.querySelector('#kaleidoscope-container');
-        kaleidoscopeContainer.style.visibility = 'hidden';
+        // remove the kaleidoscope-canvas element from the body
+        var kaleidoscopeCanvas = document.getElementById('kaleidoscope-canvas');
+        if (kaleidoscopeCanvas) {
+            kaleidoscopeCanvas.style.visibility = 'hidden';
+            kaleidoscopeCanvas.remove();
+        }
     };
 }
