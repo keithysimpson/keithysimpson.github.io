@@ -134,13 +134,15 @@ function createKaleidoscope() {
     img.onload = function() {
         var fill = canvas_context.createPattern(img, 'repeat');
 
-        var scale, step, cx;
-
-        scale = kaleido_settings.zoom * (kaleido_settings.radius / Math.min(img.width, img.height));
-        step = 2 * Math.PI / kaleido_settings.slices;
-        cx = img.width / 2;
+        
 
         function draw() {
+            var scale, step, cx;
+
+            scale = kaleido_settings.zoom * (kaleido_settings.radius / Math.min(img.width, img.height));
+            step = 2 * Math.PI / kaleido_settings.slices;
+            cx = img.width / 2;
+
             canvas_context.clearRect(0, 0, canvas.width, canvas.height);
             canvas_context.fillStyle = fill;
 
@@ -228,7 +230,30 @@ function createKaleidoscope() {
             isDragging = false;
         }, false);
 
-        // Set styles via CSS instead of directly on the element
+        // add event listeners clicks on the element with id 'color-section-red'
+        var colorSectionRed = document.getElementById('color-section-red');
+        if (colorSectionRed) {
+            colorSectionRed.addEventListener('click', function() {
+                // decrease the number of slides by 1
+                kaleido_settings.slices = Math.max(3, kaleido_settings.slices - 1);
+                showFadeText(kaleido_settings.slices, 25 );
+                draw();
+            });
+        }
+
+        // add event listeners clicks on the element with id 'color-section-purple'
+        var colorSectionPurple = document.getElementById('color-section-purple');
+        if (colorSectionPurple) {
+            colorSectionPurple.addEventListener('click', function() {
+                // increase the number of slides by 1
+                kaleido_settings.slices += 1;
+                showFadeText(kaleido_settings.slices, 25 );
+                draw();
+            });
+        }
+
+
+        //---- Set styles via CSS instead of directly on the element
         const style = document.createElement('style');
         style.textContent = `
             #kaleidoscope-canvas {

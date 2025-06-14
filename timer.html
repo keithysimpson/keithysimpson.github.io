@@ -186,7 +186,7 @@
             height: 50px;
         }
 
-        
+
 		
 
     </style>
@@ -346,19 +346,22 @@
 
         let cleanupStarfield = () => {};
 
-        function showFadeText(text) {
+
+        function showFadeText(text, shiftDownPx = 0) {
             const fadeText = document.createElement('div');
             fadeText.className = 'celebration_reveal_text';
             fadeText.textContent = text;
+            if (shiftDownPx !== 0) {
+            fadeText.style.top = `calc(20% + ${shiftDownPx}px)`;
+            }
             document.body.appendChild(fadeText);
 
             fadeText.animate([
-                //{ opacity: 0 },
-                { opacity: 1 },
-                { opacity: 0 }
+            { opacity: 1 },
+            { opacity: 0 }
             ], {
-                duration: 2000,
-                easing: 'ease-in-out'
+            duration: 2000,
+            easing: 'ease-in-out'
             }).onfinish = () => fadeText.remove();
         }
 
