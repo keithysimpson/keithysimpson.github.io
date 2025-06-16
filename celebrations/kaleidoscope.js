@@ -230,6 +230,7 @@ function createKaleidoscope() {
             isDragging = false;
         }, false);
 
+        //--- allow changing of the number of slices via clicks on the color sections
         // add event listeners clicks on the element with id 'color-section-red'
         var colorSectionRed = document.getElementById('color-section-red');
         if (colorSectionRed) {
@@ -249,6 +250,49 @@ function createKaleidoscope() {
                 kaleido_settings.slices += 1;
                 showFadeText(kaleido_settings.slices, 25 );
                 draw();
+            });
+        }
+
+        //--- allow changing of the image via clicks on the color sections
+        // add event listeners clicks on the element with id 'color-section-orange'
+        var colorSectionOrange = document.getElementById('color-section-orange');
+        if (colorSectionOrange) {
+            colorSectionOrange.addEventListener('click', function() {
+                // change the image to a new one
+                img.src = 'images/Beautiful_Rainbow.jpg';
+                //showFadeText('Image changed', 25 );
+            });
+        }
+
+        // https://images.unsplash.com/photo-1473951574080-01fe45ec8643?q=80&w=2104&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D
+        // add event listeners clicks on the element with id 'color-section-yellow'
+        var colorSectionYellow = document.getElementById('color-section-yellow');
+        if (colorSectionYellow) {
+            colorSectionYellow.addEventListener('click', function() {
+                // change the image to a new one
+                img.src = 'https://images.unsplash.com/photo-1473951574080-01fe45ec8643?q=80&w=2104&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D';
+                //showFadeText('Image changed', 25 );
+            });
+        }
+
+        //numberblocks_wallpaper.jpg
+        // add event listeners clicks on the element with id 'color-section-green'
+        var colorSectionGreen = document.getElementById('color-section-green');
+        if (colorSectionGreen) {
+            colorSectionGreen.addEventListener('click', function() {
+                // change the image to a new one
+                img.src = 'images/numberblocks_wallpaper.jpg';
+                //showFadeText('Image changed', 25 );
+            });
+        }
+
+        // add event listeners clicks on the element with id 'color-section-blue'
+        var colorSectionBlue = document.getElementById('color-section-blue');
+        if (colorSectionBlue) {
+            colorSectionBlue.addEventListener('click', function() {
+                // change the image to a new one
+                img.src = 'images/rainbow_water.jpg';
+                //showFadeText('Image changed', 25 );
             });
         }
 
