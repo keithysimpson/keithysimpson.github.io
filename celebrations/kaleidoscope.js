@@ -270,7 +270,7 @@ function createKaleidoscope() {
         if (colorSectionYellow) {
             colorSectionYellow.addEventListener('click', function() {
                 // change the image to a new one
-                img.src = 'https://images.unsplash.com/photo-1473951574080-01fe45ec8643?q=80&w=2104&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D';
+                img.src = 'https://cdn.myportfolio.com/d4f6685aca7241467add1bd9d72747b0/6d104c70-d45b-46ad-941a-62e34c162fd1.jpg?h=f136716bb0fd936fbb43cc2d911057d1';
                 //showFadeText('Image changed', 25 );
             });
         }
