@@ -131,205 +131,180 @@ function createKaleidoscope() {
 
     var img = new Image();
     img.crossOrigin = "Anonymous";
-    img.onload = function() {
-        var fill = canvas_context.createPattern(img, 'repeat');
+    
+    // Variables that need to persist across image loads
+    var tx = 0;
+    var ty = 0;
+    var tr = 0;
+    var isDragging = false;
+    var lastMouseX = 0;
+    var lastMouseY = 0;
+    var sensitivity = 1.0;
+    var fill;
 
+    function draw() {
+        if (!fill) return; // Don't draw if pattern isn't ready yet
         
+        var scale, step, cx;
 
-        function draw() {
-            var scale, step, cx;
+        scale = kaleido_settings.zoom * (kaleido_settings.radius / Math.min(img.width, img.height));
+        step = 2 * Math.PI / kaleido_settings.slices;
+        cx = img.width / 2;
 
-            scale = kaleido_settings.zoom * (kaleido_settings.radius / Math.min(img.width, img.height));
-            step = 2 * Math.PI / kaleido_settings.slices;
-            cx = img.width / 2;
+        canvas_context.clearRect(0, 0, canvas.width, canvas.height);
+        canvas_context.fillStyle = fill;
 
-            canvas_context.clearRect(0, 0, canvas.width, canvas.height);
-            canvas_context.fillStyle = fill;
+        for (var i = 0; i <= kaleido_settings.slices; i++) {
+            canvas_context.save();
+            canvas_context.translate(kaleido_settings.radius, kaleido_settings.radius);
+            canvas_context.rotate(i * step);
+            canvas_context.beginPath();
+            canvas_context.moveTo(-0.5, -0.5);
+            canvas_context.arc(0, 0, kaleido_settings.radius, step * -0.51, step * 0.51);
+            canvas_context.rotate(Math.PI / 2);
+            canvas_context.scale(scale, scale);
+            canvas_context.scale([-1, 1][i % 2], 1);
+            canvas_context.translate(kaleido_settings.offsetX - cx, kaleido_settings.offsetY);
+            canvas_context.rotate(kaleido_settings.offsetRotation);
+            canvas_context.scale(kaleido_settings.offsetScale, kaleido_settings.offsetScale);
+            canvas_context.fill();
 
-            for (var i = 0; i <= kaleido_settings.slices; i++) {
-                canvas_context.save();
-                canvas_context.translate(kaleido_settings.radius, kaleido_settings.radius);
-                canvas_context.rotate(i * step);
-                canvas_context.beginPath();
-                canvas_context.moveTo(-0.5, -0.5);
-                canvas_context.arc(0, 0, kaleido_settings.radius, step * -0.51, step * 0.51);
-                canvas_context.rotate(Math.PI / 2);
-                canvas_context.scale(scale, scale);
-                canvas_context.scale([-1, 1][i % 2], 1);
-                canvas_context.translate(kaleido_settings.offsetX - cx, kaleido_settings.offsetY);
-                canvas_context.rotate(kaleido_settings.offsetRotation);
-                canvas_context.scale(kaleido_settings.offsetScale, kaleido_settings.offsetScale);
-                canvas_context.fill();
-
-                canvas_context.restore();
-            }
+            canvas_context.restore();
         }
+    }
 
-        var tx = kaleido_settings.offsetX;
-        var ty = kaleido_settings.offsetY;
-        var tr = kaleido_settings.offsetRotation;
+    function update() {
+        kaleido_settings.offsetX += (tx - kaleido_settings.offsetX) * ease;
+        kaleido_settings.offsetY += (ty - kaleido_settings.offsetY) * ease;
 
-        // Drag state variables
-        var isDragging = false;
-        var lastMouseX = 0;
-        var lastMouseY = 0;
-        var sensitivity = 1.0;
+        draw();
+        requestAnimationFrame(update);
+    }
 
-        // Mouse events for dragging
-        window.addEventListener('mousedown', function(e) {
-            isDragging = true;
+    img.onload = function() {
+        fill = canvas_context.createPattern(img, 'repeat');
+        draw(); // Draw immediately when new image loads
+    };
+
+    // Set up event listeners ONCE, outside of img.onload
+    // Mouse events for dragging
+    window.addEventListener('mousedown', function(e) {
+        isDragging = true;
+        lastMouseX = e.pageX;
+        lastMouseY = e.pageY;
+        e.preventDefault();
+    }, false);
+
+    window.addEventListener('mousemove', function(e) {
+        if (isDragging) {
+            var deltaX = e.pageX - lastMouseX;
+            var deltaY = e.pageY - lastMouseY;
+            
+            tx += deltaX * sensitivity;
+            ty += deltaY * sensitivity;
+            
             lastMouseX = e.pageX;
             lastMouseY = e.pageY;
-            e.preventDefault();
-        }, false);
+        }
+    }, false);
 
-        window.addEventListener('mousemove', function(e) {
-            if (isDragging) {
-                var deltaX = e.pageX - lastMouseX;
-                var deltaY = e.pageY - lastMouseY;
-                
-                // Move the image in the same direction as the drag
-                tx += deltaX * sensitivity;
-                ty += deltaY * sensitivity;
-                
-                lastMouseX = e.pageX;
-                lastMouseY = e.pageY;
-            }
-        }, false);
+    window.addEventListener('mouseup', function(e) {
+        isDragging = false;
+    }, false);
 
-        window.addEventListener('mouseup', function(e) {
-            isDragging = false;
-        }, false);
+    // Touch events for mobile dragging
+    window.addEventListener('touchstart', function(e) {
+        isDragging = true;
+        var touch = e.touches[0];
+        lastMouseX = touch.pageX;
+        lastMouseY = touch.pageY;
+        e.preventDefault();
+    }, false);
 
-        // Touch events for mobile dragging
-        window.addEventListener('touchstart', function(e) {
-            isDragging = true;
+    window.addEventListener('touchmove', function(e) {
+        if (isDragging && e.touches.length === 1) {
             var touch = e.touches[0];
+            var deltaX = touch.pageX - lastMouseX;
+            var deltaY = touch.pageY - lastMouseY;
+            
+            tx += deltaX * sensitivity;
+            ty += deltaY * sensitivity;
+            
             lastMouseX = touch.pageX;
             lastMouseY = touch.pageY;
             e.preventDefault();
-        }, false);
-
-        window.addEventListener('touchmove', function(e) {
-            if (isDragging && e.touches.length === 1) {
-                var touch = e.touches[0];
-                var deltaX = touch.pageX - lastMouseX;
-                var deltaY = touch.pageY - lastMouseY;
-                
-                // Move the image in the same direction as the drag
-                tx += deltaX * sensitivity;
-                ty += deltaY * sensitivity;
-                
-                lastMouseX = touch.pageX;
-                lastMouseY = touch.pageY;
-                e.preventDefault();
-            }
-        }, false);
-
-        window.addEventListener('touchend', function(e) {
-            isDragging = false;
-        }, false);
-
-        //--- allow changing of the number of slices via clicks on the color sections
-        // add event listeners clicks on the element with id 'color-section-red'
-        var colorSectionRed = document.getElementById('color-section-red');
-        if (colorSectionRed) {
-            colorSectionRed.addEventListener('click', function() {
-                // decrease the number of slides by 1
-                kaleido_settings.slices = Math.max(3, kaleido_settings.slices - 1);
-                showFadeText(kaleido_settings.slices, 25 );
-                draw();
-            });
         }
+    }, false);
 
-        // add event listeners clicks on the element with id 'color-section-purple'
-        var colorSectionPurple = document.getElementById('color-section-purple');
-        if (colorSectionPurple) {
-            colorSectionPurple.addEventListener('click', function() {
-                // increase the number of slides by 1
-                kaleido_settings.slices += 1;
-                showFadeText(kaleido_settings.slices, 25 );
-                draw();
-            });
-        }
+    window.addEventListener('touchend', function(e) {
+        isDragging = false;
+    }, false);
 
-        //--- allow changing of the image via clicks on the color sections
-        // add event listeners clicks on the element with id 'color-section-orange'
-        var colorSectionOrange = document.getElementById('color-section-orange');
-        if (colorSectionOrange) {
-            colorSectionOrange.addEventListener('click', function() {
-                // change the image to a new one
-                img.src = 'images/Beautiful_Rainbow.jpg';
-                //showFadeText('Image changed', 25 );
-            });
-        }
-
-        // https://images.unsplash.com/photo-1473951574080-01fe45ec8643?q=80&w=2104&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D
-        // add event listeners clicks on the element with id 'color-section-yellow'
-        var colorSectionYellow = document.getElementById('color-section-yellow');
-        if (colorSectionYellow) {
-            colorSectionYellow.addEventListener('click', function() {
-                // change the image to a new one
-                img.src = 'https://cdn.myportfolio.com/d4f6685aca7241467add1bd9d72747b0/6d104c70-d45b-46ad-941a-62e34c162fd1.jpg?h=f136716bb0fd936fbb43cc2d911057d1';
-                //showFadeText('Image changed', 25 );
-            });
-        }
-
-        //numberblocks_wallpaper.jpg
-        // add event listeners clicks on the element with id 'color-section-green'
-        var colorSectionGreen = document.getElementById('color-section-green');
-        if (colorSectionGreen) {
-            colorSectionGreen.addEventListener('click', function() {
-                // change the image to a new one
-                img.src = 'images/numberblocks_wallpaper.jpg';
-                //showFadeText('Image changed', 25 );
-            });
-        }
-
-        // add event listeners clicks on the element with id 'color-section-blue'
-        var colorSectionBlue = document.getElementById('color-section-blue');
-        if (colorSectionBlue) {
-            colorSectionBlue.addEventListener('click', function() {
-                // change the image to a new one
-                img.src = 'images/rainbow_water.jpg';
-                //showFadeText('Image changed', 25 );
-            });
-        }
-
-
-        //---- Set styles via CSS instead of directly on the element
-        const style = document.createElement('style');
-        style.textContent = `
-            #kaleidoscope-canvas {
-            position: fixed;
-            margin-left: -${kaleido_settings.radius}px;
-            margin-top: -${kaleido_settings.radius}px;
-            left: 50%;
-            top: 50%;
-            z-index: 1;
-            }
-        `;
-        document.head.appendChild(style);
-
-         
-
-        function update() {
-            // Remove automatic rotation - let dragging control everything
-            // tr -= 0.002;  // Commented out automatic rotation
-
-            kaleido_settings.offsetX += (tx - kaleido_settings.offsetX) * ease;
-            kaleido_settings.offsetY += (ty - kaleido_settings.offsetY) * ease;
-            // kaleido_settings.offsetRotation += (tr - kaleido_settings.offsetRotation) * ease;  // No auto rotation
-
+    //--- allow changing of the number of slices via clicks on the color sections
+    var colorSectionRed = document.getElementById('color-section-red');
+    if (colorSectionRed) {
+        colorSectionRed.addEventListener('click', function() {
+            kaleido_settings.slices = Math.max(3, kaleido_settings.slices - 1);
+            showFadeText(kaleido_settings.slices, 25 );
             draw();
+        });
+    }
 
-            requestAnimationFrame(update);
+    var colorSectionPurple = document.getElementById('color-section-purple');
+    if (colorSectionPurple) {
+        colorSectionPurple.addEventListener('click', function() {
+            kaleido_settings.slices += 1;
+            showFadeText(kaleido_settings.slices, 25 );
+            draw();
+        });
+    }
+
+    //--- allow changing of the image via clicks on the color sections
+    var colorSectionOrange = document.getElementById('color-section-orange');
+    if (colorSectionOrange) {
+        colorSectionOrange.addEventListener('click', function() {
+            img.src = 'images/Beautiful_Rainbow.jpg';
+        });
+    }
+
+    var colorSectionYellow = document.getElementById('color-section-yellow');
+    if (colorSectionYellow) {
+        colorSectionYellow.addEventListener('click', function() {
+            img.src = 'https://cdn.myportfolio.com/d4f6685aca7241467add1bd9d72747b0/6d104c70-d45b-46ad-941a-62e34c162fd1.jpg?h=f136716bb0fd936fbb43cc2d911057d1';
+        });
+    }
+
+    var colorSectionGreen = document.getElementById('color-section-green');
+    if (colorSectionGreen) {
+        colorSectionGreen.addEventListener('click', function() {
+            img.src = 'images/numberblocks_wallpaper.jpg';
+        });
+    }
+
+    var colorSectionBlue = document.getElementById('color-section-blue');
+    if (colorSectionBlue) {
+        colorSectionBlue.addEventListener('click', function() {
+            img.src = 'images/rainbow_water.jpg';
+        });
+    }
+
+    //---- Set styles via CSS instead of directly on the element
+    const style = document.createElement('style');
+    style.textContent = `
+        #kaleidoscope-canvas {
+        position: fixed;
+        margin-left: -${kaleido_settings.radius}px;
+        margin-top: -${kaleido_settings.radius}px;
+        left: 50%;
+        top: 50%;
+        z-index: 1;
         }
+    `;
+    document.head.appendChild(style);
 
-        update();
-    };
-
+    // Load initial image and start animation
     img.src = 'images/Beautiful_Rainbow.jpg';
+    update();
        
     // return a cleanup function, that sets the visibility to hidden
     return function cleanupKaleidoscope() {
