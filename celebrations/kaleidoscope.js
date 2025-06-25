@@ -270,7 +270,8 @@ function createKaleidoscope() {
     var colorSectionYellow = document.getElementById('color-section-yellow');
     if (colorSectionYellow) {
         colorSectionYellow.addEventListener('click', function() {
-            img.src = 'https://cdn.myportfolio.com/d4f6685aca7241467add1bd9d72747b0/6d104c70-d45b-46ad-941a-62e34c162fd1.jpg?h=f136716bb0fd936fbb43cc2d911057d1';
+            //img.src = 'https://cdn.myportfolio.com/d4f6685aca7241467add1bd9d72747b0/6d104c70-d45b-46ad-941a-62e34c162fd1.jpg?h=f136716bb0fd936fbb43cc2d911057d1';
+            img.src = 'images/wavey_rainbow_black.jpg';
         });
     }
 
