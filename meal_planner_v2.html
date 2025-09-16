@@ -323,6 +323,27 @@
             mealColorInput.value = '#ffffff';
         }
         
+        async function handleMealDrop(originDate, targetDate, draggedMealData) {
+            if (!userId || !targetDate || !draggedMealData) return;
+            if (originDate === targetDate) return;
+
+            const mealOnTargetDate = window.state.plannedMeals[targetDate];
+
+            // Set the dragged meal on the target date.
+            await setDoc(doc(plannedMealsCollectionRef, targetDate), draggedMealData);
+
+            // If the meal was dragged from another planned day, handle the swap or move.
+            if (originDate) {
+                if (mealOnTargetDate) {
+                    // Swap: Move the target's original meal to the origin date.
+                    await setDoc(doc(plannedMealsCollectionRef, originDate), mealOnTargetDate);
+                } else {
+                    // Move: The origin date becomes empty.
+                    await deleteDoc(doc(plannedMealsCollectionRef, originDate));
+                }
+            }
+        }
+
         // --- Event Listeners ---
         prevWeekBtn.addEventListener('click', () => {
             window.state.currentDate.setDate(window.state.currentDate.getDate() - 7);
@@ -379,7 +400,6 @@
                 try {
                     if (mealId) { // Editing existing meal
                         const mealRef = doc(mealsCollectionRef, mealId);
-                        // Get existing imageUrl if no new file is uploaded
                         if(!imageUrl) {
                              const existingMealCard = document.querySelector(`.meal-card[data-meal-id="${mealId}"]`);
                              mealData.imageUrl = existingMealCard.dataset.mealImageUrl || null;
@@ -476,16 +496,8 @@
                 dropZone.classList.remove('drag-over');
                 const { mealId, mealName, mealEmoji, mealImageUrl, mealColor, originDate } = window.state.draggedItem;
                 const targetDate = dropZone.dataset.date;
-                
-                if (originDate && originDate !== targetDate && userId) {
-                     await deleteDoc(doc(plannedMealsCollectionRef, originDate));
-                }
-
-                if(userId) {
-                    await setDoc(doc(plannedMealsCollectionRef, targetDate), {
-                        mealId: mealId, name: mealName, emoji: mealEmoji, imageUrl: mealImageUrl, color: mealColor,
-                    });
-                }
+                const draggedMealData = { mealId, name: mealName, emoji: mealEmoji, imageUrl: mealImageUrl, color: mealColor };
+                await handleMealDrop(originDate, targetDate, draggedMealData);
             }
         });
         
@@ -504,10 +516,7 @@
         document.addEventListener('touchstart', (e) => {
             const mealCard = e.target.closest('.meal-card');
             if (mealCard) {
-                // Prevent starting a drag from edit/delete buttons
-                if (e.target.closest('.edit-meal-btn') || e.target.closest('.delete-meal-btn')) {
-                    return;
-                }
+                if (e.target.closest('.edit-meal-btn') || e.target.closest('.delete-meal-btn')) return;
                 window.state.draggedItem = { ...mealCard.dataset };
                 ghostEl.innerHTML = mealCard.innerHTML;
                 ghostEl.className = mealCard.className;
@@ -551,15 +560,8 @@
                     currentDropZone.classList.remove('drag-over');
                     const { mealId, mealName, mealEmoji, mealImageUrl, mealColor, originDate } = window.state.draggedItem;
                     const targetDate = currentDropZone.dataset.date;
-                    
-                    if (originDate && originDate !== targetDate && userId) {
-                        await deleteDoc(doc(plannedMealsCollectionRef, originDate));
-                    }
-                    if(userId){
-                         await setDoc(doc(plannedMealsCollectionRef, targetDate), {
-                            mealId, name: mealName, emoji: mealEmoji, imageUrl: mealImageUrl, color: mealColor,
-                        });
-                    }
+                    const draggedMealData = { mealId, name: mealName, emoji: mealEmoji, imageUrl: mealImageUrl, color: mealColor };
+                    await handleMealDrop(originDate, targetDate, draggedMealData);
                 }
                 window.state.draggedItem = null;
                 currentDropZone = null;
@@ -573,3 +575,4 @@
 
 </body>
 </html>
+
