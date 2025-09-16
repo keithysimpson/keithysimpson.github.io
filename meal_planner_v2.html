@@ -9,6 +9,10 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
+            /* touch-action: none; removed to allow scrolling */
+        }
+        body.dragging-active {
+            overflow: hidden;
             touch-action: none;
         }
         .meal-card.dragging {
@@ -509,15 +513,30 @@
             }
         });
 
-        // --- Touch-based Drag and Drop ---
+        // --- Touch-based Drag and Drop (with Long Press) ---
         let ghostEl = document.getElementById('ghost-drag-element');
         let currentDropZone = null;
+        let longPressTimer = null;
+        let isDragging = false;
+        let touchStartX, touchStartY;
+        const longPressDuration = 500; // 0.5 seconds
 
         document.addEventListener('touchstart', (e) => {
             const mealCard = e.target.closest('.meal-card');
-            if (mealCard) {
-                if (e.target.closest('.edit-meal-btn') || e.target.closest('.delete-meal-btn')) return;
+            if (!mealCard || e.target.closest('.edit-meal-btn') || e.target.closest('.delete-meal-btn')) {
+                return;
+            }
+
+            isDragging = false;
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+
+            longPressTimer = setTimeout(() => {
+                isDragging = true;
+                document.body.classList.add('dragging-active'); // Prevent scrolling while dragging
+
                 window.state.draggedItem = { ...mealCard.dataset };
+                
                 ghostEl.innerHTML = mealCard.innerHTML;
                 ghostEl.className = mealCard.className;
                 ghostEl.classList.remove('cursor-grab');
@@ -526,15 +545,24 @@
                 ghostEl.style.left = `${e.touches[0].clientX}px`;
                 ghostEl.style.top = `${e.touches[0].clientY}px`;
                 ghostEl.classList.remove('hidden');
+
                 mealCard.classList.add('dragging');
-            }
-        }, { passive: false });
+            }, longPressDuration);
+
+        }, { passive: true }); // Use passive:true to allow default scroll initially
 
         document.addEventListener('touchmove', (e) => {
-            if (window.state.draggedItem) {
-                e.preventDefault();
+            // If the user moves their finger significantly, it's a scroll, not a long press.
+            if (longPressTimer && (Math.abs(e.touches[0].clientX - touchStartX) > 10 || Math.abs(e.touches[0].clientY - touchStartY) > 10)) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
+
+            if (isDragging) {
+                e.preventDefault(); // Only prevent default behavior when dragging
                 ghostEl.style.left = `${e.touches[0].clientX}px`;
                 ghostEl.style.top = `${e.touches[0].clientY}px`;
+                
                 ghostEl.classList.add('hidden');
                 let elementUnder = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
                 ghostEl.classList.remove('hidden');
@@ -550,12 +578,17 @@
                     currentDropZone = null;
                 }
             }
-        }, { passive: false });
+        }, { passive: false }); // Needs to be false to allow preventDefault()
 
         document.addEventListener('touchend', async (e) => {
-            if (window.state.draggedItem) {
+            clearTimeout(longPressTimer);
+            longPressTimer = null;
+
+            if (isDragging) {
                 ghostEl.classList.add('hidden');
                 document.querySelector('.dragging')?.classList.remove('dragging');
+                document.body.classList.remove('dragging-active');
+
                 if (currentDropZone) {
                     currentDropZone.classList.remove('drag-over');
                     const { mealId, mealName, mealEmoji, mealImageUrl, mealColor, originDate } = window.state.draggedItem;
@@ -563,9 +596,12 @@
                     const draggedMealData = { mealId, name: mealName, emoji: mealEmoji, imageUrl: mealImageUrl, color: mealColor };
                     await handleMealDrop(originDate, targetDate, draggedMealData);
                 }
-                window.state.draggedItem = null;
-                currentDropZone = null;
             }
+
+            // Reset all states
+            isDragging = false;
+            window.state.draggedItem = null;
+            currentDropZone = null;
         });
 
         // --- Initial Load ---
