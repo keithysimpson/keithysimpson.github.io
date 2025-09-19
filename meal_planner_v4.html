@@ -10,6 +10,10 @@
         body {
             font-family: 'Inter', sans-serif;
         }
+        .meal-card {
+            /* Allows vertical scrolling (pan-y) on meal cards, preventing drag from hijacking scroll */
+            touch-action: pan-y;
+        }
         .meal-card.dragging {
             opacity: 0.5;
             transform: scale(1.05);
@@ -48,12 +52,14 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800 antialiased overflow-hidden">
+<!-- Removed overflow-hidden to allow native browser scrolling -->
+<body class="bg-gray-100 text-gray-800 antialiased">
 
     <div id="app" class="h-screen w-screen flex flex-col">
 
         <!-- Main Content -->
-        <main class="flex-1 flex overflow-hidden">
+        <!-- Removed overflow-hidden to allow child elements to be scrollable on mobile -->
+        <main class="flex-1 flex">
             <!-- Days Column -->
             <div class="w-2/5 md:w-1/3 border-r border-gray-200 flex flex-col bg-white">
                 <div class="p-3 border-b border-gray-200 flex justify-between items-center">
@@ -74,7 +80,6 @@
                         +
                     </button>
                 </div>
-                <!-- Removed pr-8 as it's no longer needed with the long-press logic -->
                 <div id="meals-container" class="flex-1 overflow-y-auto p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"></div>
             </div>
         </main>
@@ -103,7 +108,6 @@
                     <input type="color" id="meal-color" value="#FFFFFF" class="mt-1 block w-full h-10 p-1 border border-gray-300 rounded-md">
                 </div>
             </div>
-            <!-- Updated button layout -->
             <div class="mt-6 flex justify-between items-center">
                  <button id="delete-meal-in-modal-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg shadow transition-transform transform hover:scale-105 hidden">Delete</button>
                 <div class="flex-1 flex justify-end space-x-3">
@@ -457,7 +461,8 @@
 
         document.addEventListener('dragend', (e) => {
             if (e.target.classList.contains('meal-card')) {
-                e.target.classList.remove('dragging');
+                // More robust cleanup for artifacts
+                document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
                 window.state.draggedItem = null;
             }
         });
@@ -506,7 +511,7 @@
                 startX = e.touches[0].clientX;
                 startY = e.touches[0].clientY;
 
-                clearTimeout(longPressTimer); // Clear any previous timer
+                clearTimeout(longPressTimer); 
 
                 longPressTimer = setTimeout(() => {
                     // --- Drag starts here ---
@@ -528,14 +533,13 @@
             if (longPressTimer) {
                 const moveX = e.touches[0].clientX;
                 const moveY = e.touches[0].clientY;
-                // If finger moves more than 10px, it's a scroll, not a drag
                 if (Math.abs(moveX - startX) > 10 || Math.abs(moveY - startY) > 10) {
                     clearTimeout(longPressTimer);
                 }
             }
 
             if (window.state.draggedItem) {
-                e.preventDefault(); // Only prevent scroll if we are actively dragging
+                e.preventDefault(); 
                 ghostEl.style.left = `${e.touches[0].clientX}px`;
                 ghostEl.style.top = `${e.touches[0].clientY}px`;
                 
@@ -558,11 +562,10 @@
         }, { passive: false });
 
         document.addEventListener('touchend', async (e) => {
-            clearTimeout(longPressTimer); // Always clear timer on touch end
+            clearTimeout(longPressTimer); 
 
             if (window.state.draggedItem) {
                 ghostEl.classList.add('hidden');
-                document.querySelector('.dragging')?.classList.remove('dragging');
                 if (currentDropZone) {
                     currentDropZone.classList.remove('drag-over');
                     const { mealId, mealName, mealEmoji, mealImageUrl, mealColor, originDate } = window.state.draggedItem;
@@ -570,6 +573,8 @@
                     const draggedMealData = { mealId, name: mealName, emoji: mealEmoji, imageUrl: mealImageUrl, color: mealColor };
                     await handleMealDrop(originDate, targetDate, draggedMealData);
                 }
+                // Robustly find and remove all dragging classes to prevent artifacts
+                document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
                 window.state.draggedItem = null;
                 currentDropZone = null;
             }
