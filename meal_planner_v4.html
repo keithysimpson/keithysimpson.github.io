@@ -9,7 +9,6 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            /* touch-action: none; // Removed to allow native scrolling */
         }
         .meal-card.dragging {
             opacity: 0.5;
@@ -75,8 +74,8 @@
                         +
                     </button>
                 </div>
-                <!-- Added pr-8 for a dedicated scroll area on the right -->
-                <div id="meals-container" class="flex-1 overflow-y-auto p-4 pr-8 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"></div>
+                <!-- Removed pr-8 as it's no longer needed with the long-press logic -->
+                <div id="meals-container" class="flex-1 overflow-y-auto p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"></div>
             </div>
         </main>
     </div>
@@ -107,7 +106,7 @@
             <!-- Updated button layout -->
             <div class="mt-6 flex justify-between items-center">
                  <button id="delete-meal-in-modal-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg shadow transition-transform transform hover:scale-105 hidden">Delete</button>
-                <div class="flex justify-end space-x-3">
+                <div class="flex-1 flex justify-end space-x-3">
                     <button id="cancel-add-meal" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg">Cancel</button>
                     <button id="save-meal-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">Save Meal</button>
                 </div>
@@ -138,7 +137,6 @@
         import { getFirestore, collection, doc, onSnapshot, setDoc, deleteDoc, serverTimestamp, addDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- Firebase Setup ---
-        // Your web app's Firebase configuration will be automatically replaced here.
         const firebaseConfig = {
             apiKey: "AIzaSyB6FoEL9fomhWEMUfyaNnYKWt50TF8Lj1s",
             authDomain: "mealplanner-317b2.firebaseapp.com",
@@ -301,7 +299,6 @@
                     ? `<img src="${meal.imageUrl}" alt="${meal.name}" class="w-12 h-12 object-cover rounded-full mb-2 pointer-events-none">`
                     : `<div class="text-4xl mb-2 pointer-events-none">${meal.emoji}</div>`;
 
-                // Delete button removed from here
                 mealEl.innerHTML = `
                     <div class="absolute top-1 right-1 flex space-x-1">
                         <button class="edit-meal-btn bg-white bg-opacity-50 hover:bg-opacity-100 p-1 rounded-full text-blue-600">
@@ -318,7 +315,7 @@
         function resetModal() {
             modal.classList.add('hidden');
             modal.classList.remove('flex');
-            deleteInModalBtn.classList.add('hidden'); // Hide delete button
+            deleteInModalBtn.classList.add('hidden');
             modalTitle.textContent = 'Add a New Meal';
             saveMealBtn.textContent = 'Save Meal';
             mealIdEditInput.value = '';
@@ -334,16 +331,12 @@
 
             const mealOnTargetDate = window.state.plannedMeals[targetDate];
 
-            // Set the dragged meal on the target date.
             await setDoc(doc(plannedMealsCollectionRef, targetDate), draggedMealData);
 
-            // If the meal was dragged from another planned day, handle the swap or move.
             if (originDate) {
                 if (mealOnTargetDate) {
-                    // Swap: Move the target's original meal to the origin date.
                     await setDoc(doc(plannedMealsCollectionRef, originDate), mealOnTargetDate);
                 } else {
-                    // Move: The origin date becomes empty.
                     await deleteDoc(doc(plannedMealsCollectionRef, originDate));
                 }
             }
@@ -360,9 +353,8 @@
             renderDays();
         });
 
-        // Add/Edit Modal listeners
         addMealBtn.addEventListener('click', () => {
-            resetModal(); // Ensure modal is in 'add' state
+            resetModal();
             modal.classList.remove('hidden');
             modal.classList.add('flex');
         });
@@ -375,24 +367,16 @@
             let color = mealColorInput.value;
             const mealId = mealIdEditInput.value;
 
-            if (!name) {
-                console.error("Meal name is required.");
-                return;
-            }
+            if (!name) return;
 
             let imageUrl = null;
             if (imageFile) {
-                try {
-                    imageUrl = await new Promise((resolve, reject) => {
-                        const reader = new FileReader();
-                        reader.onload = (event) => resolve(event.target.result);
-                        reader.onerror = (error) => reject(error);
-                        reader.readAsDataURL(imageFile);
-                    });
-                } catch (error) {
-                    console.error("Error reading image file:", error);
-                    return;
-                }
+                imageUrl = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (event) => resolve(event.target.result);
+                    reader.onerror = (error) => reject(error);
+                    reader.readAsDataURL(imageFile);
+                }).catch(err => console.error("Error reading image:", err));
             }
 
             if (!emoji && !imageUrl) emoji = '🍽️';
@@ -403,25 +387,22 @@
                 if (imageUrl) mealData.imageUrl = imageUrl;
 
                 try {
-                    if (mealId) { // Editing existing meal
+                    if (mealId) {
                         const mealRef = doc(mealsCollectionRef, mealId);
                         if(!imageUrl) {
                              const existingMealCard = document.querySelector(`.meal-card[data-meal-id="${mealId}"]`);
                              mealData.imageUrl = existingMealCard.dataset.mealImageUrl || null;
                         }
                         await updateDoc(mealRef, mealData);
-                    } else { // Adding new meal
+                    } else {
                         mealData.createdAt = serverTimestamp();
                         await addDoc(mealsCollectionRef, mealData);
                     }
                     resetModal();
-                } catch (error) {
-                    console.error("Error saving meal:", error);
-                }
+                } catch (error) { console.error("Error saving meal:", error); }
             }
         });
         
-        // Listener for delete button within the modal
         deleteInModalBtn.addEventListener('click', () => {
             const mealId = mealIdEditInput.value;
             if (mealId) {
@@ -431,7 +412,6 @@
             }
         });
 
-        // Delete Modal Listeners
         cancelDeleteBtn.addEventListener('click', () => {
             deleteModal.classList.add('hidden');
             deleteModal.classList.remove('flex');
@@ -442,19 +422,14 @@
             if (window.state.mealIdToDelete && userId) {
                 try {
                     await deleteDoc(doc(mealsCollectionRef, window.state.mealIdToDelete));
-                    resetModal(); // Close edit modal
-                } catch (error) {
-                    console.error("Error deleting meal:", error);
-                } finally {
-                    cancelDeleteBtn.click(); // Close confirm modal and reset state
-                }
+                    resetModal();
+                } catch (error) { console.error("Error deleting meal:", error);
+                } finally { cancelDeleteBtn.click(); }
             }
         });
         
-        // Meals container listener for edit button
         mealsContainer.addEventListener('click', (e) => {
             const editBtn = e.target.closest('.edit-meal-btn');
-            
             if (editBtn) {
                 const mealCard = editBtn.closest('.meal-card');
                 const { mealId, mealName, mealEmoji, mealColor } = mealCard.dataset;
@@ -466,14 +441,13 @@
                 mealEmojiInput.value = mealEmoji;
                 mealColorInput.value = mealColor;
                 
-                deleteInModalBtn.classList.remove('hidden'); // Show delete button
+                deleteInModalBtn.classList.remove('hidden');
                 
                 modal.classList.remove('hidden');
                 modal.classList.add('flex');
             }
         });
 
-        // --- Drag and Drop Logic ---
         document.addEventListener('dragstart', (e) => {
             if (e.target.classList.contains('meal-card')) {
                 e.target.classList.add('dragging');
@@ -519,33 +493,49 @@
             }
         });
 
-        // --- Touch-based Drag and Drop ---
+        // --- Touch-based Drag and Drop with Long-Press ---
         let ghostEl = document.getElementById('ghost-drag-element');
         let currentDropZone = null;
+        let longPressTimer;
+        let startX, startY;
+        const LONG_PRESS_DURATION = 300; // ms
 
         document.addEventListener('touchstart', (e) => {
             const mealCard = e.target.closest('.meal-card');
-            if (mealCard) {
-                // Prevent drag from starting on buttons inside the card
-                if (e.target.closest('button')) return;
-                
-                window.state.draggedItem = { ...mealCard.dataset };
-                ghostEl.innerHTML = mealCard.innerHTML;
-                ghostEl.className = mealCard.className;
-                ghostEl.classList.remove('cursor-grab');
-                ghostEl.style.width = `${mealCard.offsetWidth}px`;
-                ghostEl.style.height = `${mealCard.offsetHeight}px`;
-                ghostEl.style.left = `${e.touches[0].clientX}px`;
-                ghostEl.style.top = `${e.touches[0].clientY}px`;
-                ghostEl.classList.remove('hidden');
-                mealCard.classList.add('dragging');
+            if (mealCard && !e.target.closest('button')) {
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+
+                clearTimeout(longPressTimer); // Clear any previous timer
+
+                longPressTimer = setTimeout(() => {
+                    // --- Drag starts here ---
+                    window.state.draggedItem = { ...mealCard.dataset };
+                    ghostEl.innerHTML = mealCard.innerHTML;
+                    ghostEl.className = mealCard.className;
+                    ghostEl.classList.remove('cursor-grab');
+                    ghostEl.style.width = `${mealCard.offsetWidth}px`;
+                    ghostEl.style.height = `${mealCard.offsetHeight}px`;
+                    ghostEl.style.left = `${e.touches[0].clientX}px`;
+                    ghostEl.style.top = `${e.touches[0].clientY}px`;
+                    ghostEl.classList.remove('hidden');
+                    mealCard.classList.add('dragging');
+                }, LONG_PRESS_DURATION);
             }
-        }, { passive: true }); // Use passive: true for better scroll performance
+        }, { passive: true });
 
         document.addEventListener('touchmove', (e) => {
+            if (longPressTimer) {
+                const moveX = e.touches[0].clientX;
+                const moveY = e.touches[0].clientY;
+                // If finger moves more than 10px, it's a scroll, not a drag
+                if (Math.abs(moveX - startX) > 10 || Math.abs(moveY - startY) > 10) {
+                    clearTimeout(longPressTimer);
+                }
+            }
+
             if (window.state.draggedItem) {
-                // This will be called only when dragging, preventing scroll
-                e.preventDefault(); 
+                e.preventDefault(); // Only prevent scroll if we are actively dragging
                 ghostEl.style.left = `${e.touches[0].clientX}px`;
                 ghostEl.style.top = `${e.touches[0].clientY}px`;
                 
@@ -565,9 +555,11 @@
                     currentDropZone = null;
                 }
             }
-        }, { passive: false }); // Needs to be false to allow preventDefault
+        }, { passive: false });
 
         document.addEventListener('touchend', async (e) => {
+            clearTimeout(longPressTimer); // Always clear timer on touch end
+
             if (window.state.draggedItem) {
                 ghostEl.classList.add('hidden');
                 document.querySelector('.dragging')?.classList.remove('dragging');
@@ -590,3 +582,4 @@
 
 </body>
 </html>
+
