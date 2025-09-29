@@ -183,6 +183,8 @@
             mealsUnsubscribe = onSnapshot(mealsCollectionRef, (snapshot) => {
                 const meals = [];
                 snapshot.forEach((doc) => meals.push({ id: doc.id, ...doc.data() }));
+                // Sort alphabetically by name (case-insensitive)
+                meals.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
                 renderMeals(meals);
             });
 
