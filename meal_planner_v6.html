@@ -186,8 +186,8 @@
             return hashHex.substring(0, 16);
         }
 
-        // Check for stored passcode
-        let storedPasscode = window.passcodeStore || null;
+        // Check for stored passcode in localStorage
+        let storedPasscode = localStorage.getItem('familyMealPasscode') || null;
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -390,8 +390,7 @@
             
             passcodeError.classList.add('hidden');
             familyId = await hashPasscode(passcode);
-            window.passcodeStore = passcode;
-            
+            localStorage.setItem('familyMealPasscode', passcode); // Store passcode
             passcodeModal.classList.add('hidden');
             setupFirestoreListeners();
         }
@@ -401,11 +400,12 @@
             if (e.key === 'Enter') handlePasscodeSubmit();
         });
 
-        // Check if we have a stored passcode from this session
+        // Check if we have a stored passcode from localStorage
         if (storedPasscode) {
             hashPasscode(storedPasscode).then(hash => {
                 familyId = hash;
                 passcodeModal.classList.add('hidden');
+                setupFirestoreListeners(); // Add this line so listeners are set up immediately
             });
         }
 
