@@ -195,6 +195,29 @@
 
 <body>
     <div class="color-bar">
+        <div id="color-section-red" class="color-section" style=" background: linear-gradient(
+    90deg,
+    teal 8%,
+    rgb(165, 232, 232) 12% 18% ,
+    teal 22% 28%,
+    rgb(165, 232, 232) 32% 38%,
+    teal 42% 48%,
+    rgb(165, 232, 232) 52% 58%,
+    teal 62% 68%,
+    rgb(165, 232, 232) 72% 78%,
+    teal 82% 88%,
+    rgb(165, 232, 232) 92% 
+  );"></div>
+
+
+        <div id="color-section-orange" class="color-section" style="background-color: red;"></div>
+        <div id="color-section-yellow" class="color-section" style="background-color: yellow;"></div>
+        <div id="color-section-green" class="color-section" style="background-color: orange;"></div>
+        <div id="color-section-blue" class="color-section" style="background-color: pink;"></div>
+        <div id="color-section-purple" class="color-section" style="background-color: purple;"></div>
+    </div>
+    <!--
+    <div class="color-bar">
         <div id="color-section-red" class="color-section" style="background-color: red;"></div>
         <div id="color-section-orange" class="color-section" style="background-color: orange;"></div>
         <div id="color-section-yellow" class="color-section" style="background-color: yellow;"></div>
@@ -202,6 +225,7 @@
         <div id="color-section-blue" class="color-section" style="background-color: blue;"></div>
         <div id="color-section-purple" class="color-section" style="background-color: purple;"></div>
     </div>
+    -->
     
     <div class="content">
         <div id="section-text">Start Brushing 🪥</div>
@@ -288,6 +312,7 @@
         const startPauseBtn = document.getElementById('startPauseBtn');
         const resetBtn = document.getElementById('resetBtn');
         const colors = ['red', 'orange', 'yellow', 'green', 'blue', 'purple'];
+        const backgroundColors = ['teal', 'red', 'yellow', 'orange', 'pink', 'purple'];
 		const colorWords = {
             'red': 'RED',
             'orange': 'ORANGE',
@@ -373,7 +398,7 @@
 
         function updateBackgroundColor() {
             const colorIndex = Math.floor(time / 20);
-            document.body.style.backgroundColor = colorIndex < colors.length ? colors[colorIndex] : 'purple';
+            document.body.style.backgroundColor = colorIndex < colors.length ? backgroundColors[colorIndex] : 'purple';
         }
 
         function updateSectionText() {
