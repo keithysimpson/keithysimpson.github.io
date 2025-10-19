@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Family Meal Planner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .meal-card {
+            /* Allows vertical scrolling (pan-y) on meal cards, preventing drag from hijacking scroll */
+            touch-action: pan-y;
+        }
+        .meal-card.dragging {
+            opacity: 0.5;
+            transform: scale(1.05);
+        }
+        .drop-zone.drag-over {
+            background-color: #e0f2fe;
+            border-color: #38bdf8;
+            border-style: dashed;
+        }
+        #ghost-drag-element {
+            position: absolute;
+            pointer-events: none;
+            z-index: 1000;
+            opacity: 0.8;
+            transform: translate(-50%, -50%);
+        }
+        .meal-image-preview {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 antialiased">
+
+    <div id="app" class="h-screen w-screen flex flex-col overflow-hidden">
+
+        <!-- Main Content -->
+        <main class="flex-1 flex overflow-hidden">
+            <!-- Days Column - Fixed height, no scrolling on mobile -->
+            <div class="w-2/5 md:w-1/3 border-r border-gray-200 flex flex-col bg-gray-200 pb-8">
+                <div class="p-3 border-b border-gray-200 flex justify-between items-center flex-shrink-0">
+                    <h2 class="text-lg font-semibold">This Week</h2>
+                    <div class="space-x-2">
+                        <button id="prev-week-btn" class="p-1 rounded-full hover:bg-gray-200">&lt;</button>
+                        <button id="next-week-btn" class="p-1 rounded-full hover:bg-gray-200">&gt;</button>
+                    </div>
+                </div>
+                <!-- Days container - no scrolling, fits to available height -->
+                <div id="days-container" class="flex-1 p-1 space-y-1 flex flex-col bg-gray-200 overflow-y-auto"></div>
+            </div>
+
+            <!-- Meals Column - Independent scrolling -->
+            <div class="w-3/5 md:w-2/3 flex flex-col overflow-hidden">
+                <div class="p-3 border-b border-gray-200 bg-white flex justify-between items-center flex-shrink-0">
+                    <h2 class="text-lg font-semibold">Meals</h2>
+                    <div id="user-status" class="flex items-center space-x-2">
+                        </div>
+                    <button id="add-meal-btn-inline" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-3 rounded-lg shadow transition-transform transform hover:scale-105 hidden">
+                        +
+                    </button>
+                </div>
+                <!-- Meals container - independently scrollable -->
+                <div id="meals-container" class="flex-1 overflow-y-auto p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add/Edit Meal Modal -->
+    <div id="add-meal-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-11/12 max-w-md">
+            <h3 id="modal-title" class="text-xl font-semibold mb-4">Add a New Meal</h3>
+            <input type="hidden" id="meal-id-edit">
+            <div class="space-y-4">
+                <div>
+                    <label for="meal-name" class="block text-sm font-medium text-gray-700">Meal Name</label>
+                    <input type="text" id="meal-name" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div>
+                    <label for="meal-emoji" class="block text-sm font-medium text-gray-700">Emoji (or upload an image below)</label>
+                    <input type="text" id="meal-emoji" placeholder="e.g., 🍝, 🍕, 🥗" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div>
+                    <label for="meal-image" class="block text-sm font-medium text-gray-700">Image</label>
+                    <input type="file" id="meal-image" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                </div>
+                <div>
+                    <label for="meal-color" class="block text-sm font-medium text-gray-700">Card Color</label>
+                    <input type="color" id="meal-color" value="#FFFFFF" class="mt-1 block w-full h-10 p-1 border border-gray-300 rounded-md">
+                </div>
+            </div>
+            <div class="mt-6 flex justify-between items-center">
+                 <button id="delete-meal-in-modal-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg shadow transition-transform transform hover:scale-105 hidden">Delete</button>
+                <div class="flex-1 flex justify-end space-x-3">
+                    <button id="cancel-add-meal" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg">Cancel</button>
+                    <button id="save-meal-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">Save Meal</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-11/12 max-w-sm">
+            <h3 class="text-lg font-semibold mb-2">Are you sure?</h3>
+            <p class="text-gray-600 mb-6">Do you really want to delete this meal? This action cannot be undone.</p>
+            <div class="flex justify-end space-x-3">
+                <button id="cancel-delete-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg">Cancel</button>
+                <button id="confirm-delete-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg">Delete</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Ghost element for touch drag -->
+    <div id="ghost-drag-element" class="hidden"></div>
+
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    // ADDED: GoogleAuthProvider, signInWithPopup, signOut
+    import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    // ADDED: getDoc
+    import { getFirestore, collection, doc, onSnapshot, setDoc, deleteDoc, serverTimestamp, addDoc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // --- Firebase Setup ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyB6FoEL9fomhWEMUfyaNnYKWt50TF8Lj1s",
+        authDomain: "mealplanner-317b2.firebaseapp.com",
+        projectId: "mealplanner-317b2",
+        storageBucket: "mealplanner-317b2.firebasestorage.app",
+        messagingSenderId: "892476898899",
+        appId: "1:892476898899:web:64aefed73a01a728df90a6"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    // --- State and Firestore Refs ---
+    let userId = null;
+    let familyId = null; // NEW: To store the shared family ID
+    let mealsCollectionRef;
+    let plannedMealsCollectionRef;
+
+    let mealsUnsubscribe = () => {};
+    let plannedMealsUnsubscribe = () => {};
+
+    // --- App State ---
+    window.state = {
+        currentDate: new Date(),
+        plannedMeals: {},
+        draggedItem: null,
+        mealIdToDelete: null,
+    };
+    
+    // --- DOM Elements ---
+    const daysContainer = document.getElementById('days-container');
+    const mealsContainer = document.getElementById('meals-container');
+    const prevWeekBtn = document.getElementById('prev-week-btn');
+    const nextWeekBtn = document.getElementById('next-week-btn');
+    const userStatusDiv = document.getElementById('user-status');
+    const addMealBtn = document.getElementById('add-meal-btn-inline');
+    // ... (rest of your DOM elements are the same)
+    const modal = document.getElementById('add-meal-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const mealIdEditInput = document.getElementById('meal-id-edit');
+    const cancelMealBtn = document.getElementById('cancel-add-meal');
+    const saveMealBtn = document.getElementById('save-meal-btn');
+    const mealNameInput = document.getElementById('meal-name');
+    const mealEmojiInput = document.getElementById('meal-emoji');
+    const mealImageInput = document.getElementById('meal-image');
+    const mealColorInput = document.getElementById('meal-color');
+    const deleteInModalBtn = document.getElementById('delete-meal-in-modal-btn');
+    const deleteModal = document.getElementById('delete-confirm-modal');
+    const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+    const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+    const ghostEl = document.getElementById('ghost-drag-element');
+
+
+    // --- NEW: Auth Handling ---
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            // User is signed in
+            userId = user.uid;
+            updateUIForUser(user);
+            checkUserFamily(user);
+        } else {
+            // User is signed out
+            userId = null;
+            familyId = null;
+            updateUIForGuest();
+            // Unsubscribe from old listeners to prevent errors
+            mealsUnsubscribe();
+            plannedMealsUnsubscribe();
+        }
+    });
+
+    async function checkUserFamily(user) {
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDocSnap = await getDoc(userDocRef);
+
+        if (userDocSnap.exists() && userDocSnap.data().familyId) {
+            // This user already belongs to a family
+            familyId = userDocSnap.data().familyId;
+            setupFirestoreListeners(familyId);
+        } else {
+            // This is a new user, or an existing user without a family.
+            // We need to ask them to create or join a family.
+            // For now, we'll use a simple prompt as a placeholder.
+            // TODO: Replace this with a nice modal UI.
+            const action = prompt("Welcome! Do you want to 'create' a new family plan or 'join' an existing one?");
+            if (action && action.toLowerCase() === 'create') {
+                await createNewFamily(user);
+            } else if (action && action.toLowerCase() === 'join') {
+                const inviteCode = prompt("Please enter the family invite code:");
+                // In a real app, you would validate this code. For now, we assume it's the familyId.
+                if (inviteCode) {
+                    await joinFamily(user, inviteCode);
+                }
+            }
+        }
+    }
+
+    async function createNewFamily(user) {
+        // Create a new family document
+        const newFamilyRef = await addDoc(collection(db, 'families'), {
+            ownerId: user.uid,
+            createdAt: serverTimestamp()
+        });
+        
+        familyId = newFamilyRef.id;
+        
+        // Update the user's document with the new familyId
+        await setDoc(doc(db, 'users', user.uid), {
+            email: user.email,
+            displayName: user.displayName,
+            familyId: familyId
+        });
+        
+        alert(`Your new family has been created! Share this ID with others to join: ${familyId}`);
+        setupFirestoreListeners(familyId);
+    }
+
+    async function joinFamily(user, existingFamilyId) {
+        familyId = existingFamilyId;
+        // Update the user's document with the existing familyId
+        await setDoc(doc(db, 'users', user.uid), {
+            email: user.email,
+            displayName: user.displayName,
+            familyId: familyId
+        });
+        
+        alert(`You've successfully joined the family plan!`);
+        setupFirestoreListeners(familyId);
+    }
+
+
+    function handleGoogleSignIn() {
+        const provider = new GoogleAuthProvider();
+        signInWithPopup(auth, provider).catch(error => console.error("Sign in error", error));
+    }
+
+    function handleSignOut() {
+        signOut(auth).catch(error => console.error("Sign out error", error));
+    }
+
+    // --- NEW: UI Update Functions ---
+    function updateUIForUser(user) {
+        // NEW: Check if displayName exists, and have fallbacks.
+        let greetingName = 'User'; // A generic default
+        if (user.displayName) {
+            greetingName = user.displayName.split(' ')[0]; // "Jane Doe" -> "Jane"
+        } else if (user.email) {
+            greetingName = user.email.split('@')[0]; // "jane.doe@email.com" -> "jane.doe"
+        }
+
+        userStatusDiv.innerHTML = `
+            <span class="text-sm">Hi, ${greetingName}</span>
+            <button id="sign-out-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-1 px-3 rounded-lg text-sm">Sign Out</button>
+        `;
+        addMealBtn.classList.remove('hidden');
+        document.getElementById('sign-out-btn').addEventListener('click', handleSignOut);
+    }
+
+    function updateUIForGuest() {
+        userStatusDiv.innerHTML = `
+            <button id="sign-in-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-3 rounded-lg">Sign in with Google</button>
+        `;
+        addMealBtn.classList.add('hidden');
+        mealsContainer.innerHTML = '<p class="text-gray-500">Please sign in to manage your meals.</p>';
+        daysContainer.innerHTML = '';
+        renderDays(); // Render empty days
+        document.getElementById('sign-in-btn').addEventListener('click', handleGoogleSignIn);
+    }
+
+
+    // MODIFIED: This function now requires a familyId to work
+    function setupFirestoreListeners(currentFamilyId) {
+        if (!currentFamilyId) return;
+        
+        // Set the collection references to point to the user's family data
+        mealsCollectionRef = collection(db, `families/${currentFamilyId}/meals`);
+        plannedMealsCollectionRef = collection(db, `families/${currentFamilyId}/planned_meals`);
+        
+        // Detach old listeners
+        mealsUnsubscribe();
+        plannedMealsUnsubscribe();
+        
+        // Attach new listeners
+        mealsUnsubscribe = onSnapshot(mealsCollectionRef, (snapshot) => {
+            const meals = [];
+            snapshot.forEach((doc) => meals.push({ id: doc.id, ...doc.data() }));
+            meals.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+            renderMeals(meals);
+        });
+
+        plannedMealsUnsubscribe = onSnapshot(plannedMealsCollectionRef, (snapshot) => {
+            const plannedMeals = {};
+            snapshot.forEach((doc) => plannedMeals[doc.id] = doc.data());
+            window.state.plannedMeals = plannedMeals;
+            renderDays();
+        });
+    }
+
+    // The rest of your functions (renderDays, renderMeals, saveMealBtn, drag/drop, etc.)
+    // should work as-is because they use the global `mealsCollectionRef` and
+    // `plannedMealsCollectionRef` variables, which are now correctly set after login.
+
+    // --- Date Helper Functions ---
+    const formatDate = (date) => date.toISOString().split('T')[0];
+    const getStartOfWeek = (date) => {
+        const d = new Date(date);
+        const day = d.getDay();
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+        return new Date(d.setDate(diff));
+    };
+    const getRandomPastelColor = () => `hsl(${Math.floor(Math.random() * 360)}, 70%, 85%)`;
+
+    // --- Rendering Functions ---
+    function renderDays() {
+        daysContainer.innerHTML = '';
+        const startOfWeek = getStartOfWeek(window.state.currentDate);
+        for (let i = 0; i < 7; i++) {
+            const dayDate = new Date(startOfWeek);
+            dayDate.setDate(startOfWeek.getDate() + i);
+            const dateString = formatDate(dayDate);
+            const dayOfWeek = dayDate.toLocaleDateString('en-US', { weekday: 'short' });
+            const dateDisplay = dayDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            
+            // Only show meals if user is logged in
+            const plannedMeal = (familyId && window.state.plannedMeals[dateString]) ? window.state.plannedMeals[dateString] : null;
+
+            const dayEl = document.createElement('div');
+            dayEl.className = 'p-2 border border-gray-200 bg-white rounded-lg drop-zone flex-1 flex flex-col justify-between min-h-0';
+            dayEl.dataset.date = dateString;
+            dayEl.innerHTML = `
+                <div class="flex justify-between items-center flex-shrink-0">
+                    <p class="font-semibold text-sm text-gray-700">${dayOfWeek}</p>
+                    <p class="text-sm text-gray-500">${dateDisplay}</p>
+                </div>
+                <div class="planned-meal-container flex-1 min-h-[40px] flex items-center">
+                    ${plannedMeal ? createPlannedMealElement(plannedMeal, dateString).outerHTML : ''}
+                </div>
+            `;
+            daysContainer.appendChild(dayEl);
+        }
+    }
+
+    function createPlannedMealElement(meal, date) {
+        const mealEl = document.createElement('div');
+        mealEl.className = 'meal-card planned-meal p-2 rounded-md shadow-sm flex items-center justify-between cursor-grab w-full';
+        mealEl.style.backgroundColor = meal.color;
+        mealEl.draggable = true;
+        mealEl.dataset.mealId = meal.mealId;
+        mealEl.dataset.mealName = meal.name;
+        mealEl.dataset.mealEmoji = meal.emoji;
+        mealEl.dataset.mealImageUrl = meal.imageUrl || '';
+        mealEl.dataset.mealColor = meal.color;
+        mealEl.dataset.originDate = date;
+        const iconHtml = meal.imageUrl 
+            ? `<img src="${meal.imageUrl}" alt="${meal.name}" class="meal-image-preview">` 
+            : `<span class="text-lg">${meal.emoji}</span>`;
+        mealEl.innerHTML = `
+            ${iconHtml}
+            <span class="text-sm font-medium ml-2 truncate flex-1">${meal.name}</span>
+            <button class="remove-meal-btn text-red-500 hover:text-red-700 ml-2">&times;</button>
+        `;
+        return mealEl;
+    }
+
+    function renderMeals(meals) {
+        mealsContainer.innerHTML = '';
+        if (!familyId) { // Don't render meals if not logged into a family
+            mealsContainer.innerHTML = '<p class="text-gray-500 col-span-full">Please sign in to manage your meals.</p>';
+            return;
+        }
+        meals.forEach(meal => {
+            const mealEl = document.createElement('div');
+            mealEl.className = 'meal-card relative p-3 rounded-lg shadow cursor-grab transition-transform transform hover:scale-105 flex flex-col items-center justify-center';
+            mealEl.style.backgroundColor = meal.color;
+            mealEl.draggable = true;
+            mealEl.dataset.mealId = meal.id;
+            mealEl.dataset.mealName = meal.name;
+            mealEl.dataset.mealEmoji = meal.emoji || '';
+            mealEl.dataset.mealImageUrl = meal.imageUrl || '';
+            mealEl.dataset.mealColor = meal.color;
+
+            const iconHtml = meal.imageUrl 
+                ? `<img src="${meal.imageUrl}" alt="${meal.name}" class="w-12 h-12 object-cover rounded-full mb-2 pointer-events-none">`
+                : `<div class="text-4xl mb-2 pointer-events-none">${meal.emoji}</div>`;
+
+            mealEl.innerHTML = `
+                <div class="absolute top-1 right-1 flex space-x-1">
+                    <button class="edit-meal-btn bg-white bg-opacity-50 hover:bg-opacity-100 p-1 rounded-full text-blue-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L14.732 3.732z" /></svg>
+                    </button>
+                </div>
+                ${iconHtml}
+                <p class="text-center font-medium text-sm truncate w-full pointer-events-none">${meal.name}</p>
+            `;
+            mealsContainer.appendChild(mealEl);
+        });
+    }
+
+    function resetModal() {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        deleteInModalBtn.classList.add('hidden');
+        modalTitle.textContent = 'Add a New Meal';
+        saveMealBtn.textContent = 'Save Meal';
+        mealIdEditInput.value = '';
+        mealNameInput.value = '';
+        mealEmojiInput.value = '';
+        mealImageInput.value = '';
+        mealColorInput.value = '#ffffff';
+    }
+    
+    async function handleMealDrop(originDate, targetDate, draggedMealData) {
+        if (!familyId || !targetDate || !draggedMealData) return;
+        if (originDate === targetDate) return;
+
+        const mealOnTargetDate = window.state.plannedMeals[targetDate];
+
+        await setDoc(doc(plannedMealsCollectionRef, targetDate), draggedMealData);
+
+        if (originDate) {
+            if (mealOnTargetDate) {
+                await setDoc(doc(plannedMealsCollectionRef, originDate), mealOnTargetDate);
+            } else {
+                await deleteDoc(doc(plannedMealsCollectionRef, originDate));
+            }
+        }
+    }
+
+    // --- Event Listeners (largely unchanged) ---
+    prevWeekBtn.addEventListener('click', () => {
+        window.state.currentDate.setDate(window.state.currentDate.getDate() - 7);
+        renderDays();
+    });
+
+    nextWeekBtn.addEventListener('click', () => {
+        window.state.currentDate.setDate(window.state.currentDate.getDate() + 7);
+        renderDays();
+    });
+
+    addMealBtn.addEventListener('click', () => {
+        resetModal();
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    });
+    cancelMealBtn.addEventListener('click', resetModal);
+    
+    saveMealBtn.addEventListener('click', async () => {
+        const name = mealNameInput.value.trim();
+        let emoji = mealEmojiInput.value.trim();
+        const imageFile = mealImageInput.files[0];
+        let color = mealColorInput.value;
+        const mealId = mealIdEditInput.value;
+
+        if (!name || !familyId) return; // Must have a name and be logged in
+
+        let imageUrl = null;
+        if (imageFile) {
+            imageUrl = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (event) => resolve(event.target.result);
+                reader.onerror = (error) => reject(error);
+                reader.readAsDataURL(imageFile);
+            }).catch(err => console.error("Error reading image:", err));
+        }
+
+        if (!emoji && !imageUrl) emoji = '🍽️';
+        if (color === '#ffffff') color = getRandomPastelColor();
+
+        const mealData = { name, emoji, color };
+        if (imageUrl) mealData.imageUrl = imageUrl;
+
+        try {
+            if (mealId) {
+                const mealRef = doc(mealsCollectionRef, mealId);
+                if(!imageUrl) {
+                        const existingMealCard = document.querySelector(`.meal-card[data-meal-id="${mealId}"]`);
+                        mealData.imageUrl = existingMealCard.dataset.mealImageUrl || null;
+                }
+                await updateDoc(mealRef, mealData);
+            } else {
+                mealData.createdAt = serverTimestamp();
+                await addDoc(mealsCollectionRef, mealData);
+            }
+            resetModal();
+        } catch (error) { console.error("Error saving meal:", error); }
+    });
+    
+    deleteInModalBtn.addEventListener('click', () => {
+        const mealId = mealIdEditInput.value;
+        if (mealId) {
+            window.state.mealIdToDelete = mealId;
+            deleteModal.classList.remove('hidden');
+            deleteModal.classList.add('flex');
+        }
+    });
+
+    cancelDeleteBtn.addEventListener('click', () => {
+        deleteModal.classList.add('hidden');
+        deleteModal.classList.remove('flex');
+        window.state.mealIdToDelete = null;
+    });
+
+    confirmDeleteBtn.addEventListener('click', async () => {
+        if (window.state.mealIdToDelete && familyId) {
+            try {
+                await deleteDoc(doc(mealsCollectionRef, window.state.mealIdToDelete));
+                resetModal();
+            } catch (error) { console.error("Error deleting meal:", error);
+            } finally { cancelDeleteBtn.click(); }
+        }
+    });
+    
+    mealsContainer.addEventListener('click', (e) => {
+        const editBtn = e.target.closest('.edit-meal-btn');
+        if (editBtn) {
+            const mealCard = editBtn.closest('.meal-card');
+            const { mealId, mealName, mealEmoji, mealColor } = mealCard.dataset;
+            
+            modalTitle.textContent = 'Edit Meal';
+            saveMealBtn.textContent = 'Update Meal';
+            mealIdEditInput.value = mealId;
+            mealNameInput.value = mealName;
+            mealEmojiInput.value = mealEmoji;
+            mealColorInput.value = mealColor;
+            
+            deleteInModalBtn.classList.remove('hidden');
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+    });
+
+    document.addEventListener('dragstart', (e) => {
+        if (e.target.classList.contains('meal-card')) {
+            e.target.classList.add('dragging');
+            window.state.draggedItem = { ...e.target.dataset };
+        }
+    });
+
+    document.addEventListener('dragend', (e) => {
+        if (e.target.classList.contains('meal-card')) {
+            document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+            window.state.draggedItem = null;
+        }
+    });
+
+    daysContainer.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        const dropZone = e.target.closest('.drop-zone');
+        if (dropZone) dropZone.classList.add('drag-over');
+    });
+    
+    daysContainer.addEventListener('dragleave', (e) => {
+        const dropZone = e.target.closest('.drop-zone');
+        if (dropZone) dropZone.classList.remove('drag-over');
+    });
+
+    daysContainer.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        const dropZone = e.target.closest('.drop-zone');
+        if (dropZone && window.state.draggedItem) {
+            dropZone.classList.remove('drag-over');
+            const { mealId, mealName, mealEmoji, mealImageUrl, mealColor, originDate } = window.state.draggedItem;
+            const targetDate = dropZone.dataset.date;
+            const draggedMealData = { mealId, name: mealName, emoji: mealEmoji, imageUrl: mealImageUrl, color: mealColor };
+            await handleMealDrop(originDate, targetDate, draggedMealData);
+        }
+    });
+    
+    daysContainer.addEventListener('click', async (e) => {
+        if (e.target.classList.contains('remove-meal-btn')) {
+            const plannedMealEl = e.target.closest('.planned-meal');
+            const date = plannedMealEl.dataset.originDate;
+            if (date && familyId) await deleteDoc(doc(plannedMealsCollectionRef, date));
+        }
+    });
+
+    // --- Touch-based Drag and Drop with Long-Press ---
+    let currentDropZone = null;
+    let longPressTimer;
+    let startX, startY;
+    const LONG_PRESS_DURATION = 100;
+
+    document.addEventListener('touchstart', (e) => {
+        const mealCard = e.target.closest('.meal-card');
+        if (mealCard && !e.target.closest('button')) {
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+            clearTimeout(longPressTimer); 
+            longPressTimer = setTimeout(() => {
+                window.state.draggedItem = { ...mealCard.dataset };
+                ghostEl.innerHTML = mealCard.innerHTML;
+                ghostEl.className = mealCard.className;
+                ghostEl.classList.remove('cursor-grab');
+                ghostEl.style.width = `${mealCard.offsetWidth}px`;
+                ghostEl.style.height = `${mealCard.offsetHeight}px`;
+                ghostEl.style.left = `${e.touches[0].clientX}px`;
+                ghostEl.style.top = `${e.touches[0].clientY}px`;
+                ghostEl.classList.remove('hidden');
+                mealCard.classList.add('dragging');
+            }, LONG_PRESS_DURATION);
+        }
+    }, { passive: true });
+
+    document.addEventListener('touchmove', (e) => {
+        if (longPressTimer) {
+            const moveX = e.touches[0].clientX;
+            const moveY = e.touches[0].clientY;
+            if (Math.abs(moveX - startX) > 10 || Math.abs(moveY - startY) > 10) {
+                clearTimeout(longPressTimer);
+            }
+        }
+        if (window.state.draggedItem) {
+            e.preventDefault(); 
+            ghostEl.style.left = `${e.touches[0].clientX}px`;
+            ghostEl.style.top = `${e.touches[0].clientY}px`;
+            ghostEl.classList.add('hidden');
+            let elementUnder = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
+            ghostEl.classList.remove('hidden');
+            let dropZone = elementUnder ? elementUnder.closest('.drop-zone') : null;
+            if (currentDropZone && currentDropZone !== dropZone) {
+                currentDropZone.classList.remove('drag-over');
+            }
+            if (dropZone) {
+                dropZone.classList.add('drag-over');
+                currentDropZone = dropZone;
+            } else {
+                currentDropZone = null;
+            }
+        }
+    }, { passive: false });
+
+    document.addEventListener('touchend', async (e) => {
+        clearTimeout(longPressTimer); 
+        if (window.state.draggedItem) {
+            ghostEl.classList.add('hidden');
+            if (currentDropZone) {
+                currentDropZone.classList.remove('drag-over');
+                const { mealId, mealName, mealEmoji, mealImageUrl, mealColor, originDate } = window.state.draggedItem;
+                const targetDate = currentDropZone.dataset.date;
+                const draggedMealData = { mealId, name: mealName, emoji: mealEmoji, imageUrl: mealImageUrl, color: mealColor };
+                await handleMealDrop(originDate, targetDate, draggedMealData);
+            }
+            document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+            window.state.draggedItem = null;
+            currentDropZone = null;
+        }
+    });
+
+    // --- Initial Load ---
+    renderDays(); // Initial render for the calendar grid
+</script>
+
+</body>
+</html>
