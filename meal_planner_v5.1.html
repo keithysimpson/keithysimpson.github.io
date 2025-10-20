@@ -137,6 +137,49 @@
     <div id="ghost-drag-element" class="hidden"></div>
 
 
+    <div id="family-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-11/12 max-w-sm text-center">
+            <h3 class="text-xl font-semibold mb-2">Welcome!</h3>
+            <p class="text-gray-600 mb-6">To get started, create a new family plan or join an existing one using a code.</p>
+            
+            <div id="family-modal-content">
+                <button id="create-family-btn" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg mb-4 shadow transition-transform transform hover:scale-105">Create New Family Plan</button>
+                
+                <div class="border-t border-gray-200 my-4"></div>
+
+                <p class="text-sm text-gray-700 mb-2">Already have an invite code?</p>
+                <div class="flex space-x-2">
+                    <input type="text" id="family-code-input" placeholder="Enter code here..." class="flex-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    <button id="join-family-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg shadow">Join</button>
+                </div>
+            </div>
+
+            <div id="family-modal-feedback" class="hidden">
+                <p class="text-green-700 font-semibold mb-2">Success! Your plan is ready.</p>
+                <p class="text-gray-600 mb-4">Share this code with your family to let them join:</p>
+                <div class="bg-gray-100 border-2 border-dashed border-gray-300 p-3 rounded-lg">
+                    <p id="new-family-code" class="text-lg font-mono tracking-widest"></p>
+                </div>
+                 <button id="close-family-modal-btn" class="mt-6 w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">Start Planning</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="family-code-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-11/12 max-w-sm text-center">
+            <h3 class="text-xl font-semibold mb-2">Your Family's Invite Code</h3>
+            <p class="text-gray-600 mb-4">Share this code with family members so they can join your meal plan.</p>
+            
+            <div class="relative bg-gray-100 border-2 border-dashed border-gray-300 p-4 rounded-lg">
+                <p id="family-code-display" class="text-lg font-mono tracking-wider break-all"></p>
+                <button id="copy-family-code-btn" class="absolute top-2 right-2 bg-white p-1 rounded-md hover:bg-gray-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                </button>
+            </div>
+            <button id="close-code-modal-btn" class="mt-6 w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg">Close</button>
+        </div>
+    </div>
+
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     // ADDED: GoogleAuthProvider, signInWithPopup, signOut
@@ -198,6 +241,20 @@
     const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
     const ghostEl = document.getElementById('ghost-drag-element');
 
+    const familyModal = document.getElementById('family-modal');
+    const createFamilyBtn = document.getElementById('create-family-btn');
+    const joinFamilyBtn = document.getElementById('join-family-btn');
+    const familyCodeInput = document.getElementById('family-code-input');
+    const familyModalContent = document.getElementById('family-modal-content');
+    const familyModalFeedback = document.getElementById('family-modal-feedback');
+    const newFamilyCodeEl = document.getElementById('new-family-code');
+    const closeFamilyModalBtn = document.getElementById('close-family-modal-btn');
+
+    const familyCodeModal = document.getElementById('family-code-modal');
+    const familyCodeDisplay = document.getElementById('family-code-display');
+    const copyFamilyCodeBtn = document.getElementById('copy-family-code-btn');
+    const closeCodeModalBtn = document.getElementById('close-code-modal-btn');
+
 
     // --- NEW: Auth Handling ---
     onAuthStateChanged(auth, (user) => {
@@ -216,33 +273,46 @@
             plannedMealsUnsubscribe();
         }
     });
-
+// REPLACED: This now shows the modal and sets up button listeners.
     async function checkUserFamily(user) {
         const userDocRef = doc(db, 'users', user.uid);
         const userDocSnap = await getDoc(userDocRef);
 
         if (userDocSnap.exists() && userDocSnap.data().familyId) {
-            // This user already belongs to a family
+            // This user already belongs to a family, so we're good.
             familyId = userDocSnap.data().familyId;
             setupFirestoreListeners(familyId);
         } else {
-            // This is a new user, or an existing user without a family.
-            // We need to ask them to create or join a family.
-            // For now, we'll use a simple prompt as a placeholder.
-            // TODO: Replace this with a nice modal UI.
-            const action = prompt("Welcome! Do you want to 'create' a new family plan or 'join' an existing one?");
-            if (action && action.toLowerCase() === 'create') {
+            // This is a new user. Show them the welcome modal.
+            familyModal.classList.remove('hidden');
+            familyModal.classList.add('flex');
+
+            // --- Set up button clicks for the modal ---
+
+            // Handler for the "Create" button
+            createFamilyBtn.onclick = async () => {
                 await createNewFamily(user);
-            } else if (action && action.toLowerCase() === 'join') {
-                const inviteCode = prompt("Please enter the family invite code:");
-                // In a real app, you would validate this code. For now, we assume it's the familyId.
+            };
+            
+            // Handler for the "Join" button
+            joinFamilyBtn.onclick = async () => {
+                const inviteCode = familyCodeInput.value.trim();
                 if (inviteCode) {
                     await joinFamily(user, inviteCode);
+                } else {
+                    alert("Please enter a code to join.");
                 }
-            }
+            };
+            
+            // Handler for the final "Start Planning" button
+            closeFamilyModalBtn.onclick = () => {
+                familyModal.classList.add('hidden');
+                familyModal.classList.remove('flex');
+            };
         }
     }
 
+    // REPLACED: No more alert(). This updates the modal's UI.
     async function createNewFamily(user) {
         // Create a new family document
         const newFamilyRef = await addDoc(collection(db, 'families'), {
@@ -259,12 +329,28 @@
             familyId: familyId
         });
         
-        alert(`Your new family has been created! Share this ID with others to join: ${familyId}`);
+        // Update the modal to show the new code instead of an alert
+        newFamilyCodeEl.textContent = familyId;
+        familyModalContent.classList.add('hidden');
+        familyModalFeedback.classList.remove('hidden');
+
+        // Start listening for data for the new family
         setupFirestoreListeners(familyId);
     }
 
+    // REPLACED: No more alert(). This just closes the modal on success.
     async function joinFamily(user, existingFamilyId) {
+        // First, check if the family ID actually exists
+        const familyDocRef = doc(db, 'families', existingFamilyId);
+        const familyDocSnap = await getDoc(familyDocRef);
+
+        if (!familyDocSnap.exists()) {
+            alert("Sorry, that family code is not valid. Please check and try again.");
+            return;
+        }
+        
         familyId = existingFamilyId;
+        
         // Update the user's document with the existing familyId
         await setDoc(doc(db, 'users', user.uid), {
             email: user.email,
@@ -272,10 +358,11 @@
             familyId: familyId
         });
         
-        alert(`You've successfully joined the family plan!`);
+        // Close the modal and start the app
+        familyModal.classList.add('hidden');
+        familyModal.classList.remove('flex');
         setupFirestoreListeners(familyId);
     }
-
 
     function handleGoogleSignIn() {
         const provider = new GoogleAuthProvider();
@@ -288,20 +375,32 @@
 
     // --- NEW: UI Update Functions ---
     function updateUIForUser(user) {
-        // NEW: Check if displayName exists, and have fallbacks.
-        let greetingName = 'User'; // A generic default
+        let greetingName = 'User';
         if (user.displayName) {
-            greetingName = user.displayName.split(' ')[0]; // "Jane Doe" -> "Jane"
+            greetingName = user.displayName.split(' ')[0];
         } else if (user.email) {
-            greetingName = user.email.split('@')[0]; // "jane.doe@email.com" -> "jane.doe"
+            greetingName = user.email.split('@')[0];
         }
 
+        // REPLACED: Now creates a clickable button for the family name
         userStatusDiv.innerHTML = `
-            <span class="text-sm">Hi, ${greetingName}</span>
+            <button id="show-family-code-btn" class="text-sm font-semibold text-blue-600 hover:underline">${greetingName}'s Family Plan</button>
             <button id="sign-out-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-1 px-3 rounded-lg text-sm">Sign Out</button>
         `;
+
         addMealBtn.classList.remove('hidden');
         document.getElementById('sign-out-btn').addEventListener('click', handleSignOut);
+        
+        // ADDED: An event listener for our new button
+        document.getElementById('show-family-code-btn').addEventListener('click', () => {
+            if (familyId) {
+                familyCodeDisplay.textContent = familyId;
+                familyCodeModal.classList.remove('hidden');
+                familyCodeModal.classList.add('flex');
+            } else {
+                alert("Family ID not found. Please try refreshing the page.");
+            }
+        });
     }
 
     function updateUIForGuest() {
@@ -494,12 +593,18 @@
     
     saveMealBtn.addEventListener('click', async () => {
         const name = mealNameInput.value.trim();
+        
+        console.log('Saving meal. Name:', name, 'Family ID:', familyId);
+
+        if (!name || !familyId) {
+            console.error("Cannot save: Meal name or Family ID is missing.");
+            return; // This check will now work correctly
+        }
+
         let emoji = mealEmojiInput.value.trim();
         const imageFile = mealImageInput.files[0];
         let color = mealColorInput.value;
         const mealId = mealIdEditInput.value;
-
-        if (!name || !familyId) return; // Must have a name and be logged in
 
         let imageUrl = null;
         if (imageFile) {
@@ -694,6 +799,32 @@
             currentDropZone = null;
         }
     });
+
+
+    // --- Event Listeners for the Family Code Modal ---
+    closeCodeModalBtn.addEventListener('click', () => {
+        familyCodeModal.classList.add('hidden');
+        familyCodeModal.classList.remove('flex');
+    });
+
+    copyFamilyCodeBtn.addEventListener('click', () => {
+        if (navigator.clipboard && familyId) {
+            navigator.clipboard.writeText(familyId).then(() => {
+                // Give user feedback that copy was successful
+                const originalBtnContent = copyFamilyCodeBtn.innerHTML;
+                copyFamilyCodeBtn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                `;
+                setTimeout(() => {
+                    copyFamilyCodeBtn.innerHTML = originalBtnContent;
+                }, 2000); // Revert after 2 seconds
+            }).catch(err => {
+                console.error('Failed to copy code: ', err);
+                alert('Failed to copy code.');
+            });
+        }
+    });
+
 
     // --- Initial Load ---
     renderDays(); // Initial render for the calendar grid
