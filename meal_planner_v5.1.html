@@ -56,6 +56,10 @@
 
     <div id="app" class="h-screen w-screen flex flex-col overflow-hidden">
 
+        <header class="bg-white border-b flex items-center justify-center flex-shrink-0">
+            <div id="user-status" class="p-1 flex items-center space-x-2 text-center"></div>
+        </header>
+        
         <!-- Main Content -->
         <main class="flex-1 flex overflow-hidden">
             <!-- Days Column - Fixed height, no scrolling on mobile -->
@@ -75,8 +79,6 @@
             <div class="w-3/5 md:w-2/3 flex flex-col overflow-hidden">
                 <div class="p-3 border-b border-gray-200 bg-white flex justify-between items-center flex-shrink-0">
                     <h2 class="text-lg font-semibold">Meals</h2>
-                    <div id="user-status" class="flex items-center space-x-2">
-                        </div>
                     <button id="add-meal-btn-inline" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-3 rounded-lg shadow transition-transform transform hover:scale-105 hidden">
                         +
                     </button>
