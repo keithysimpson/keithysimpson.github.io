@@ -146,6 +146,9 @@ const dated_image_list = [
     
     // easter
     {date: '2025-04-20', time_of_day: "morning", url: 'images/easter.gif', color: 1},
+
+    // birthday 2025
+    {date: '2025-10-26', time_of_day: "afternoon", url: 'images/7.gif', color: 1},
 ];
 
 
