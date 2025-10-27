@@ -564,9 +564,28 @@
             initial_height = window.innerHeight;
 
             // birthday special:
-            createConfetti();
-            releaseBalloons();
-            document.addEventListener('click', launchFirework);
+            const birthdayList = [
+                {month: 1, day: 23},
+                {month: 3, day: 7},
+                {month: 3, day: 12},
+                {month: 10, day: 26}
+
+            ];
+            
+            const today = new Date();
+
+            // loop through each birthday in the list
+            for (let i = 0; i < birthdayList.length; i++) {
+                const birthday = birthdayList[i];
+                if (today.getMonth() + 1 == birthday.month && today.getDate() == birthday.day) {
+                    createConfetti();
+                    releaseBalloons();
+                    document.addEventListener('click', launchFirework);
+                
+                    break;
+                }
+            }
+            
 
             if (celebration_effect == "confetti") {
                 //--- confetti:
