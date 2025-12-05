@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Morning Routine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* Slate 50 */
+            touch-action: manipulation;
+        }
+
+        /* Hide scrollbar for Chrome, Safari and Opera */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        /* Hide scrollbar for IE, Edge and Firefox */
+        .no-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+
+        .timeline-grid-line {
+            border-top: 1px solid #e2e8f0;
+        }
+        
+        .time-label {
+            transform: translateY(-50%);
+        }
+
+        /* Animation for the current time line */
+        .pulse-line {
+            box-shadow: 0 0 8px rgba(248, 113, 113, 0.6);
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden text-slate-700">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200 px-4 py-3 flex flex-col sm:flex-row justify-between items-center z-20 shadow-sm gap-2">
+        <div class="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-start">
+            <h1 class="text-xl font-bold text-slate-900 tracking-tight">Morning Routine</h1>
+            <div id="clock-display" class="text-slate-500 font-medium font-mono text-lg">--:--</div>
+        </div>
+        
+        <!-- Countdown Timer (Clickable) -->
+        <button onclick="openSettings()" class="w-full sm:w-auto bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2 group">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="opacity-70 group-hover:scale-110 transition-transform"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            <span id="school-countdown">Loading...</span>
+        </button>
+    </header>
+
+    <!-- Main Scrollable Area -->
+    <main class="flex-1 relative overflow-y-auto no-scrollbar" id="scroller">
+        <div class="container mx-auto max-w-lg relative min-h-[1000px] py-10 px-4">
+            
+            <!-- Timeline Container -->
+            <div class="relative ml-14 border-l border-slate-300 h-full" id="timeline-container">
+                
+                <!-- Grid Lines & Labels (Generated via JS) -->
+                <div id="grid-lines" class="absolute inset-0 w-full h-full pointer-events-none"></div>
+
+                <!-- Task Blocks Container -->
+                <div id="blocks-container" class="absolute inset-0 w-full h-full">
+                    <!-- Blocks injected here -->
+                </div>
+
+                <!-- Current Time Indicator -->
+                <div id="now-line" class="absolute w-full border-t-2 border-rose-500 z-10 hidden pulse-line">
+                    <div class="absolute -left-[4.5rem] -top-3 bg-rose-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-sm">
+                        Now
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Floating Action Button -->
+    <button onclick="openModal()" class="fixed bottom-8 right-8 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-4 shadow-lg transition-transform hover:scale-105 active:scale-95 focus:outline-none z-30">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+    </button>
+
+    <!-- Activity Modal Form -->
+    <div id="task-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                <h2 class="text-xl font-bold text-slate-800" id="modal-title">Add Activity</h2>
+                <button onclick="closeModal('task-modal')" class="text-slate-400 hover:text-slate-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            
+            <div class="p-6 space-y-4">
+                <input type="hidden" id="task-id">
+                
+                <!-- Error Message Placeholder -->
+                <div id="modal-error" class="text-red-500 text-sm font-medium hidden"></div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Activity Name</label>
+                    <input type="text" id="task-name" placeholder="e.g. Brush Teeth" class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" oninput="clearError()">
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Start Time</label>
+                        <input type="time" id="task-start" class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none" oninput="clearError()">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Duration (mins)</label>
+                        <input type="number" id="task-duration" value="15" min="1" step="1" class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Color</label>
+                    <div class="flex gap-3 justify-between">
+                        <!-- Color Options -->
+                        <button type="button" onclick="selectColor('blue')" class="w-10 h-10 rounded-full bg-blue-400 ring-offset-2 ring-transparent transition-all focus:outline-none color-btn" data-color="blue"></button>
+                        <button type="button" onclick="selectColor('green')" class="w-10 h-10 rounded-full bg-emerald-400 ring-offset-2 ring-transparent transition-all focus:outline-none color-btn" data-color="green"></button>
+                        <button type="button" onclick="selectColor('orange')" class="w-10 h-10 rounded-full bg-orange-400 ring-offset-2 ring-transparent transition-all focus:outline-none color-btn" data-color="orange"></button>
+                        <button type="button" onclick="selectColor('yellow')" class="w-10 h-10 rounded-full bg-yellow-400 ring-offset-2 ring-transparent transition-all focus:outline-none color-btn" data-color="yellow"></button> 
+                        <button type="button" onclick="selectColor('purple')" class="w-10 h-10 rounded-full bg-purple-400 ring-offset-2 ring-transparent transition-all focus:outline-none color-btn" data-color="purple"></button>
+                        <button type="button" onclick="selectColor('slate')" class="w-10 h-10 rounded-full bg-slate-300 ring-offset-2 ring-transparent transition-all focus:outline-none color-btn" data-color="slate"></button>
+                    </div>
+                    <input type="hidden" id="task-color" value="blue">
+                </div>
+            </div>
+
+            <div class="px-6 py-4 bg-slate-50 flex justify-between items-center">
+                <button type="button" id="btn-delete" onclick="deleteTask()" class="text-red-500 hover:text-red-700 text-sm font-medium hidden">Delete</button>
+                <div class="ml-auto flex gap-3">
+                    <button onclick="closeModal('task-modal')" class="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-lg text-sm font-medium transition-colors">Cancel</button>
+                    <button onclick="saveTask()" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium shadow-md transition-colors">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all scale-100">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                <h2 class="text-xl font-bold text-slate-800">Settings</h2>
+                <button onclick="closeModal('settings-modal')" class="text-slate-400 hover:text-slate-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Time to leave for School</label>
+                    <input type="time" id="setting-school-time" class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <p class="text-xs text-slate-500 mt-1">Updates the countdown timer at the top.</p>
+                </div>
+
+                <div class="pt-4 border-t border-slate-100">
+                    <button onclick="resetApp()" class="w-full py-2 px-4 border border-red-200 text-red-600 rounded-lg hover:bg-red-50 text-sm font-medium transition-colors">
+                        Reset All to Defaults
+                    </button>
+                    <p class="text-xs text-center text-slate-400 mt-2">Permanently deletes all custom changes.</p>
+                </div>
+            </div>
+            <div class="px-6 py-4 bg-slate-50 flex justify-end">
+                <button onclick="saveSettings()" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-md transition-colors">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Configuration ---
+        const START_HOUR = 7;
+        const START_MINUTE = 0;
+        const END_HOUR = 9;
+        const END_MINUTE = 0;
+        const PIXELS_PER_MINUTE = 6; // Adjusted for slightly more compact view
+
+        // Calculate total minutes in timeline
+        const startTotalMins = (START_HOUR * 60) + START_MINUTE;
+        const endTotalMins = (END_HOUR * 60) + END_MINUTE;
+        const totalDurationMins = endTotalMins - startTotalMins;
+        const timelineHeight = totalDurationMins * PIXELS_PER_MINUTE;
+
+        // Default Data
+        const defaultTasks = [
+            { id: 1, name: "Asleep", start: "07:00", duration: 30, color: "slate" },
+            { id: 2, name: "Wake Up", start: "07:30", duration: 1, color: "yellow" },
+            { id: 3, name: "Breakfast", start: "08:00", duration: 15, color: "orange" },
+            { id: 4, name: "Brush Teeth", start: "08:20", duration: 2, color: "green" },
+            { id: 5, name: "Get Dressed", start: "08:23", duration: 10, color: "blue" },
+            { id: 6, name: "Shoes", start: "08:44", duration: 1, color: "purple" },
+            { id: 7, name: "Go to Sch", start: "08:45", duration: 5, color: "blue" },
+            { id: 8, name: "School", start: "08:50", duration: 10, color: "slate" }
+        ];
+        const defaultSchoolTime = "08:45";
+
+        // State
+        let tasks = JSON.parse(localStorage.getItem('morningRoutineTasks')) || defaultTasks;
+        let schoolTime = localStorage.getItem('morningRoutineSchoolTime') || defaultSchoolTime;
+        let selectedColor = 'blue';
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            initTimeline();
+            renderTasks();
+            updateTime();
+            setInterval(updateTime, 1000); // Update every second
+        });
+
+        // --- Core Logic ---
+
+        function initTimeline() {
+            const container = document.getElementById('timeline-container');
+            const gridLines = document.getElementById('grid-lines');
+            
+            // Set container height
+            container.style.height = `${timelineHeight}px`;
+
+            // Generate Grid Lines (every 15 mins)
+            let currentMins = startTotalMins;
+            while (currentMins <= endTotalMins) {
+                const offset = (currentMins - startTotalMins) * PIXELS_PER_MINUTE;
+                const timeString = formatTime(currentMins);
+                
+                // Determine if it's a major hour line or minor 15min line
+                const isHour = currentMins % 60 === 0;
+                
+                const line = document.createElement('div');
+                line.className = `absolute w-full border-t ${isHour ? 'border-slate-300' : 'border-slate-100'}`;
+                line.style.top = `${offset}px`;
+                
+                // Label
+                const label = document.createElement('div');
+                label.className = `absolute -left-12 text-xs font-mono time-label ${isHour ? 'text-slate-800 font-bold' : 'text-slate-400'}`;
+                label.style.top = `${offset}px`;
+                label.innerText = timeString;
+
+                gridLines.appendChild(line);
+                gridLines.appendChild(label);
+
+                currentMins += 15;
+            }
+        }
+
+        function renderTasks() {
+            const container = document.getElementById('blocks-container');
+            container.innerHTML = ''; // Clear
+
+            tasks.forEach(task => {
+                const taskMins = timeStringToMinutes(task.start);
+                const offset = (taskMins - startTotalMins) * PIXELS_PER_MINUTE;
+                const height = task.duration * PIXELS_PER_MINUTE;
+
+                // Color mappings
+                const colors = {
+                    blue: 'bg-blue-100 border-blue-300 text-blue-800 hover:bg-blue-200',
+                    green: 'bg-emerald-100 border-emerald-300 text-emerald-800 hover:bg-emerald-200',
+                    orange: 'bg-orange-100 border-orange-300 text-orange-800 hover:bg-orange-200',
+                    yellow: 'bg-yellow-100 border-yellow-300 text-yellow-800 hover:bg-yellow-200',
+                    purple: 'bg-purple-100 border-purple-300 text-purple-800 hover:bg-purple-200',
+                    slate: 'bg-slate-200 border-slate-300 text-slate-600 hover:bg-slate-300'
+                };
+                
+                const colorClass = colors[task.color] || colors.blue;
+
+                // Determine if task is "short" (less than 10 mins)
+                const isShort = task.duration < 10;
+
+                const el = document.createElement('div');
+                // We use overflow-visible for short tasks so the label can stick out
+                el.className = `absolute left-2 right-2 rounded-md border shadow-sm px-3 py-1 cursor-pointer transition-all flex flex-col justify-center group ${colorClass} ${isShort ? 'overflow-visible' : 'overflow-hidden'}`;
+                el.style.top = `${offset}px`;
+                el.style.height = `${height}px`;
+                el.onclick = () => openModal(task);
+
+                // Inner Content
+                const title = document.createElement('span');
+                
+                if (isShort) {
+                    // Style for popped-out label (sticking out the right)
+                    title.className = "absolute left-full ml-3 top-1/2 -translate-y-1/2 whitespace-nowrap font-bold text-sm z-10 pointer-events-none";
+                    // Add a slight text shadow for better readability if it overlaps grid lines
+                    title.style.textShadow = "0 0 8px rgba(255,255,255,0.8)";
+                } else {
+                    // Standard internal label
+                    title.className = "font-semibold text-sm leading-tight truncate";
+                }
+                title.innerText = task.name;
+                
+                el.appendChild(title);
+
+                // Only show time range inside if it fits
+                if (!isShort) {
+                    const timeSub = document.createElement('span');
+                    timeSub.className = "text-[10px] opacity-75 truncate";
+                    timeSub.innerText = `${task.start} - ${addMinutes(task.start, task.duration)} (${task.duration}m)`;
+                    el.appendChild(timeSub);
+                }
+
+                container.appendChild(el);
+            });
+        }
+
+        function updateTime() {
+            const now = new Date();
+            const currentMins = (now.getHours() * 60) + now.getMinutes();
+            const currentTimeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            // 1. Update Clock
+            document.getElementById('clock-display').innerText = currentTimeStr;
+
+            // 2. Update Timeline Indicator
+            const line = document.getElementById('now-line');
+            if (currentMins >= startTotalMins && currentMins <= endTotalMins) {
+                const offset = (currentMins - startTotalMins) * PIXELS_PER_MINUTE;
+                line.style.top = `${offset}px`;
+                line.classList.remove('hidden');
+            } else {
+                line.classList.add('hidden');
+            }
+
+            // 3. Update School Countdown
+            const schoolMins = timeStringToMinutes(schoolTime);
+            const diffMins = schoolMins - currentMins;
+            const countdownEl = document.getElementById('school-countdown');
+
+            if (diffMins > 0) {
+                const hours = Math.floor(diffMins / 60);
+                const mins = diffMins % 60;
+                let text = "";
+                if (hours > 0) text += `${hours}h `;
+                text += `${mins}m to School`;
+                countdownEl.innerText = text;
+                countdownEl.className = "font-semibold";
+            } else if (diffMins > -60) {
+                countdownEl.innerText = `${Math.abs(diffMins)}m Late!`;
+                countdownEl.className = "font-bold text-red-600";
+            } else {
+                countdownEl.innerText = "School finished";
+                countdownEl.className = "text-slate-400";
+            }
+        }
+
+        // --- Modal & CRUD Operations ---
+
+        function openModal(task = null) {
+            const modal = document.getElementById('task-modal');
+            const title = document.getElementById('modal-title');
+            const btnDelete = document.getElementById('btn-delete');
+            
+            // Clear errors
+            clearError();
+
+            // Reset Color Buttons
+            document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('ring-2', 'ring-slate-400'));
+
+            // Reset Delete Button State
+            btnDelete.innerText = "Delete";
+            btnDelete.classList.remove('text-red-700', 'bg-red-50', 'bg-red-100');
+
+            if (task) {
+                // Edit Mode
+                title.innerText = "Edit Activity";
+                document.getElementById('task-id').value = task.id;
+                document.getElementById('task-name').value = task.name;
+                document.getElementById('task-start').value = task.start;
+                document.getElementById('task-duration').value = task.duration;
+                selectColor(task.color);
+                btnDelete.classList.remove('hidden');
+            } else {
+                // Create Mode
+                title.innerText = "New Activity";
+                document.getElementById('task-id').value = "";
+                document.getElementById('task-name').value = "";
+                
+                // Default start time logic
+                const now = new Date();
+                const nowStr = `${String(now.getHours()).padStart(2,'0')}:${String(Math.ceil(now.getMinutes()/15)*15).padStart(2,'0')}`;
+                document.getElementById('task-start').value = nowStr; 
+                document.getElementById('task-duration').value = 15;
+                selectColor('blue');
+                btnDelete.classList.add('hidden');
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        function selectColor(color) {
+            selectedColor = color;
+            document.getElementById('task-color').value = color;
+            
+            document.querySelectorAll('.color-btn').forEach(btn => {
+                if (btn.dataset.color === color) {
+                    btn.classList.add('ring-2', 'ring-slate-400');
+                } else {
+                    btn.classList.remove('ring-2', 'ring-slate-400');
+                }
+            });
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('modal-error');
+            el.innerText = msg;
+            el.classList.remove('hidden');
+        }
+
+        function clearError() {
+            document.getElementById('modal-error').classList.add('hidden');
+        }
+
+        function saveTask() {
+            const id = document.getElementById('task-id').value;
+            const name = document.getElementById('task-name').value || "Untitled";
+            const start = document.getElementById('task-start').value;
+            const duration = parseInt(document.getElementById('task-duration').value);
+            const color = document.getElementById('task-color').value;
+
+            if (!start) {
+                showError("Please select a start time");
+                return;
+            }
+
+            if (id) {
+                const index = tasks.findIndex(t => String(t.id) === id);
+                if (index !== -1) {
+                    tasks[index] = { ...tasks[index], name, start, duration, color };
+                }
+            } else {
+                const newTask = {
+                    id: Date.now(),
+                    name, start, duration, color
+                };
+                tasks.push(newTask);
+            }
+
+            saveToStorage();
+            renderTasks();
+            closeModal('task-modal');
+        }
+
+        function deleteTask() {
+            const btn = document.getElementById('btn-delete');
+            const id = document.getElementById('task-id').value;
+            
+            if (btn.innerText === "Delete") {
+                btn.innerText = "Confirm?";
+                btn.classList.add('text-red-700', 'bg-red-100', 'rounded', 'px-2', 'py-1');
+                return;
+            }
+
+            tasks = tasks.filter(t => String(t.id) !== id);
+            saveToStorage();
+            renderTasks();
+            closeModal('task-modal');
+        }
+
+        // --- Settings Logic ---
+
+        function openSettings() {
+            document.getElementById('setting-school-time').value = schoolTime;
+            document.getElementById('settings-modal').classList.remove('hidden');
+        }
+
+        function saveSettings() {
+            const newTime = document.getElementById('setting-school-time').value;
+            if (newTime) {
+                schoolTime = newTime;
+                localStorage.setItem('morningRoutineSchoolTime', schoolTime);
+                updateTime(); // force refresh
+            }
+            closeModal('settings-modal');
+        }
+
+        function resetApp() {
+            const btn = event.target;
+            if (btn.innerText === "Reset All to Defaults") {
+                btn.innerText = "Are you sure?";
+                btn.classList.add("bg-red-50", "border-red-400");
+                return;
+            }
+            
+            // Perform Reset
+            localStorage.removeItem('morningRoutineTasks');
+            localStorage.removeItem('morningRoutineSchoolTime');
+            location.reload(); // Reload page to reset state cleanly
+        }
+
+        function saveToStorage() {
+            localStorage.setItem('morningRoutineTasks', JSON.stringify(tasks));
+        }
+
+        // --- Helpers ---
+
+        function timeStringToMinutes(timeStr) {
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            return (hours * 60) + minutes;
+        }
+
+        function formatTime(totalMinutes) {
+            const h = Math.floor(totalMinutes / 60);
+            const m = totalMinutes % 60;
+            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        }
+
+        function addMinutes(timeStr, minsToAdd) {
+            const startMins = timeStringToMinutes(timeStr);
+            const endMins = startMins + minsToAdd;
+            return formatTime(endMins);
+        }
+
+        // Click outside closes modals
+        window.onclick = function(event) {
+            if (event.target.id === 'task-modal') closeModal('task-modal');
+            if (event.target.id === 'settings-modal') closeModal('settings-modal');
+        }
+
+    </script>
+</body>
+</html>
