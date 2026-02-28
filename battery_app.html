@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Mummy's Energy Level</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100vh;
+      background-color: #ffffff;
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      touch-action: none; 
+      overflow: hidden;
+      user-select: none;
+    }
+
+    h1 {
+      margin: 30px 0 10px 0;
+      text-align: center;
+      color: #333;
+      font-size: 2rem;
+      text-transform: lowercase;
+    }
+
+    #percentageText {
+      font-size: 3.5rem;
+      font-weight: 800;
+      margin-bottom: 20px;
+      transition: color 0.2s ease;
+    }
+
+    .battery-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+      width: 65%;
+      max-width: 280px;
+      margin-bottom: 60px;
+    }
+
+    .battery-cap {
+      width: 30%;
+      height: 20px;
+      background-color: #e0e0e0; /* Darkened slightly for visibility */
+      border: 6px solid #828282;
+      border-bottom: none;
+      border-radius: 8px 8px 0 0;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+    }
+
+    .battery-body {
+      flex: 1;
+      width: 100%;
+      background-color: #eeeeee; /* Darker gray so green/orange/red stands out */
+      border: 8px solid #828282;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column-reverse; 
+      padding: 10px;
+      box-sizing: border-box;
+      gap: 8px;
+    }
+
+    .segment {
+      flex: 1;
+      border-radius: 8px;
+      background-color: rgba(255, 255, 255, 0.3); /* Shows "empty" slots */
+      transition: all 0.2s ease;
+    }
+
+    /* Vibrant colors to ensure they show up on any screen */
+    .segment.green {
+      background-color: #2ecc71 !important;
+    }
+
+    .segment.orange {
+      background-color: #f39c12 !important;
+    }
+
+    .segment.red {
+      background-color: #e74c3c !important;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Mummy's Energy Level</h1>
+  <div id="percentageText">100%</div>
+  
+  <div class="battery-wrapper" id="batteryWrapper">
+    <div class="battery-cap"></div>
+    <div class="battery-body" id="batteryBody">
+      <div class="segment"></div>
+      <div class="segment"></div>
+      <div class="segment"></div>
+      <div class="segment"></div>
+      <div class="segment"></div>
+      <div class="segment"></div>
+      <div class="segment"></div>
+      <div class="segment"></div>
+      <div class="segment"></div>
+      <div class="segment"></div>
+    </div>
+  </div>
+
+  <script>
+    const batteryBody = document.getElementById('batteryBody');
+    const percentageText = document.getElementById('percentageText');
+    const segments = Array.from(document.querySelectorAll('.segment'));
+
+    function updateBattery(level) {
+      const currentLevel = Math.max(0, Math.min(10, level));
+      localStorage.setItem('mummyEnergy', currentLevel);
+
+      let colorClass = 'green';
+      let hexColor = '#2ecc71';
+
+      if (currentLevel <= 1) {
+        colorClass = 'red';
+        hexColor = '#e74c3c';
+      } else if (currentLevel <= 3) {
+        colorClass = 'orange';
+        hexColor = '#f39c12';
+      }
+
+      percentageText.innerText = (currentLevel * 10) + '%';
+      percentageText.style.color = hexColor;
+
+      segments.forEach((seg, index) => {
+        seg.classList.remove('green', 'orange', 'red');
+        if (index < currentLevel) {
+          seg.classList.add(colorClass);
+        }
+      });
+    }
+
+    // Load saved data
+    const saved = localStorage.getItem('mummyEnergy');
+    updateBattery(saved !== null ? parseInt(saved) : 10);
+
+    // Interaction logic
+    function handleInput(e) {
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const rect = batteryBody.getBoundingClientRect();
+      const pct = (rect.bottom - clientY) / rect.height;
+      updateBattery(Math.round(pct * 10));
+    }
+
+    batteryBody.addEventListener('touchstart', (e) => { e.preventDefault(); handleInput(e); }, {passive: false});
+    batteryBody.addEventListener('touchmove', (e) => { e.preventDefault(); handleInput(e); }, {passive: false});
+    
+    let isClicking = false;
+    batteryBody.addEventListener('mousedown', (e) => { isClicking = true; handleInput(e); });
+    window.addEventListener('mousemove', (e) => { if(isClicking) handleInput(e); });
+    window.addEventListener('mouseup', () => { isClicking = false; });
+
+  </script>
+</body>
+</html>
