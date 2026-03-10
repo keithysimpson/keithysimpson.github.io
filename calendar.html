@@ -18,7 +18,8 @@
             margin: 0;
             padding: 0;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            height: 100vh;
+            height: 100vh; /* Fallback for older browsers */
+            height: 100dvh;
             display: flex;
             flex-direction: column;
             overflow: hidden; 
@@ -32,7 +33,9 @@
             background-color: var(--header-bg);
             border-bottom: 2px solid var(--border-color);
             z-index: 10;
-            flex-shrink: 0;
+            flex: 0 0 auto; /* Absolutely prevents the header from collapsing */
+            width: 100%;
+
         }
 
         .day-name {
@@ -211,12 +214,22 @@
         let todayElement = null;
 
 		// Light seasonal shades: Winter (Blue), Spring (Green), Summer (Yellow), Autumn (Orange)
+        /*
         const monthColors = [
             '#f0f9ff', '#e0f2fe', // Jan, Feb (Winter)
             '#e8f7cb', '#f7ffe7', '#e8f7cb', // Mar, Apr, May (Spring)
             '#fcf9d1', '#fef9c3', '#fcf9d1', // Jun, Jul, Aug (Summer)
             '#ffedd5', '#fff7ed', '#ffedd5', // Sep, Oct, Nov (Autumn)
             '#e0f2fe'  // Dec (Winter)
+        ];
+        */
+
+        const monthColors = [
+            '#ffffff', '#f2f2f2', // Jan, Feb (Winter)
+            '#ffffff', '#f2f2f2', '#ffffff', // Mar, Apr, May (Spring)
+            '#f2f2f2', '#ffffff', '#f2f2f2', // Jun, Jul, Aug (Summer)
+            '#ffffff', '#f2f2f2', '#ffffff', // Sep, Oct, Nov (Autumn)
+            '#f2f2f2'  // Dec (Winter)
         ];
         
         const fragment = document.createDocumentFragment();
