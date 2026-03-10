@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smooth Scroll Calendar</title>
+    <style>
+        :root {
+            --border-color: #e2e8f0;
+            --header-bg: #f8fafc;
+            --today-bg: #eff6ff;
+            --today-border: #3b82f6;
+            --month-even-bg: #ffffff;
+            --month-odd-bg: #f8fafc;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; 
+            background-color: #f1f5f9;
+        }
+
+        /* Sticky Header for Days of Week */
+        .calendar-header {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            background-color: var(--header-bg);
+            border-bottom: 2px solid var(--border-color);
+            z-index: 10;
+        }
+
+        .day-name {
+            padding: 12px 8px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Scrollable Grid Container */
+        .calendar-scroll-area {
+            flex: 1;
+            overflow-y: auto;
+            scroll-behavior: smooth; 
+            position: relative;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px; 
+            background-color: var(--border-color); 
+        }
+
+        /* Individual Day Cells */
+        .day-cell {
+            min-height: 120px; 
+            padding: 8px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .date-number {
+            font-size: 1rem;
+            color: #334155;
+            font-weight: 500;
+        }
+
+        .first-of-month {
+            font-weight: bold;
+            color: #0f172a;
+        }
+
+        .month-name {
+            text-transform: uppercase;
+            margin-right: 4px;
+        }
+
+        /* Highlight Today */
+        .day-cell.today {
+            background-color: var(--today-bg) !important;
+            outline: 2px solid var(--today-border);
+            outline-offset: -2px;
+            z-index: 1; 
+        }
+        
+        .day-cell.today .date-number {
+            color: var(--today-border);
+            font-weight: bold;
+        }
+
+        /* --- NEW STYLES FOR FEATURES --- */
+
+        /* Floating Year Indicator */
+        .year-indicator {
+            position: fixed;
+            top: 60px; /* Sits just below the days header */
+            left: 16px;
+            background-color: rgba(255, 255, 255, 0.9);
+            color: #64748b;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 1.25rem;
+            font-weight: 700;
+            pointer-events: none; /* Allows user to click through it to the calendar */
+            z-index: 20;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(4px);
+        }
+
+        /* Floating 'Today' Button */
+        .btn-today {
+            position: fixed;
+            bottom: 32px;
+            right: 32px;
+            background-color: var(--today-border);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 9999px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+            z-index: 50;
+            transition: transform 0.2s ease, background-color 0.2s ease;
+        }
+
+        .btn-today:hover {
+            background-color: #2563eb;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="calendar-header">
+        <div class="day-name">Mon</div>
+        <div class="day-name">Tue</div>
+        <div class="day-name">Wed</div>
+        <div class="day-name">Thu</div>
+        <div class="day-name">Fri</div>
+        <div class="day-name">Sat</div>
+        <div class="day-name">Sun</div>
+    </div>
+
+    <div id="yearIndicator" class="year-indicator"></div>
+
+    <div class="calendar-scroll-area" id="scrollArea">
+        <div class="calendar-grid" id="calendarGrid">
+        </div>
+    </div>
+
+    <button id="btnToday" class="btn-today">Today</button>
+
+    <script>
+        const grid = document.getElementById('calendarGrid');
+        const scrollArea = document.getElementById('scrollArea');
+        const yearIndicator = document.getElementById('yearIndicator');
+        const btnToday = document.getElementById('btnToday');
+
+        function getMonday(d) {
+            d = new Date(d);
+            const day = d.getDay();
+            const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+            return new Date(d.setDate(diff));
+        }
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const startDate = getMonday(new Date(today.getFullYear() - 1, today.getMonth(), today.getDate()));
+        const endDate = new Date(today.getFullYear() + 2, today.getMonth(), today.getDate());
+
+        let currentDate = new Date(startDate);
+        let todayElement = null;
+
+		// Light seasonal shades: Winter (Blue), Spring (Green), Summer (Yellow), Autumn (Orange)
+        const monthColors = [
+            '#f0f9ff', '#e0f2fe', // Jan, Feb (Winter)
+            '#e8f7cb', '#f7ffe7', '#e8f7cb', // Mar, Apr, May (Spring)
+            '#fcf9d1', '#fef9c3', '#fcf9d1', // Jun, Jul, Aug (Summer)
+            '#ffedd5', '#fff7ed', '#ffedd5', // Sep, Oct, Nov (Autumn)
+            '#e0f2fe'  // Dec (Winter)
+        ];
+        
+        const fragment = document.createDocumentFragment();
+
+        while (currentDate <= endDate) {
+            const cell = document.createElement('div');
+            cell.className = 'day-cell';
+            
+            cell.dataset.year = currentDate.getFullYear();
+            
+            // Apply the specific seasonal color for the current month
+            cell.style.backgroundColor = monthColors[currentDate.getMonth()];
+
+            const dateSpan = document.createElement('span');
+            dateSpan.className = 'date-number';
+
+            if (currentDate.getDate() === 1) {
+                dateSpan.classList.add('first-of-month');
+                const monthStr = currentDate.toLocaleDateString('en-US', { month: 'short' });
+                // Only showing the month now, since the year is floating
+                dateSpan.innerHTML = `<span class="month-name">${monthStr}</span>1`;
+            } else {
+                dateSpan.textContent = currentDate.getDate();
+            }
+
+            if (currentDate.getTime() === today.getTime()) {
+                cell.classList.add('today');
+                todayElement = cell;
+            }
+
+            cell.appendChild(dateSpan);
+            fragment.appendChild(cell);
+
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        grid.appendChild(fragment);
+
+        // Auto-scroll to current week on load
+        if (todayElement) {
+            setTimeout(() => {
+                todayElement.scrollIntoView({ behavior: 'auto', block: 'center' });
+                // Set initial year indicator
+                yearIndicator.textContent = today.getFullYear();
+            }, 50);
+        }
+
+        // --- NEW BEHAVIORS ---
+
+        // 1. Smooth scroll back to today when the button is clicked
+        btnToday.addEventListener('click', () => {
+            if (todayElement) {
+                todayElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        });
+
+        // 2. Update the floating year indicator based on what is currently on screen
+        let scrollTimeout;
+        scrollArea.addEventListener('scroll', () => {
+            if (!scrollTimeout) {
+                scrollTimeout = requestAnimationFrame(() => {
+                    const rect = scrollArea.getBoundingClientRect();
+                    // Check what element is slightly below the top of the scroll area
+                    const targetY = rect.top + 50; 
+                    const targetX = rect.left + (rect.width / 2);
+                    
+                    const element = document.elementFromPoint(targetX, targetY);
+                    const dayCell = element ? element.closest('.day-cell') : null;
+                    
+                    if (dayCell && dayCell.dataset.year) {
+                        if (yearIndicator.textContent !== dayCell.dataset.year) {
+                            yearIndicator.textContent = dayCell.dataset.year;
+                        }
+                    }
+                    scrollTimeout = null;
+                });
+            }
+        });
+    </script>
+</body>
+</html>
