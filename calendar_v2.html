@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smooth Scroll Calendar</title>
+    <style>
+        :root {
+            --border-color: #e2e8f0;
+            --header-bg: #f8fafc;
+            --today-bg: #eff6ff;
+            --today-border: #3b82f6;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            height: 100vh;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background-color: #f1f5f9;
+        }
+
+        .calendar-header {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            background-color: var(--header-bg);
+            border-bottom: 2px solid var(--border-color);
+            z-index: 10;
+            flex: 0 0 auto;
+            width: 100%;
+        }
+
+        .day-name {
+            padding: 12px 8px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .calendar-scroll-area {
+            flex: 1;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+            position: relative;
+        }
+
+        /* In select mode, prevent scroll on touch */
+        .calendar-scroll-area.select-mode {
+            overflow-y: hidden;
+            touch-action: none;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background-color: var(--border-color);
+        }
+
+        .day-cell {
+            min-height: 120px;
+            padding: 8px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            overflow: hidden;
+            position: relative;
+            transition: filter 0.15s ease;
+        }
+
+        .date-number {
+            font-size: 1rem;
+            color: #334155;
+            font-weight: 500;
+            position: relative;
+            z-index: 2;
+        }
+
+        .first-of-month {
+            font-weight: bold;
+            color: #0f172a;
+        }
+
+        .month-name {
+            text-transform: uppercase;
+            margin-right: 4px;
+        }
+
+        .day-cell.today {
+            background-color: var(--today-bg) !important;
+            outline: 2px solid var(--today-border);
+            outline-offset: -2px;
+            z-index: 1;
+        }
+
+        .day-cell.today .date-number {
+            color: var(--today-border);
+            font-weight: bold;
+        }
+
+        /* Year Indicator */
+        .year-indicator {
+            position: fixed;
+            top: 60px;
+            left: 16px;
+            background-color: rgba(255, 255, 255, 0.9);
+            color: #64748b;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 1.25rem;
+            font-weight: 700;
+            pointer-events: none;
+            z-index: 20;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(4px);
+        }
+
+        /* Today Button */
+        .btn-today {
+            position: fixed;
+            bottom: 32px;
+            right: 32px;
+            background-color: var(--today-border);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 9999px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+            z-index: 50;
+            transition: transform 0.2s ease, background-color 0.2s ease, opacity 0.2s ease;
+        }
+
+        .btn-today:hover {
+            background-color: #2563eb;
+            transform: translateY(-2px);
+        }
+
+        .btn-today.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Add Event Button */
+        .btn-add-event {
+            position: fixed;
+            top: 10px;
+            right: 16px;
+            width: 36px;
+            height: 36px;
+            background-color: var(--today-border);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            line-height: 1;
+            cursor: pointer;
+            z-index: 30;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
+            transition: background-color 0.2s, transform 0.2s;
+        }
+
+        .btn-add-event:hover {
+            background-color: #2563eb;
+            transform: scale(1.1);
+        }
+
+        .btn-add-event.active {
+            background-color: #dc2626;
+            transform: rotate(45deg);
+        }
+
+        /* Select mode banner */
+        .select-banner {
+            position: fixed;
+            top: 52px;
+            left: 0;
+            right: 0;
+            background-color: #1e40af;
+            color: white;
+            text-align: center;
+            padding: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            z-index: 25;
+            opacity: 0;
+            transform: translateY(-100%);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            pointer-events: none;
+        }
+
+        .select-banner.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Selection highlight */
+        .day-cell.in-selection {
+            outline: 2px solid #3b82f6;
+            outline-offset: -2px;
+            filter: brightness(0.92);
+            z-index: 2;
+        }
+
+        /* Event colour bands overlaid on cell — one per overlapping event */
+        .event-band {
+            position: absolute;
+            left: 0;
+            right: 0;
+            opacity: 0.45;
+            z-index: 0;
+            cursor: pointer;
+            transition: opacity 0.15s, filter 0.15s;
+        }
+
+        .event-band:hover {
+            opacity: 0.7;
+            filter: brightness(0.95);
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 100;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+
+        .modal-overlay.visible {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal-sheet {
+            background: white;
+            border-radius: 20px 20px 0 0;
+            padding: 24px 20px 36px;
+            width: 100%;
+            max-width: 480px;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+            box-shadow: 0 -4px 24px rgba(0,0,0,0.12);
+        }
+
+        .modal-overlay.visible .modal-sheet {
+            transform: translateY(0);
+        }
+
+        .modal-handle {
+            width: 40px;
+            height: 4px;
+            background: #e2e8f0;
+            border-radius: 2px;
+            margin: 0 auto 20px;
+        }
+
+        .modal-date-summary {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .modal-field {
+            margin-bottom: 16px;
+        }
+
+        .modal-field label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 6px;
+        }
+
+        .modal-field input[type="text"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .modal-field input[type="text"]:focus {
+            border-color: #3b82f6;
+        }
+
+        /* Colour picker */
+        .colour-swatches {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .colour-swatch {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: transform 0.15s, border-color 0.15s;
+        }
+
+        .colour-swatch:hover {
+            transform: scale(1.15);
+        }
+
+        .colour-swatch.selected {
+            border-color: #1e293b;
+            transform: scale(1.15);
+        }
+
+        /* Modal buttons */
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .btn-cancel {
+            flex: 1;
+            padding: 13px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 12px;
+            background: white;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #64748b;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .btn-cancel:hover { background: #f8fafc; }
+
+        .btn-save {
+            flex: 2;
+            padding: 13px;
+            border: none;
+            border-radius: 12px;
+            background: #3b82f6;
+            font-size: 1rem;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .btn-save:hover { background: #2563eb; }
+
+        /* Event detail popup */
+        .event-popup {
+            position: fixed;
+            background: white;
+            border-radius: 14px;
+            padding: 14px 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            z-index: 90;
+            min-width: 200px;
+            max-width: 260px;
+            display: none;
+            border: 1px solid #e2e8f0;
+        }
+
+        .event-popup.visible {
+            display: block;
+        }
+
+        .event-popup-name {
+            font-weight: 700;
+            font-size: 1rem;
+            color: #1e293b;
+            margin-bottom: 4px;
+        }
+
+        .event-popup-dates {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-bottom: 12px;
+        }
+
+        .btn-delete-event {
+            width: 100%;
+            padding: 9px;
+            background: #fee2e2;
+            color: #dc2626;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .btn-delete-event:hover { background: #fecaca; }
+
+        /* Mobile */
+        @media (max-width: 600px) {
+            .day-cell {
+                padding: 4px;
+                min-height: 80px;
+            }
+
+            .day-name {
+                padding: 10px 4px;
+                font-size: 0.75rem;
+            }
+
+            .month-name {
+                display: block;
+                font-size: 0.75rem;
+                margin-right: 0;
+                line-height: 1.2;
+            }
+
+            .btn-today {
+                bottom: 20px;
+                right: 20px;
+                padding: 10px 20px;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="calendar-header">
+        <div class="day-name">Mon</div>
+        <div class="day-name">Tue</div>
+        <div class="day-name">Wed</div>
+        <div class="day-name">Thu</div>
+        <div class="day-name">Fri</div>
+        <div class="day-name">Sat</div>
+        <div class="day-name">Sun</div>
+    </div>
+
+    <button id="btnAddEvent" class="btn-add-event" title="Add event">+</button>
+    <div id="yearIndicator" class="year-indicator"></div>
+    <div id="selectBanner" class="select-banner">Drag to select days &nbsp;·&nbsp; tap + to cancel</div>
+
+    <div class="calendar-scroll-area" id="scrollArea">
+        <div class="calendar-grid" id="calendarGrid"></div>
+    </div>
+
+    <button id="btnToday" class="btn-today">Today</button>
+
+    <!-- Add/Edit Event Modal -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-sheet">
+            <div class="modal-handle"></div>
+            <div class="modal-date-summary" id="modalDateSummary"></div>
+            <div class="modal-field">
+                <label>Event name</label>
+                <input type="text" id="eventNameInput" placeholder="e.g. Holiday, Conference…" maxlength="60">
+            </div>
+            <div class="modal-field">
+                <label>Colour</label>
+                <div class="colour-swatches" id="colourSwatches"></div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancel" id="btnCancelModal">Cancel</button>
+                <button class="btn-save" id="btnSaveEvent">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Event detail popup -->
+    <div class="event-popup" id="eventPopup">
+        <div class="event-popup-name" id="popupName"></div>
+        <div class="event-popup-dates" id="popupDates"></div>
+        <button class="btn-delete-event" id="btnDeleteEvent">Delete event</button>
+    </div>
+
+    <script>
+        // ── DOM refs ───────────────────────────────────────────────────────────
+        const grid          = document.getElementById('calendarGrid');
+        const scrollArea    = document.getElementById('scrollArea');
+        const yearIndicator = document.getElementById('yearIndicator');
+        const btnToday      = document.getElementById('btnToday');
+        const btnAddEvent   = document.getElementById('btnAddEvent');
+        const selectBanner  = document.getElementById('selectBanner');
+        const modalOverlay  = document.getElementById('modalOverlay');
+        const modalDateSummary = document.getElementById('modalDateSummary');
+        const eventNameInput   = document.getElementById('eventNameInput');
+        const colourSwatches   = document.getElementById('colourSwatches');
+        const btnCancelModal   = document.getElementById('btnCancelModal');
+        const btnSaveEvent     = document.getElementById('btnSaveEvent');
+        const eventPopup       = document.getElementById('eventPopup');
+        const popupName        = document.getElementById('popupName');
+        const popupDates       = document.getElementById('popupDates');
+        const btnDeleteEvent   = document.getElementById('btnDeleteEvent');
+
+        // ── Colour palette ─────────────────────────────────────────────────────
+        const COLOURS = [
+            '#ef4444', // red
+            '#f97316', // orange
+            '#eab308', // yellow
+            '#22c55e', // green
+            '#3b82f6', // blue
+            '#8b5cf6', // violet
+            '#ec4899', // pink
+            '#14b8a6', // teal
+        ];
+
+        // ── State ──────────────────────────────────────────────────────────────
+        let selectMode    = false;
+        let selecting     = false;
+        let selectStart   = null; // Date object
+        let selectEnd     = null;
+        let selectedColour = COLOURS[4];
+        let events        = loadEvents(); // [{id, name, colour, start (ms), end (ms)}]
+        let activePopupEventId = null;
+
+        // ── Calendar generation ────────────────────────────────────────────────
+        function getMonday(d) {
+            d = new Date(d);
+            const day = d.getDay();
+            const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+            return new Date(d.setDate(diff));
+        }
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const startDate = getMonday(new Date(today.getFullYear() - 1, today.getMonth(), today.getDate()));
+        const endDate   = new Date(today.getFullYear() + 2, today.getMonth(), today.getDate());
+
+        const monthColors = [
+            '#ffffff', '#f2f2f2',
+            '#ffffff', '#f2f2f2', '#ffffff',
+            '#f2f2f2', '#ffffff', '#f2f2f2',
+            '#ffffff', '#f2f2f2', '#ffffff',
+            '#f2f2f2'
+        ];
+
+        // Map from date-string "YYYY-MM-DD" → cell element
+        const cellMap = {};
+
+        let todayElement = null;
+        const fragment = document.createDocumentFragment();
+        let cur = new Date(startDate);
+
+        while (cur <= endDate) {
+            const cell = document.createElement('div');
+            cell.className = 'day-cell';
+            cell.dataset.year = cur.getFullYear();
+            cell.dataset.ts   = cur.getTime();
+            cell.style.backgroundColor = monthColors[cur.getMonth()];
+
+            const dateSpan = document.createElement('span');
+            dateSpan.className = 'date-number';
+
+            if (cur.getDate() === 1) {
+                dateSpan.classList.add('first-of-month');
+                const monthStr = cur.toLocaleDateString('en-US', { month: 'short' });
+                dateSpan.innerHTML = `<span class="month-name">${monthStr}</span>1`;
+            } else {
+                dateSpan.textContent = cur.getDate();
+            }
+
+            if (cur.getTime() === today.getTime()) {
+                cell.classList.add('today');
+                todayElement = cell;
+            }
+
+            cell.appendChild(dateSpan);
+            fragment.appendChild(cell);
+
+            cellMap[cur.getTime()] = cell;
+            cur.setDate(cur.getDate() + 1);
+        }
+
+        grid.appendChild(fragment);
+
+        // ── Event sort comparator (start asc → end asc → name asc) ───────────
+        function eventSortKey(ev) {
+            return [ev.start, ev.end, ev.name.toLowerCase()];
+        }
+
+        function compareEvents(a, b) {
+            const ka = eventSortKey(a), kb = eventSortKey(b);
+            for (let i = 0; i < ka.length; i++) {
+                if (ka[i] < kb[i]) return -1;
+                if (ka[i] > kb[i]) return  1;
+            }
+            return 0;
+        }
+
+        // ── Render events onto cells ───────────────────────────────────────────
+        function renderEvents() {
+            // Build a map: ts → sorted list of events covering that day
+            const dayEvents = {}; // ts → [ev, ...]
+
+            // Sort events globally so band order is consistent
+            const sorted = [...events].sort(compareEvents);
+
+            sorted.forEach(ev => {
+                let d = new Date(ev.start);
+                while (d.getTime() <= ev.end) {
+                    const ts = d.getTime();
+                    if (cellMap[ts]) {
+                        if (!dayEvents[ts]) dayEvents[ts] = [];
+                        dayEvents[ts].push(ev);
+                    }
+                    d.setDate(d.getDate() + 1);
+                }
+            });
+
+            // Clear all existing bands from every cell
+            Object.values(cellMap).forEach(cell => {
+                cell.querySelectorAll('.event-band').forEach(b => b.remove());
+            });
+
+            // For each cell that has events, create equal-height bands
+            Object.entries(dayEvents).forEach(([ts, evList]) => {
+                const cell = cellMap[parseInt(ts)];
+                const n    = evList.length;
+                const pct  = 100 / n;
+
+                evList.forEach((ev, i) => {
+                    const band = document.createElement('div');
+                    band.className    = 'event-band';
+                    band.style.top    = `${i * pct}%`;
+                    band.style.height = `${pct}%`;
+                    band.style.backgroundColor = ev.colour;
+                    band.dataset.eventId = ev.id;
+
+                    band.addEventListener('click', e => {
+                        e.stopPropagation();
+                        showEventPopup(ev.id, band);
+                    });
+
+                    // Insert before dateSpan so bands sit behind the date number
+                    cell.insertBefore(band, cell.firstChild);
+                });
+            });
+        }
+
+        renderEvents();
+
+        // ── Auto-scroll to today ───────────────────────────────────────────────
+        if (todayElement) {
+            setTimeout(() => {
+                todayElement.scrollIntoView({ behavior: 'auto', block: 'center' });
+                yearIndicator.textContent = today.getFullYear();
+            }, 50);
+        }
+
+        btnToday.addEventListener('click', () => {
+            if (todayElement) todayElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+
+        // ── Year indicator ─────────────────────────────────────────────────────
+        let scrollTimeout;
+        scrollArea.addEventListener('scroll', () => {
+            if (!scrollTimeout) {
+                scrollTimeout = requestAnimationFrame(() => {
+                    const rect = scrollArea.getBoundingClientRect();
+                    const el   = document.elementFromPoint(rect.left + rect.width / 2, rect.top + 50);
+                    const day  = el ? el.closest('.day-cell') : null;
+                    if (day && day.dataset.year) yearIndicator.textContent = day.dataset.year;
+                    scrollTimeout = null;
+                });
+            }
+        });
+
+        // ── Select mode toggle ─────────────────────────────────────────────────
+        btnAddEvent.addEventListener('click', () => {
+            selectMode = !selectMode;
+            btnAddEvent.classList.toggle('active', selectMode);
+            selectBanner.classList.toggle('visible', selectMode);
+            btnToday.classList.toggle('hidden', selectMode);
+            if (selectMode) {
+                scrollArea.classList.add('select-mode');
+            } else {
+                scrollArea.classList.remove('select-mode');
+                clearSelection();
+            }
+        });
+
+        function exitSelectMode() {
+            selectMode = false;
+            selecting = false;
+            btnAddEvent.classList.remove('active');
+            selectBanner.classList.remove('visible');
+            btnToday.classList.remove('hidden');
+            scrollArea.classList.remove('select-mode');
+            clearSelection();
+        }
+
+        // ── Selection logic ────────────────────────────────────────────────────
+        function tsFromCell(cell) {
+            return cell ? parseInt(cell.dataset.ts) : null;
+        }
+
+        function clearSelection() {
+            selectStart = null;
+            selectEnd   = null;
+            document.querySelectorAll('.day-cell.in-selection').forEach(c => c.classList.remove('in-selection'));
+        }
+
+        function highlightRange(tsA, tsB) {
+            const lo = Math.min(tsA, tsB);
+            const hi = Math.max(tsA, tsB);
+            document.querySelectorAll('.day-cell').forEach(c => {
+                const t = parseInt(c.dataset.ts);
+                c.classList.toggle('in-selection', t >= lo && t <= hi);
+            });
+        }
+
+        function cellFromPoint(x, y) {
+            const el = document.elementFromPoint(x, y);
+            return el ? el.closest('.day-cell') : null;
+        }
+
+        // Touch events on scroll area (only active in select mode)
+        scrollArea.addEventListener('touchstart', e => {
+            if (!selectMode) return;
+            const touch = e.touches[0];
+            const cell  = cellFromPoint(touch.clientX, touch.clientY);
+            if (!cell) return;
+            e.preventDefault();
+            selecting   = true;
+            selectStart = tsFromCell(cell);
+            selectEnd   = selectStart;
+            highlightRange(selectStart, selectEnd);
+        }, { passive: false });
+
+        scrollArea.addEventListener('touchmove', e => {
+            if (!selectMode || !selecting) return;
+            e.preventDefault();
+            const touch = e.touches[0];
+            const cell  = cellFromPoint(touch.clientX, touch.clientY);
+            if (!cell) return;
+            selectEnd = tsFromCell(cell);
+            highlightRange(selectStart, selectEnd);
+        }, { passive: false });
+
+        scrollArea.addEventListener('touchend', e => {
+            if (!selectMode || !selecting) return;
+            e.preventDefault();
+            selecting = false;
+            if (selectStart !== null && selectEnd !== null) {
+                openModal();
+            }
+        }, { passive: false });
+
+        // Mouse events (desktop)
+        scrollArea.addEventListener('mousedown', e => {
+            if (!selectMode) return;
+            const cell = cellFromPoint(e.clientX, e.clientY);
+            if (!cell) return;
+            selecting   = true;
+            selectStart = tsFromCell(cell);
+            selectEnd   = selectStart;
+            highlightRange(selectStart, selectEnd);
+        });
+
+        scrollArea.addEventListener('mousemove', e => {
+            if (!selectMode || !selecting) return;
+            const cell = cellFromPoint(e.clientX, e.clientY);
+            if (!cell) return;
+            selectEnd = tsFromCell(cell);
+            highlightRange(selectStart, selectEnd);
+        });
+
+        scrollArea.addEventListener('mouseup', e => {
+            if (!selectMode || !selecting) return;
+            selecting = false;
+            if (selectStart !== null && selectEnd !== null) {
+                openModal();
+            }
+        });
+
+        // ── Modal ──────────────────────────────────────────────────────────────
+        function formatDate(ts) {
+            return new Date(ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        }
+
+        function daysBetween(tsA, tsB) {
+            return Math.round(Math.abs(tsB - tsA) / 86400000) + 1;
+        }
+
+        function openModal() {
+            const lo = Math.min(selectStart, selectEnd);
+            const hi = Math.max(selectStart, selectEnd);
+            const days = daysBetween(lo, hi);
+            const label = days === 1
+                ? formatDate(lo)
+                : `${formatDate(lo)} – ${formatDate(hi)} (${days} days)`;
+            modalDateSummary.textContent = label;
+            eventNameInput.value = '';
+            renderSwatches();
+            modalOverlay.classList.add('visible');
+            setTimeout(() => eventNameInput.focus(), 350);
+        }
+
+        function closeModal() {
+            modalOverlay.classList.remove('visible');
+        }
+
+        function renderSwatches() {
+            colourSwatches.innerHTML = '';
+            COLOURS.forEach(c => {
+                const sw = document.createElement('div');
+                sw.className = 'colour-swatch' + (c === selectedColour ? ' selected' : '');
+                sw.style.backgroundColor = c;
+                sw.addEventListener('click', () => {
+                    selectedColour = c;
+                    document.querySelectorAll('.colour-swatch').forEach(s => s.classList.remove('selected'));
+                    sw.classList.add('selected');
+                });
+                colourSwatches.appendChild(sw);
+            });
+        }
+
+        btnCancelModal.addEventListener('click', () => {
+            closeModal();
+            exitSelectMode();
+        });
+
+        modalOverlay.addEventListener('click', e => {
+            if (e.target === modalOverlay) {
+                closeModal();
+                exitSelectMode();
+            }
+        });
+
+        btnSaveEvent.addEventListener('click', () => {
+            const name   = eventNameInput.value.trim() || 'Event';
+            const lo     = Math.min(selectStart, selectEnd);
+            const hi     = Math.max(selectStart, selectEnd);
+            const newEv  = { id: Date.now().toString(), name, colour: selectedColour, start: lo, end: hi };
+            events.push(newEv);
+            saveEvents();
+            renderEvents();
+            closeModal();
+            exitSelectMode();
+        });
+
+        // Allow Enter key to save
+        eventNameInput.addEventListener('keydown', e => {
+            if (e.key === 'Enter') btnSaveEvent.click();
+        });
+
+        // ── Event popup ────────────────────────────────────────────────────────
+        function showEventPopup(eventId, anchorEl) {
+            const ev = events.find(e => e.id === eventId);
+            if (!ev) return;
+
+            // Toggle off if same popup already shown
+            if (activePopupEventId === eventId && eventPopup.style.display !== 'none') {
+                hideEventPopup();
+                return;
+            }
+
+            activePopupEventId = eventId;
+            popupName.textContent = ev.name;
+            const lo = Math.min(ev.start, ev.end);
+            const hi = Math.max(ev.start, ev.end);
+            const days = daysBetween(lo, hi);
+            popupDates.textContent = days === 1
+                ? formatDate(lo)
+                : `${formatDate(lo)} – ${formatDate(hi)} (${days} days)`;
+
+            // Position popup near the dot
+            eventPopup.style.display = 'block';
+            const rect   = anchorEl.getBoundingClientRect();
+            const popW   = 220;
+            let left     = rect.left + window.scrollX;
+            let top      = rect.bottom + 8 + window.scrollY;
+
+            // Keep within viewport
+            if (left + popW > window.innerWidth - 8) left = window.innerWidth - popW - 8;
+            if (left < 8) left = 8;
+
+            eventPopup.style.left = left + 'px';
+            eventPopup.style.top  = top  + 'px';
+            eventPopup.classList.add('visible');
+        }
+
+        function hideEventPopup() {
+            eventPopup.classList.remove('visible');
+            eventPopup.style.display = 'none';
+            activePopupEventId = null;
+        }
+
+        btnDeleteEvent.addEventListener('click', () => {
+            if (!activePopupEventId) return;
+            events = events.filter(e => e.id !== activePopupEventId);
+            saveEvents();
+            renderEvents();
+            hideEventPopup();
+        });
+
+        // Hide popup when clicking elsewhere
+        document.addEventListener('click', e => {
+            if (!eventPopup.contains(e.target) && !e.target.closest('.event-band')) {
+                hideEventPopup();
+            }
+        });
+
+        // ── Persistence ────────────────────────────────────────────────────────
+        function saveEvents() {
+            try { localStorage.setItem('cal_events', JSON.stringify(events)); } catch(e) {}
+        }
+
+        function loadEvents() {
+            try {
+                const raw = localStorage.getItem('cal_events');
+                return raw ? JSON.parse(raw) : [];
+            } catch(e) { return []; }
+        }
+    </script>
+</body>
+</html>
