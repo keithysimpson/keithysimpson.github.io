@@ -1,0 +1,677 @@
+<!--
+APP BRIEF:
+A minimal, mobile-first web app to display the history of various events (e.g. start of life on Earth, dinosaurs, modern humans, printing press, etc.). To be hosted on GitHub Pages as a single HTML file.
+
+Inspired and based heavily on "https://waitbutwhy.com/2013/08/putting-time-in-perspective.html"
+
+Layout
+- A fixed vertical timeline rail runs down the left side of the screen
+- "Today" is always anchored at the bottom of the rail with a glowing dot and label
+- The top of the rail always represents the start of the current zoom level (e.g. Big Bang for level 1, Earth formation for level 2, etc.)
+- The rail never scrolls — it always fills the visible screen height
+- Event cards are listed to the right of the rail and are independently scrollable
+
+Navigation / Zoom
+
+- A slider at the top controls the zoom level
+- Notch labels below the slider show the time span at each stop
+
+Timeline Rail
+
+- Each event is represented by a coloured dot on the rail, positioned proportionally to its true position in time within the current zoom window
+- When changing zoom level, dots animate smoothly to their new scaled positions via CSS transitions (top property, 500ms, ease-in-out cubic bezier)
+- Dots leaving the visible range slide to the top of the rail before fading out; dots entering slide in from the top
+
+Event Cards
+
+- Each card shows: time label, event name, short description
+- Cards are stacked vertically and nudged apart to avoid overlap
+- Cards animate position in sync with their corresponding rail dot
+
+
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Timeline</title>
+
+
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    #app {
+      /*font-family: var(--font-sans);*/
+      font-family: Arial, Helvetica, sans-serif;
+      background: #ffffff;
+      color: #e8e6df;
+      height: 100vh;
+      /* max-width: 420px; */
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .header {
+      padding: 12px 16px 8px;
+      border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
+      flex-shrink: 0;
+    }
+
+    .header-top {
+      margin-bottom: 8px;
+    }
+
+    .level-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: #000000;
+    }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .slider-endlabel {
+      font-size: 9px;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: rgba(0, 0, 0, 0.682);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    #zoom-slider {
+      flex: 1;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 3px;
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+      background: rgba(48, 47, 47, 0.527);
+    }
+
+    #zoom-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #648cff;
+      border: 2px solid rgba(100, 140, 255, 0.5);
+      cursor: pointer;
+    }
+
+    #zoom-slider::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #648cff;
+      border: 2px solid rgba(100, 140, 255, 0.5);
+      cursor: pointer;
+    }
+
+    .notches {
+      position: relative;
+      height: 16px;
+      margin: 4px 12px 0;
+    }
+
+    .notch {
+      position: absolute;
+      top: 0;
+      width: 1px;
+      height: 4px;
+      background: rgba(62, 62, 62, 0.637);
+      transform: translateX(-50%);
+    }
+
+    .notch-label {
+      position: absolute;
+      top: 6px;
+      font-size: 8px;
+      color: rgba(51, 51, 51, 0.705);
+      transform: translateX(-50%);
+      white-space: nowrap;
+    }
+
+    .body {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .rail-col {
+      width: 100px;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .rail-line {
+      position: absolute;
+      left: 50%;
+      top: 0;
+      bottom: 24px;
+      width: 1.5px;
+      transform: translateX(-50%);
+      background: rgb(0, 0, 0);
+      box-shadow: 0px 0px 20px 2px rgb(148, 148, 148);
+      z-index: 2;
+    }
+
+    .level-bg-layer {
+      position: absolute;
+      left: 50%;
+      top: 0;
+      bottom: 24px;
+      width: 100%;
+      transform: translateX(-50%);
+      z-index: 1;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .level-bg {
+      position: absolute;
+      left: 0;
+      width: 100%;
+      transition: top 0.5s cubic-bezier(0.4, 0, 0.2, 1), height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .now-dot {
+      position: absolute;
+      bottom: 18px;
+      left: 50%;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #648cff;
+      border: 2px solid rgba(100, 140, 255, 0.5);
+      transform: translateX(-50%);
+      box-shadow: 0 0 8px rgba(100, 140, 255, 0.6);
+      z-index: 4;
+    }
+
+    .today-lbl {
+      position: absolute;
+      bottom: 4px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: 8px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgb(9, 56, 196);
+    }
+
+    .rail-dot {
+      position: absolute;
+      left: 50%;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 3;
+      cursor: pointer;
+      transition: top 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s;
+    }
+
+    .rail-dot.milestone {
+      background: #ffc86b;
+    }
+
+    .rail-dot.epoch {
+      background: #5dcaa5;
+    }
+
+    .rail-dot.default {
+      background: #648cff;
+    }
+
+    .conn-line {
+      position: absolute;
+      height: 1px;
+      left: 22px;
+      width: 16px;
+      background: rgba(255, 255, 255, 0.12);
+      pointer-events: none;
+      transform: translateY(-50%);
+      transition: top 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s;
+    }
+
+    .events-col {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      scrollbar-width: none;
+    }
+
+    .events-col::-webkit-scrollbar {
+      display: none;
+    }
+
+    .events-inner {
+      position: relative;
+      padding: 0 12px 60px 4px;
+    }
+
+    .event-item {
+      position: absolute;
+      left: 4px;
+      right: 12px;
+      transition: top 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s;
+    }
+
+    .ev-time {
+      font-size: 9px;
+      letter-spacing: 0.05em;
+      color: rgba(66, 66, 66, 0.28);
+      margin-bottom: 1px;
+      text-transform: uppercase;
+    }
+
+    .ev-name {
+      font-size: 12px;
+      font-weight: 500;
+      color: #000000;
+      line-height: 1.3;
+    }
+
+    .ev-desc {
+      font-size: 10px;
+      color: rgba(57, 57, 57, 0.35);
+      line-height: 1.4;
+      margin-top: 1px;
+    }
+
+    .ev-divider {
+      position: absolute;
+      left: 4px;
+      right: 12px;
+      height: 0.5px;
+      background: rgba(255, 255, 255, 0.05);
+      pointer-events: none;
+    }
+
+    .rail-tick {
+      position: absolute;
+      left: 0;
+      width: 50%;
+      height: 0;
+      border-top: 1px solid rgba(0, 0, 0, 0.15);
+      transition: top 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .rail-tick-label {
+      position: absolute;
+      left: 6px;
+      bottom: 2px;
+      font-size: 9px;
+      color: rgba(0, 0, 0, 0.5);
+      white-space: nowrap;
+    }
+  </style>
+
+</head>
+
+<body>
+  <div id="app">
+    <div class="header">
+      <div class="header-top">
+        <span class="level-name" id="level-name">Universe · 13.8 billion years</span>
+      </div>
+      <div class="slider-row">
+        <span class="slider-endlabel">Big Bang</span>
+        <input type="range" id="zoom-slider" min="0" max="12" step="1" value="0">
+        <span class="slider-endlabel">Recent</span>
+      </div>
+      <div class="notches" id="notches"></div>
+    </div>
+    <div class="body">
+      <div class="rail-col" id="rail-col">
+        <div class="level-bg-layer" id="level-bg-layer"></div>
+        <div class="rail-line"></div>
+        <div class="now-dot"></div>
+        <div class="today-lbl">Today</div>
+      </div>
+      <div class="events-col">
+        <div class="events-inner" id="events-inner"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const LEVELS = [
+      { name: "Universe", span: "13.8 billion years", start_ya: 13.8e9, color: "#e3e3e3" },
+      { name: "Earth", span: "4.6 billion years", start_ya: 4.6e9, color: "#cdf0ff" },
+      { name: "Life on Earth", span: "3.8 billion years", start_ya: 3.8e9, color: "#e1f5c4" },
+      { name: "Complex life", span: "540 million years", start_ya: 540e6, color: "#bfe3bc" },
+      { name: "Human prehistory", span: "300,000 years", start_ya: 300e3, color: "#ffeccc" },
+      { name: "Civilisation", span: "12,000 years", start_ya: 12e3, color: "#ffe2cc" },
+      { name: "Recorded history", span: "3,500 years", start_ya: 3.5e3, color: "#ffcccc" },
+      { name: "Common era", span: "2,000 years", start_ya: 2e3, color: "#ffc4c4" },
+      { name: "Last 500 years", span: "500 years", start_ya: 500, color: "#ecc4ff" },
+      { name: "Last 250 years", span: "250 years", start_ya: 250, color: "#d9c4ff" },
+      { name: "Last 100 years", span: "100 years", start_ya: 100, color: "#c4d1ff" },
+      { name: "Last 50 years", span: "50 years", start_ya: 50, color: "#c4e8ff" },
+      { name: "Last 25 years", span: "25 years", start_ya: 25, color: "#c4fffa" },
+    ];
+
+    const NOTCH_LABELS = ["13.8b", "4.6b", "3.8b", "540m", "300k", "12k", "3.5k", "2k", "500y", "250y", "100y", "50y", "25y"];
+
+    const ALL_EVENTS = [
+      { ya: 13.8e9, name: "Big Bang", time: "13.8 bya", desc: "Origin of space, time and matter", type: "milestone" },
+      { ya: 13.6e9, name: "First stars", time: "13.6 bya", desc: "Hydrogen ignites across the universe", type: "epoch" },
+      { ya: 9e9, name: "Milky Way forms", time: "9 bya", desc: "Our galaxy coalesces from gas", type: "epoch" },
+      { ya: 4.6e9, name: "Earth forms", time: "4.6 bya", desc: "Solar system dust gathers into a planet", type: "milestone" },
+      { ya: 4.5e9, name: "Moon forms", time: "4.5 bya", desc: "Giant impact sends debris into orbit", type: "epoch" },
+      { ya: 3.8e9, name: "First life", time: "3.8 bya", desc: "Single-celled organisms in the oceans", type: "milestone" },
+      { ya: 2.4e9, name: "Great Oxygenation", time: "2.4 bya", desc: "Photosynthesis transforms the atmosphere", type: "milestone" },
+      { ya: 2e9, name: "Eukaryotes", time: "2 bya", desc: "Cells with a nucleus appear", type: "epoch" },
+      { ya: 700e6, name: "Multicellular life", time: "700 mya", desc: "Complex organisms emerge", type: "epoch" },
+      { ya: 540e6, name: "Cambrian explosion", time: "540 mya", desc: "Rapid diversification of animal life", type: "milestone" },
+      { ya: 375e6, name: "Life onto land", time: "375 mya", desc: "Tetrapods crawl from water to shore", type: "epoch" },
+      { ya: 230e6, name: "Dinosaurs", time: "230 mya", desc: "Reign of the dinosaurs begins", type: "epoch" },
+      { ya: 66e6, name: "Mass extinction", time: "66 mya", desc: "Asteroid ends the dinosaur era", type: "milestone" },
+      { ya: 6e6, name: "Hominin split", time: "6 mya", desc: "Human and chimp lineages diverge", type: "epoch" },
+      { ya: 300e3, name: "Homo sapiens", time: "300,000 ya", desc: "Modern humans evolve in Africa", type: "milestone" },
+      { ya: 70e3, name: "Out of Africa", time: "70,000 ya", desc: "Humans migrate across the globe", type: "milestone" },
+      { ya: 12e3, name: "Agriculture", time: "12,000 ya", desc: "Farming replaces hunter-gathering", type: "milestone" },
+      { ya: 5e3, name: "Writing", time: "5,000 ya", desc: "Sumerian cuneiform; recorded history begins", type: "milestone" },
+      { ya: 2500, name: "Classical antiquity", time: "~500 BCE", desc: "Greece and Rome; philosophy and democracy", type: "epoch" },
+      { ya: 582, name: "Printing press", time: "1440 CE", desc: "Gutenberg democratises knowledge", type: "milestone" },
+      { ya: 335, name: "Newton's Principia", time: "1687 CE", desc: "Laws of motion; modern science begins", type: "epoch" },
+      { ya: 260, name: "Industrial revolution", time: "1760s CE", desc: "Steam power transforms civilisation", type: "milestone" },
+      { ya: 175, name: "Germ theory", time: "~1850 CE", desc: "Disease explained; medicine transformed", type: "epoch" },
+      { ya: 120, name: "Powered flight", time: "1903 CE", desc: "Wright brothers' first flight", type: "milestone" },
+      { ya: 80, name: "World War II", time: "1939–45", desc: "Global conflict reshapes the world order", type: "milestone" },
+      { ya: 76, name: "Nuclear age", time: "1945 CE", desc: "Atomic bomb; the Cold War begins", type: "epoch" },
+      { ya: 55, name: "Moon landing", time: "1969 CE", desc: "Humans walk on another world", type: "milestone" },
+      { ya: 34, name: "World Wide Web", time: "1991 CE", desc: "Berners-Lee connects global knowledge", type: "milestone" },
+      { ya: 18, name: "Smartphones", time: "2007 CE", desc: "The internet fits in your pocket", type: "epoch" },
+      { ya: 5, name: "COVID-19", time: "2020 CE", desc: "Global pandemic halts modern life", type: "milestone" },
+      { ya: 2, name: "AI goes mainstream", time: "2022–23 CE", desc: "Large language models reshape culture", type: "milestone" },
+    ];
+
+    let currentLevel = 0;
+
+    function getTickStep(spanYa) {
+      if (spanYa === 0) return 1;
+      const magnitude = Math.pow(10, Math.floor(Math.log10(spanYa)));
+      const steps = [0.1, 0.2, 0.25, 0.5, 1, 2, 2.5, 5, 10].map(s => s * magnitude);
+      const targetTicks = 8;
+      const roughStep = spanYa / targetTicks;
+      let bestStep = steps[0];
+      for (const s of steps) {
+        if (Math.abs(s - roughStep) < Math.abs(bestStep - roughStep)) {
+          bestStep = s;
+        }
+      }
+      return bestStep;
+    }
+
+    function formatTickLabel(ya) {
+      if (ya === 0) return "Today";
+      
+      let label = "";
+      if (ya >= 1e9) {
+        label = Number((ya / 1e9).toFixed(2)).toString() + " BYA";
+      } else if (ya >= 1e6) {
+        label = Number((ya / 1e6).toFixed(2)).toString() + " MYA";
+      } else if (ya >= 1e3) {
+        label = Number((ya / 1e3).toFixed(2)).toString() + " KYA";
+      } else {
+        label = ya + " ya";
+      }
+
+      if (ya <= 6000 && ya > 0) {
+        const currentYear = new Date().getFullYear();
+        let y = currentYear - ya;
+        if (y > 0) {
+          label += " (" + y + " CE)";
+        } else {
+          label += " (" + Math.abs(y - 1) + " BCE)";
+        }
+      }
+
+      return label;
+    }
+
+    function railH() {
+      return (document.getElementById('rail-col').offsetHeight || 500) - 28;
+    }
+
+    function dotY(ya, startYa, rH) {
+      return rH - (ya / startYa) * rH;
+    }
+
+    function buildNotches() {
+      const c = document.getElementById('notches');
+      LEVELS.forEach((l, i) => {
+        const pct = i / (LEVELS.length - 1) * 100;
+        const n = document.createElement('div');
+        n.className = 'notch'; n.style.left = pct + '%'; c.appendChild(n);
+        const lbl = document.createElement('div');
+        lbl.className = 'notch-label'; lbl.style.left = pct + '%';
+        lbl.textContent = NOTCH_LABELS[i]; c.appendChild(lbl);
+      });
+    }
+
+    function getItems() {
+      const rail = document.getElementById('rail-col');
+      const inner = document.getElementById('events-inner');
+      const dots = {}, conns = {}, cards = {}, divs = {};
+      rail.querySelectorAll('.rail-dot').forEach(el => dots[el.dataset.name] = el);
+      rail.querySelectorAll('.conn-line').forEach(el => conns[el.dataset.name] = el);
+      inner.querySelectorAll('.event-item').forEach(el => cards[el.dataset.name] = el);
+      inner.querySelectorAll('.ev-divider').forEach(el => divs[el.dataset.name] = el);
+      return { dots, conns, cards, divs };
+    }
+
+    function render(levelIdx) {
+      const startYa = LEVELS[levelIdx].start_ya;
+      const rH = railH();
+      const rail = document.getElementById('rail-col');
+      const inner = document.getElementById('events-inner');
+      const visibleNames = new Set(ALL_EVENTS.filter(e => e.ya <= startYa).map(e => e.name));
+
+      document.getElementById('level-name').textContent =
+        LEVELS[levelIdx].name + ' · ' + LEVELS[levelIdx].span;
+
+      // --- Update Level Backgrounds ---
+      LEVELS.forEach((l, i) => {
+        const bg = document.getElementById('bg-' + i);
+        let tTop = l.start_ya;
+        let tBot = i + 1 < LEVELS.length ? LEVELS[i + 1].start_ya : 0;
+
+        let yT = dotY(tTop, startYa, rH);
+        let yB = dotY(tBot, startYa, rH);
+
+        let viewYT = Math.max(-5000, Math.min(rH + 5000, yT));
+        let viewYB = Math.max(-5000, Math.min(rH + 5000, yB));
+
+        bg.style.top = viewYT + 'px';
+        bg.style.height = Math.max(0, viewYB - viewYT) + 'px';
+      });
+
+      const { dots, conns, cards, divs } = getItems();
+      const SLIDE_MS = 500;
+      const FADE_MS = 350;
+
+      // --- TICKS ---
+      const ticks = {};
+      rail.querySelectorAll('.rail-tick').forEach(el => ticks[el.dataset.ya] = el);
+
+      const step = getTickStep(startYa);
+      let targetTicksYa = [];
+      let count = 0;
+      for (let y = Math.floor(startYa / step) * step; y > 0; y -= step) {
+        let val = Number(y.toPrecision(12));
+        if (val <= startYa && val > 0) targetTicksYa.push(val);
+        if (++count > 50) break;
+      }
+      const visibleTicks = new Set(targetTicksYa.map(String));
+
+      Object.entries(ticks).forEach(([yaStr, tick]) => {
+        if (visibleTicks.has(yaStr)) return;
+        tick.style.opacity = '0';
+        setTimeout(() => tick.remove(), SLIDE_MS + 50);
+      });
+
+      targetTicksYa.forEach(ya => {
+        const yaStr = String(ya);
+        const dy = dotY(ya, startYa, rH);
+        
+        if (!ticks[yaStr]) {
+          const tick = document.createElement('div');
+          tick.className = 'rail-tick';
+          tick.dataset.ya = yaStr;
+          tick.style.top = dy + 'px';
+          tick.style.opacity = '0';
+          
+          const lbl = document.createElement('div');
+          lbl.className = 'rail-tick-label';
+          lbl.textContent = formatTickLabel(ya);
+          tick.appendChild(lbl);
+          
+          rail.appendChild(tick);
+          
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              tick.style.opacity = '1';
+            });
+          });
+        } else {
+          ticks[yaStr].style.top = dy + 'px';
+          ticks[yaStr].style.opacity = '1';
+        }
+      });
+
+      // --- EXIT: dots going out of range → slide to top, then fade+remove ---
+      Object.entries(dots).forEach(([name, dot]) => {
+        if (visibleNames.has(name)) return;
+        const conn = conns[name];
+        const card = cards[name];
+        const div = divs[name];
+
+        dot.style.top = '0px';
+        if (conn) conn.style.top = '0px';
+
+        setTimeout(() => {
+          dot.style.opacity = '0';
+          if (conn) conn.style.opacity = '0';
+          if (card) card.style.opacity = '0';
+        }, SLIDE_MS - FADE_MS);
+
+        setTimeout(() => {
+          dot.remove();
+          if (conn) conn.remove();
+          if (card) card.remove();
+          if (div) div.remove();
+        }, SLIDE_MS + 50);
+      });
+
+      // --- Compute stacked card positions ---
+      const visible = ALL_EVENTS.filter(e => e.ya <= startYa);
+      const usedY = [];
+      const ITEM_H = 44;
+      const positions = visible.map(e => {
+        const dy = dotY(e.ya, startYa, rH);
+        let iy = dy - 14;
+        for (const u of usedY) { if (iy < u + ITEM_H) iy = u + ITEM_H; }
+        iy = Math.max(0, iy);
+        usedY.push(iy);
+        return { e, dy, iy };
+      });
+
+      inner.style.minHeight = ((usedY[usedY.length - 1] || 0) + 80) + 'px';
+
+      // --- ENTER + UPDATE ---
+      positions.forEach(({ e, dy, iy }) => {
+        const isNew = !dots[e.name];
+
+        if (isNew) {
+          // Create dot at top (opacity 0), then slide to position and fade in
+          const dot = document.createElement('div');
+          dot.className = 'rail-dot ' + (e.type || 'default');
+          dot.style.top = '0px';
+          dot.style.opacity = '0';
+          dot.dataset.name = e.name;
+          rail.appendChild(dot);
+
+          const conn = document.createElement('div');
+          conn.className = 'conn-line';
+          conn.style.top = '0px';
+          conn.style.opacity = '0';
+          conn.dataset.name = e.name;
+          rail.appendChild(conn);
+
+          const card = document.createElement('div');
+          card.className = 'event-item';
+          card.style.top = iy + 'px';
+          card.style.opacity = '0';
+          card.dataset.name = e.name;
+          card.innerHTML = `<div class="ev-time">${e.time}</div><div class="ev-name">${e.name}</div><div class="ev-desc">${e.desc}</div>`;
+          inner.appendChild(card);
+
+          const div = document.createElement('div');
+          div.className = 'ev-divider';
+          div.style.top = (iy + ITEM_H - 2) + 'px';
+          div.dataset.name = e.name;
+          inner.appendChild(div);
+
+          // Next frame: slide into position and fade in
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              dot.style.top = dy + 'px';
+              conn.style.top = dy + 'px';
+              dot.style.opacity = '1';
+              conn.style.opacity = '1';
+              card.style.opacity = '1';
+            });
+          });
+        } else {
+          // Existing dot: just update position
+          dots[e.name].style.top = dy + 'px';
+          dots[e.name].style.opacity = '1';
+          if (conns[e.name]) { conns[e.name].style.top = dy + 'px'; conns[e.name].style.opacity = '1'; }
+          if (cards[e.name]) { cards[e.name].style.top = iy + 'px'; cards[e.name].style.opacity = '1'; }
+          if (divs[e.name]) { divs[e.name].style.top = (iy + ITEM_H - 2) + 'px'; }
+        }
+      });
+    }
+
+    buildNotches();
+
+    function buildLevelBGs() {
+      const layer = document.getElementById('level-bg-layer');
+      LEVELS.forEach((l, i) => {
+        const bg = document.createElement('div');
+        bg.className = 'level-bg';
+        bg.id = 'bg-' + i;
+        bg.style.background = l.color;
+        layer.appendChild(bg);
+      });
+    }
+    buildLevelBGs();
+    document.getElementById('zoom-slider').addEventListener('input', function () {
+      currentLevel = parseInt(this.value);
+      render(currentLevel);
+    });
+    setTimeout(() => render(0), 60);
+  </script>
+
+</body>
