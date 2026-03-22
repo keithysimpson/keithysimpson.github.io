@@ -239,6 +239,27 @@ Event Cards
       background: #648cff;
     }
 
+    .rail-period {
+      position: absolute;
+      left: calc(50% + 2px);
+      width: 4px;
+      z-index: 3;
+      cursor: pointer;
+      transition: top 0.5s cubic-bezier(0.4, 0, 0.2, 1), height 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s;
+    }
+
+    .rail-period.milestone {
+      background: #ffc86b;
+    }
+
+    .rail-period.epoch {
+      background: #5dcaa5;
+    }
+
+    .rail-period.default {
+      background: #648cff;
+    }
+
     .conn-line {
       position: absolute;
       height: 1px;
@@ -335,7 +356,7 @@ Event Cards
       </div>
       <div class="slider-row">
         <span class="slider-endlabel">Big Bang</span>
-        <input type="range" id="zoom-slider" min="0" max="12" step="1" value="0">
+        <input type="range" id="zoom-slider" min="0" max="14" step="1" value="0">
         <span class="slider-endlabel">Recent</span>
       </div>
       <div class="notches" id="notches"></div>
@@ -359,6 +380,8 @@ Event Cards
       { name: "Earth", span: "4.6 billion years", start_ya: 4.6e9, color: "#cdf0ff" },
       { name: "Life on Earth", span: "3.8 billion years", start_ya: 3.8e9, color: "#e1f5c4" },
       { name: "Complex life", span: "540 million years", start_ya: 540e6, color: "#bfe3bc" },
+      { name: "Age of Dinosaurs", span: "230 million years", start_ya: 230e6, color: "#69ea5eff" },
+      { name: "Age of Mammals", span: "65 million years", start_ya: 65e6, color: "#bfe3bc" },
       { name: "Human prehistory", span: "300,000 years", start_ya: 300e3, color: "#ffeccc" },
       { name: "Civilisation", span: "12,000 years", start_ya: 12e3, color: "#ffe2cc" },
       { name: "Recorded history", span: "3,500 years", start_ya: 3.5e3, color: "#ffcccc" },
@@ -370,7 +393,7 @@ Event Cards
       { name: "Last 25 years", span: "25 years", start_ya: 25, color: "#c4fffa" },
     ];
 
-    const NOTCH_LABELS = ["13.8b", "4.6b", "3.8b", "540m", "300k", "12k", "3.5k", "2k", "500y", "250y", "100y", "50y", "25y"];
+    const NOTCH_LABELS = ["13.8b", "4.6b", "3.8b", "540m", "400m", "230m", "65m", "300k", "12k", "3.5k", "2k", "500y", "250y", "100y", "50y", "25y"];
 
     const ALL_EVENTS = [
       { ya: 13.8e9, name: "Big Bang", time: "13.8 bya", desc: "Origin of space, time and matter", type: "milestone" },
@@ -384,27 +407,52 @@ Event Cards
       { ya: 700e6, name: "Multicellular life", time: "700 mya", desc: "Complex organisms emerge", type: "epoch" },
       { ya: 540e6, name: "Cambrian explosion", time: "540 mya", desc: "Rapid diversification of animal life", type: "milestone" },
       { ya: 375e6, name: "Life onto land", time: "375 mya", desc: "Tetrapods crawl from water to shore", type: "epoch" },
-      { ya: 230e6, name: "Dinosaurs", time: "230 mya", desc: "Reign of the dinosaurs begins", type: "epoch" },
+      { ya: 230e6, end_ya: 66e6, name: "Dinosaurs", time: "230–66 mya", desc: "Reign of the dinosaurs begins", type: "epoch" },
       { ya: 66e6, name: "Mass extinction", time: "66 mya", desc: "Asteroid ends the dinosaur era", type: "milestone" },
+      { ya: 25e6, name: "First apes", time: "25 mya", desc: "Primates diverge into Old World monkeys and apes", type: "epoch" },
       { ya: 6e6, name: "Hominin split", time: "6 mya", desc: "Human and chimp lineages diverge", type: "epoch" },
       { ya: 300e3, name: "Homo sapiens", time: "300,000 ya", desc: "Modern humans evolve in Africa", type: "milestone" },
       { ya: 70e3, name: "Out of Africa", time: "70,000 ya", desc: "Humans migrate across the globe", type: "milestone" },
       { ya: 12e3, name: "Agriculture", time: "12,000 ya", desc: "Farming replaces hunter-gathering", type: "milestone" },
+      // stone age
+      { cal_year: -12e3, end_cal_year: -3e3, name: "Stone Age", time: "12,000–3,000 BCE", desc: "Stone Age", type: "epoch", color: "#999999" },
+      // bronze age
+      { cal_year: -3e3, end_cal_year: -1.2e3, name: "Bronze Age", time: "3,000–1,200 BCE", desc: "Bronze Age", type: "epoch", color: "#ffbb00" },
+      // iron age
+      { cal_year: -1.2e3, end_cal_year: -500, name: "Iron Age", time: "1,200–500 BCE", desc: "Iron Age", type: "epoch" },
       { ya: 5e3, name: "Writing", time: "5,000 ya", desc: "Sumerian cuneiform; recorded history begins", type: "milestone" },
-      { ya: 2500, name: "Classical antiquity", time: "~500 BCE", desc: "Greece and Rome; philosophy and democracy", type: "epoch" },
+      // stonehenge
+      { ya: 5000, name: "Stonehenge", time: "5,000 ya", desc: "Stonehenge", type: "milestone" },
+      // great pyramid of giza
+      { ya: 4500, name: "Great Pyramid of Giza", time: "4,500 ya", desc: "Great Pyramid of Giza", type: "milestone" },
+      // ancient greece
+      { ya: 2826, end_ya: 2172, name: "Ancient Greece", time: "800–146 BCE", desc: "Philosophy, democracy, and art", type: "milestone", color: "#00ff00", offset: 1 },
+      // roman empire
+      { ya: 2000, end_ya: 1550, name: "Roman Empire", time: "27 - 476 CE", desc: "Conquest and engineering", type: "milestone", color: "#ff0000", offset: 1 },
       { ya: 582, name: "Printing press", time: "1440 CE", desc: "Gutenberg democratises knowledge", type: "milestone" },
       { ya: 335, name: "Newton's Principia", time: "1687 CE", desc: "Laws of motion; modern science begins", type: "epoch" },
       { ya: 260, name: "Industrial revolution", time: "1760s CE", desc: "Steam power transforms civilisation", type: "milestone" },
       { ya: 175, name: "Germ theory", time: "~1850 CE", desc: "Disease explained; medicine transformed", type: "epoch" },
       { ya: 120, name: "Powered flight", time: "1903 CE", desc: "Wright brothers' first flight", type: "milestone" },
-      { ya: 80, name: "World War II", time: "1939–45", desc: "Global conflict reshapes the world order", type: "milestone" },
+      { ya: 104, end_ya: 98, name: "World War I", time: "1914–18", desc: "Major global conflict", type: "milestone" },
+      { ya: 87, end_ya: 81, name: "World War II", time: "1939–45", desc: "Major global conflict", type: "milestone" },
       { ya: 76, name: "Nuclear age", time: "1945 CE", desc: "Atomic bomb; the Cold War begins", type: "epoch" },
-      { ya: 55, name: "Moon landing", time: "1969 CE", desc: "Humans walk on another world", type: "milestone" },
-      { ya: 34, name: "World Wide Web", time: "1991 CE", desc: "Berners-Lee connects global knowledge", type: "milestone" },
+      { cal_year: 1969, name: "Moon landing", time: "1969 CE", desc: "Humans walk on another world", type: "milestone" },
+      { cal_year: 1991, name: "World Wide Web", time: "1991 CE", desc: "Berners-Lee connects global knowledge", type: "milestone" },
       { ya: 18, name: "Smartphones", time: "2007 CE", desc: "The internet fits in your pocket", type: "epoch" },
-      { ya: 5, name: "COVID-19", time: "2020 CE", desc: "Global pandemic halts modern life", type: "milestone" },
-      { ya: 2, name: "AI goes mainstream", time: "2022–23 CE", desc: "Large language models reshape culture", type: "milestone" },
+      { cal_year: 2020, name: "COVID-19", time: "2020 CE", desc: "Global pandemic halts modern life", type: "milestone" },
+      { cal_year: 2022, name: "AI goes mainstream", time: "2022–23 CE", desc: "Large language models reshape culture", type: "milestone" },
     ];
+
+    const currentYearGlobal = new Date().getFullYear();
+    ALL_EVENTS.forEach(e => {
+      if (typeof e.ya === 'undefined' && typeof e.cal_year !== 'undefined') {
+        e.ya = currentYearGlobal - e.cal_year;
+      }
+      if (typeof e.end_ya === 'undefined' && typeof e.end_cal_year !== 'undefined') {
+        e.end_ya = currentYearGlobal - e.end_cal_year;
+      }
+    });
 
     let currentLevel = 0;
 
@@ -423,31 +471,38 @@ Event Cards
       return bestStep;
     }
 
-    function formatTickLabel(ya) {
+    function formatTickLabel(ya, roundBCE = false) {
       if (ya === 0) return "Today";
-      
-      let label = "";
+
+      let timeLabel = "";
       if (ya >= 1e9) {
-        label = Number((ya / 1e9).toFixed(2)).toString() + " BYA";
+        timeLabel = Number((ya / 1e9).toFixed(2)).toString() + " BYA";
       } else if (ya >= 1e6) {
-        label = Number((ya / 1e6).toFixed(2)).toString() + " MYA";
+        timeLabel = Number((ya / 1e6).toFixed(2)).toString() + " MYA";
       } else if (ya >= 1e3) {
-        label = Number((ya / 1e3).toFixed(2)).toString() + " KYA";
+        timeLabel = Number((ya / 1e3).toFixed(2)).toString() + " KYA";
       } else {
-        label = ya + " ya";
+        timeLabel = ya + " ya";
       }
 
       if (ya <= 6000 && ya > 0) {
         const currentYear = new Date().getFullYear();
         let y = currentYear - ya;
+        let ceLabel = "";
         if (y > 0) {
-          label += " (" + y + " CE)";
+          ceLabel = y + " CE";
         } else {
-          label += " (" + Math.abs(y - 1) + " BCE)";
+          ceLabel = Math.abs(y - 1) + " BCE";
+        }
+
+        if (roundBCE) {
+          return ceLabel + "<br>(" + timeLabel + ")";
+        } else {
+          return timeLabel + "<br>(" + ceLabel + ")";
         }
       }
 
-      return label;
+      return timeLabel;
     }
 
     function railH() {
@@ -473,12 +528,13 @@ Event Cards
     function getItems() {
       const rail = document.getElementById('rail-col');
       const inner = document.getElementById('events-inner');
-      const dots = {}, conns = {}, cards = {}, divs = {};
+      const dots = {}, periods = {}, conns = {}, cards = {}, divs = {};
       rail.querySelectorAll('.rail-dot').forEach(el => dots[el.dataset.name] = el);
+      rail.querySelectorAll('.rail-period').forEach(el => periods[el.dataset.name] = el);
       rail.querySelectorAll('.conn-line').forEach(el => conns[el.dataset.name] = el);
       inner.querySelectorAll('.event-item').forEach(el => cards[el.dataset.name] = el);
       inner.querySelectorAll('.ev-divider').forEach(el => divs[el.dataset.name] = el);
-      return { dots, conns, cards, divs };
+      return { dots, periods, conns, cards, divs };
     }
 
     function render(levelIdx) {
@@ -486,7 +542,7 @@ Event Cards
       const rH = railH();
       const rail = document.getElementById('rail-col');
       const inner = document.getElementById('events-inner');
-      const visibleNames = new Set(ALL_EVENTS.filter(e => e.ya <= startYa).map(e => e.name));
+      const visibleNames = new Set(ALL_EVENTS.filter(e => e.ya <= startYa || (typeof e.end_ya !== 'undefined' && e.end_ya <= startYa)).map(e => e.name));
 
       document.getElementById('level-name').textContent =
         LEVELS[levelIdx].name + ' · ' + LEVELS[levelIdx].span;
@@ -507,7 +563,7 @@ Event Cards
         bg.style.height = Math.max(0, viewYB - viewYT) + 'px';
       });
 
-      const { dots, conns, cards, divs } = getItems();
+      const { dots, periods, conns, cards, divs } = getItems();
       const SLIDE_MS = 500;
       const FADE_MS = 350;
 
@@ -518,10 +574,31 @@ Event Cards
       const step = getTickStep(startYa);
       let targetTicksYa = [];
       let count = 0;
-      for (let y = Math.floor(startYa / step) * step; y > 0; y -= step) {
-        let val = Number(y.toPrecision(12));
-        if (val <= startYa && val > 0) targetTicksYa.push(val);
-        if (++count > 50) break;
+      const currentYear = new Date().getFullYear();
+
+      if (startYa <= 3500) {
+        let startCE = currentYear - startYa;
+        let firstVisual = Math.floor(currentYear / step) * step;
+        let lastVisual = Math.ceil(startCE / step) * step;
+
+        for (let vYear = firstVisual; vYear >= lastVisual; vYear -= step) {
+          let y;
+          if (vYear > 0) y = vYear;
+          else if (vYear < 0) y = vYear + 1;
+          else y = 1;
+
+          y = Number(y.toPrecision(12));
+          let ya = Number((currentYear - y).toPrecision(12));
+
+          if (ya <= startYa && ya > 0) targetTicksYa.push(ya);
+          if (++count > 50) break;
+        }
+      } else {
+        for (let y = Math.floor(startYa / step) * step; y > 0; y -= step) {
+          let val = Number(y.toPrecision(12));
+          if (val <= startYa && val > 0) targetTicksYa.push(val);
+          if (++count > 50) break;
+        }
       }
       const visibleTicks = new Set(targetTicksYa.map(String));
 
@@ -534,21 +611,21 @@ Event Cards
       targetTicksYa.forEach(ya => {
         const yaStr = String(ya);
         const dy = dotY(ya, startYa, rH);
-        
+
         if (!ticks[yaStr]) {
           const tick = document.createElement('div');
           tick.className = 'rail-tick';
           tick.dataset.ya = yaStr;
           tick.style.top = dy + 'px';
           tick.style.opacity = '0';
-          
+
           const lbl = document.createElement('div');
           lbl.className = 'rail-tick-label';
-          lbl.textContent = formatTickLabel(ya);
+          lbl.innerHTML = formatTickLabel(ya, startYa <= 3500);
           tick.appendChild(lbl);
-          
+
           rail.appendChild(tick);
-          
+
           requestAnimationFrame(() => {
             requestAnimationFrame(() => {
               tick.style.opacity = '1';
@@ -557,11 +634,12 @@ Event Cards
         } else {
           ticks[yaStr].style.top = dy + 'px';
           ticks[yaStr].style.opacity = '1';
+          ticks[yaStr].querySelector('.rail-tick-label').innerHTML = formatTickLabel(ya, startYa <= 3500);
         }
       });
 
       // --- EXIT: dots going out of range → slide to top, then fade+remove ---
-      Object.entries(dots).forEach(([name, dot]) => {
+      [...Object.entries(dots), ...Object.entries(periods)].forEach(([name, dot]) => {
         if (visibleNames.has(name)) return;
         const conn = conns[name];
         const card = cards[name];
@@ -585,7 +663,7 @@ Event Cards
       });
 
       // --- Compute stacked card positions ---
-      const visible = ALL_EVENTS.filter(e => e.ya <= startYa);
+      const visible = ALL_EVENTS.filter(e => e.ya <= startYa || (typeof e.end_ya !== 'undefined' && e.end_ya <= startYa));
       const usedY = [];
       const ITEM_H = 44;
       const positions = visible.map(e => {
@@ -601,13 +679,25 @@ Event Cards
 
       // --- ENTER + UPDATE ---
       positions.forEach(({ e, dy, iy }) => {
-        const isNew = !dots[e.name];
+        const hasEnd = typeof e.end_ya !== 'undefined';
+        const existingEl = hasEnd ? periods[e.name] : dots[e.name];
+        const isNew = !existingEl;
+
+        let dyEnd = dy;
+        let periodH = 0;
+        if (hasEnd) {
+          dyEnd = dotY(e.end_ya, startYa, rH);
+          periodH = Math.max(2, dyEnd - dy);
+        }
 
         if (isNew) {
-          // Create dot at top (opacity 0), then slide to position and fade in
+          // Create dot/period at top (opacity 0), then slide to position and fade in
           const dot = document.createElement('div');
-          dot.className = 'rail-dot ' + (e.type || 'default');
+          dot.className = (hasEnd ? 'rail-period ' : 'rail-dot ') + (e.type || 'default');
+          if (e.color) dot.style.background = e.color;
+          if (hasEnd && typeof e.offset !== 'undefined') dot.style.left = `calc(50% + ${2 + e.offset * 6}px)`;
           dot.style.top = '0px';
+          if (hasEnd) dot.style.height = periodH + 'px';
           dot.style.opacity = '0';
           dot.dataset.name = e.name;
           rail.appendChild(dot);
@@ -644,9 +734,12 @@ Event Cards
             });
           });
         } else {
-          // Existing dot: just update position
-          dots[e.name].style.top = dy + 'px';
-          dots[e.name].style.opacity = '1';
+          // Existing dot/period: just update position
+          existingEl.style.top = dy + 'px';
+          if (hasEnd) existingEl.style.height = periodH + 'px';
+          if (e.color) existingEl.style.background = e.color;
+          if (hasEnd && typeof e.offset !== 'undefined') existingEl.style.left = `calc(50% + ${2 + e.offset * 6}px)`;
+          existingEl.style.opacity = '1';
           if (conns[e.name]) { conns[e.name].style.top = dy + 'px'; conns[e.name].style.opacity = '1'; }
           if (cards[e.name]) { cards[e.name].style.top = iy + 'px'; cards[e.name].style.opacity = '1'; }
           if (divs[e.name]) { divs[e.name].style.top = (iy + ITEM_H - 2) + 'px'; }
