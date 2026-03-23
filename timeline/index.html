@@ -80,70 +80,99 @@ Event Cards
     .slider-row {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 0;
     }
 
-    .slider-endlabel {
-      font-size: 9px;
-      letter-spacing: 0.07em;
-      text-transform: uppercase;
-      color: rgba(0, 0, 0, 0.682);
+    .nav-btn {
+      font-size: 12px;
+      font-weight: 500;
+      color: rgba(0, 0, 0, 0.55);
       white-space: nowrap;
       flex-shrink: 0;
+      cursor: pointer;
+      user-select: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: color 0.2s, background 0.2s;
+      background: none;
+      border: none;
+      font-family: inherit;
     }
 
-    #zoom-slider {
+    .nav-btn:hover {
+      color: rgba(0, 0, 0, 0.85);
+      background: rgba(0, 0, 0, 0.06);
+    }
+
+    .nav-btn:active {
+      background: rgba(0, 0, 0, 0.10);
+    }
+
+    .nav-btn.disabled {
+      opacity: 0.3;
+      cursor: default;
+      pointer-events: none;
+    }
+
+    .zoom-dots-track {
       flex: 1;
-      -webkit-appearance: none;
-      appearance: none;
-      height: 3px;
-      border-radius: 2px;
-      outline: none;
-      cursor: pointer;
-      background: rgba(48, 47, 47, 0.527);
-    }
-
-    #zoom-slider::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      background: #648cff;
-      border: 2px solid rgba(100, 140, 255, 0.5);
-      cursor: pointer;
-    }
-
-    #zoom-slider::-moz-range-thumb {
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      background: #648cff;
-      border: 2px solid rgba(100, 140, 255, 0.5);
-      cursor: pointer;
-    }
-
-    .notches {
+      display: flex;
+      align-items: center;
       position: relative;
-      height: 16px;
-      margin: 4px 12px 0;
+      height: 28px;
+      min-width: 0;
     }
 
-    .notch {
+    .zoom-dots-line {
       position: absolute;
-      top: 0;
-      width: 1px;
-      height: 4px;
-      background: rgba(62, 62, 62, 0.637);
-      transform: translateX(-50%);
+      left: 12px;
+      right: 12px;
+      top: 50%;
+      height: 3px;
+      background: rgba(48, 47, 47, 0.20);
+      transform: translateY(-50%);
+      border-radius: 2px;
+      pointer-events: none;
     }
 
-    .notch-label {
-      position: absolute;
-      top: 6px;
-      font-size: 8px;
-      color: rgba(51, 51, 51, 0.705);
-      transform: translateX(-50%);
-      white-space: nowrap;
+    .zoom-dots-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 0 4px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .zoom-dot {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: 600;
+      color: #fff;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      position: relative;
+      user-select: none;
+      border: 2px solid transparent;
+    }
+
+    .zoom-dot:hover {
+      transform: scale(1.2);
+    }
+
+    .zoom-dot.active {
+      width: 28px;
+      height: 28px;
+      font-size: 11px;
+      border-color: rgba(100, 140, 255, 0.7);
+      box-shadow: 0 0 8px rgba(100, 140, 255, 0.5);
+      transform: scale(1.15);
     }
 
     .body {
@@ -355,11 +384,13 @@ Event Cards
         <span class="level-name" id="level-name">Universe · 13.8 billion years</span>
       </div>
       <div class="slider-row">
-        <span class="slider-endlabel">Big Bang</span>
-        <input type="range" id="zoom-slider" min="0" max="14" step="1" value="0">
-        <span class="slider-endlabel">Recent</span>
+        <button class="nav-btn" id="nav-back">&lt; Back</button>
+        <div class="zoom-dots-track">
+          <div class="zoom-dots-line"></div>
+          <div class="zoom-dots-container" id="zoom-dots"></div>
+        </div>
+        <button class="nav-btn" id="nav-forward">Forward &gt;</button>
       </div>
-      <div class="notches" id="notches"></div>
     </div>
     <div class="body">
       <div class="rail-col" id="rail-col">
@@ -375,6 +406,7 @@ Event Cards
   </div>
 
   <script>
+    // Definitions for each zoom level: name, time span, starting "years ago" (start_ya), and background color
     const LEVELS = [
       { name: "Universe", span: "13.8 billion years", start_ya: 13.8e9, color: "#e3e3e3" },
       { name: "Earth", span: "4.6 billion years", start_ya: 4.6e9, color: "#cdf0ff" },
@@ -393,8 +425,9 @@ Event Cards
       { name: "Last 25 years", span: "25 years", start_ya: 25, color: "#c4fffa" },
     ];
 
-    const NOTCH_LABELS = ["13.8b", "4.6b", "3.8b", "540m", "400m", "230m", "65m", "300k", "12k", "3.5k", "2k", "500y", "250y", "100y", "50y", "25y"];
+    // (Notch labels removed — replaced by numbered dots)
 
+    // The complete list of data points to display on the timeline. Supports points in time and periods.
     const ALL_EVENTS = [
       { ya: 13.8e9, name: "Big Bang", time: "13.8 bya", desc: "Origin of space, time and matter", type: "milestone" },
       { ya: 13.6e9, name: "First stars", time: "13.6 bya", desc: "Hydrogen ignites across the universe", type: "epoch" },
@@ -420,30 +453,31 @@ Event Cards
       { cal_year: -3e3, end_cal_year: -1.2e3, name: "Bronze Age", time: "3,000–1,200 BCE", desc: "Bronze Age", type: "epoch", color: "#ffbb00" },
       // iron age
       { cal_year: -1.2e3, end_cal_year: -500, name: "Iron Age", time: "1,200–500 BCE", desc: "Iron Age", type: "epoch" },
-      { ya: 5e3, name: "Writing", time: "5,000 ya", desc: "Sumerian cuneiform; recorded history begins", type: "milestone" },
+      { cal_year: -5000, name: "Writing", time: "5,000 ya", desc: "Sumerian cuneiform; recorded history begins", type: "milestone" },
       // stonehenge
-      { ya: 5000, name: "Stonehenge", time: "5,000 ya", desc: "Stonehenge", type: "milestone" },
+      { cal_year: -5000, name: "Stonehenge", time: "5,000 ya", desc: "Stonehenge", type: "milestone" },
       // great pyramid of giza
-      { ya: 4500, name: "Great Pyramid of Giza", time: "4,500 ya", desc: "Great Pyramid of Giza", type: "milestone" },
+      { cal_year: -4500, name: "Great Pyramid of Giza", time: "4,500 ya", desc: "Great Pyramid of Giza", type: "milestone" },
       // ancient greece
-      { ya: 2826, end_ya: 2172, name: "Ancient Greece", time: "800–146 BCE", desc: "Philosophy, democracy, and art", type: "milestone", color: "#00ff00", offset: 1 },
+      { cal_year: -800, end_cal_year: -146, name: "Ancient Greece", time: "800–146 BCE", desc: "Philosophy, democracy, and art", type: "milestone", color: "#00ff00", offset: 1 },
       // roman empire
-      { ya: 2000, end_ya: 1550, name: "Roman Empire", time: "27 - 476 CE", desc: "Conquest and engineering", type: "milestone", color: "#ff0000", offset: 1 },
-      { ya: 582, name: "Printing press", time: "1440 CE", desc: "Gutenberg democratises knowledge", type: "milestone" },
-      { ya: 335, name: "Newton's Principia", time: "1687 CE", desc: "Laws of motion; modern science begins", type: "epoch" },
-      { ya: 260, name: "Industrial revolution", time: "1760s CE", desc: "Steam power transforms civilisation", type: "milestone" },
-      { ya: 175, name: "Germ theory", time: "~1850 CE", desc: "Disease explained; medicine transformed", type: "epoch" },
-      { ya: 120, name: "Powered flight", time: "1903 CE", desc: "Wright brothers' first flight", type: "milestone" },
-      { ya: 104, end_ya: 98, name: "World War I", time: "1914–18", desc: "Major global conflict", type: "milestone" },
-      { ya: 87, end_ya: 81, name: "World War II", time: "1939–45", desc: "Major global conflict", type: "milestone" },
-      { ya: 76, name: "Nuclear age", time: "1945 CE", desc: "Atomic bomb; the Cold War begins", type: "epoch" },
+      { cal_year: 27, end_cal_year: 476, name: "Roman Empire", time: "27 - 476 CE", desc: "Conquest and engineering", type: "milestone", color: "#ff0000", offset: 1 },
+      { cal_year: 1440, name: "Printing press", time: "1440 CE", desc: "Gutenberg democratises knowledge", type: "milestone" },
+      { cal_year: 1687, name: "Newton's Principia", time: "1687 CE", desc: "Laws of motion; modern science begins", type: "epoch" },
+      { cal_year: 1760, end_cal_year: 1840, name: "Industrial revolution", time: "1760s CE", desc: "Steam power transforms civilisation", type: "milestone" },
+      { cal_year: 1850, name: "Germ theory", time: "~1850 CE", desc: "Disease explained; medicine transformed", type: "epoch" },
+      { cal_year: 1903, name: "Powered flight", time: "1903 CE", desc: "Wright brothers' first flight", type: "milestone" },
+      { cal_year: 1914, end_cal_year: 1918, name: "World War I", time: "1914–18", desc: "Major global conflict", type: "milestone" },
+      { cal_year: 1939, end_cal_year: 1945, name: "World War II", time: "1939–45", desc: "Major global conflict", type: "milestone" },
+      { cal_year: 1945, name: "Nuclear age", time: "1945 CE", desc: "Atomic bomb; the Cold War begins", type: "epoch" },
       { cal_year: 1969, name: "Moon landing", time: "1969 CE", desc: "Humans walk on another world", type: "milestone" },
       { cal_year: 1991, name: "World Wide Web", time: "1991 CE", desc: "Berners-Lee connects global knowledge", type: "milestone" },
-      { ya: 18, name: "Smartphones", time: "2007 CE", desc: "The internet fits in your pocket", type: "epoch" },
+      { cal_year: 2007, name: "Smartphones", time: "2007 CE", desc: "The internet fits in your pocket", type: "epoch" },
       { cal_year: 2020, name: "COVID-19", time: "2020 CE", desc: "Global pandemic halts modern life", type: "milestone" },
       { cal_year: 2022, name: "AI goes mainstream", time: "2022–23 CE", desc: "Large language models reshape culture", type: "milestone" },
     ];
 
+    // Convert all calendar year formats (cal_year) into "years ago" (ya) based on the current year
     const currentYearGlobal = new Date().getFullYear();
     ALL_EVENTS.forEach(e => {
       if (typeof e.ya === 'undefined' && typeof e.cal_year !== 'undefined') {
@@ -456,6 +490,8 @@ Event Cards
 
     let currentLevel = 0;
 
+    // Dynamically calculate what increment of years each tick mark should represent
+    // based on the total time span (spanYa) currently visible
     function getTickStep(spanYa) {
       if (spanYa === 0) return 1;
       const magnitude = Math.pow(10, Math.floor(Math.log10(spanYa)));
@@ -471,6 +507,7 @@ Event Cards
       return bestStep;
     }
 
+    // Convert a "years ago" value into a readable string format (e.g., "1.2 BYA", "500 BCE")
     function formatTickLabel(ya, roundBCE = false) {
       if (ya === 0) return "Today";
 
@@ -505,26 +542,61 @@ Event Cards
       return timeLabel;
     }
 
+    // Get the usable vertical height of the timeline rail
     function railH() {
       return (document.getElementById('rail-col').offsetHeight || 500) - 28;
     }
 
+    // Map a specific "years ago" value to a vertical pixel position on the rail
     function dotY(ya, startYa, rH) {
       return rH - (ya / startYa) * rH;
     }
 
-    function buildNotches() {
-      const c = document.getElementById('notches');
+    // Build the numbered zoom dots in the header bar
+    function buildZoomDots() {
+      const container = document.getElementById('zoom-dots');
       LEVELS.forEach((l, i) => {
-        const pct = i / (LEVELS.length - 1) * 100;
-        const n = document.createElement('div');
-        n.className = 'notch'; n.style.left = pct + '%'; c.appendChild(n);
-        const lbl = document.createElement('div');
-        lbl.className = 'notch-label'; lbl.style.left = pct + '%';
-        lbl.textContent = NOTCH_LABELS[i]; c.appendChild(lbl);
+        const dot = document.createElement('div');
+        dot.className = 'zoom-dot';
+        dot.textContent = i + 1;
+        dot.dataset.level = i;
+        // Use the level's color; darken slightly for better contrast with white text
+        dot.style.background = l.color;
+        // For very light colors, use dark text
+        dot.style.color = isLightColor(l.color) ? '#555' : '#fff';
+        dot.addEventListener('click', () => {
+          currentLevel = i;
+          render(currentLevel);
+          updateZoomDots();
+        });
+        container.appendChild(dot);
       });
+      updateZoomDots();
     }
 
+    // Determine if a hex color is "light" (for text contrast)
+    function isLightColor(hex) {
+      const c = hex.replace('#', '');
+      const r = parseInt(c.substring(0, 2), 16);
+      const g = parseInt(c.substring(2, 4), 16);
+      const b = parseInt(c.substring(4, 6), 16);
+      const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      return luminance > 0.6;
+    }
+
+    // Highlight the active dot and update back/forward button states
+    function updateZoomDots() {
+      const dots = document.querySelectorAll('.zoom-dot');
+      dots.forEach((d, i) => {
+        d.classList.toggle('active', i === currentLevel);
+      });
+      const backBtn = document.getElementById('nav-back');
+      const fwdBtn = document.getElementById('nav-forward');
+      backBtn.classList.toggle('disabled', currentLevel === 0);
+      fwdBtn.classList.toggle('disabled', currentLevel === LEVELS.length - 1);
+    }
+
+    // Helper function to collect all rendered timeline elements currently in the DOM
     function getItems() {
       const rail = document.getElementById('rail-col');
       const inner = document.getElementById('events-inner');
@@ -537,17 +609,23 @@ Event Cards
       return { dots, periods, conns, cards, divs };
     }
 
+    // Main UI update function: Calculates positions, renders elements, and triggers transitions
     function render(levelIdx) {
       const startYa = LEVELS[levelIdx].start_ya;
       const rH = railH();
       const rail = document.getElementById('rail-col');
       const inner = document.getElementById('events-inner');
+
+      // Determine which events/periods should be visible at the current zoom level.
+      // An event is visible if its 'years ago' (ya) or end time fits within the current level's start time (startYa).
       const visibleNames = new Set(ALL_EVENTS.filter(e => e.ya <= startYa || (typeof e.end_ya !== 'undefined' && e.end_ya <= startYa)).map(e => e.name));
 
+      // Update the header title with the current level's name and total time span
       document.getElementById('level-name').textContent =
         LEVELS[levelIdx].name + ' · ' + LEVELS[levelIdx].span;
 
       // --- Update Level Backgrounds ---
+      // Scale and position the colored blocks on the timeline rail based on the current zoom level's start and end times.
       LEVELS.forEach((l, i) => {
         const bg = document.getElementById('bg-' + i);
         let tTop = l.start_ya;
@@ -568,15 +646,20 @@ Event Cards
       const FADE_MS = 350;
 
       // --- TICKS ---
+      // Generate the ruler lines/ticks along the left timeline rail. 
+      // First, get all existing ticks from the DOM to recycle or remove them.
       const ticks = {};
       rail.querySelectorAll('.rail-tick').forEach(el => ticks[el.dataset.ya] = el);
 
+      // Determine the ideal step size between ticks for the current zoom level
       const step = getTickStep(startYa);
       let targetTicksYa = [];
       let count = 0;
       const currentYear = new Date().getFullYear();
 
+      // Calculate which tick marks are actually needed based on the current zoom level
       if (startYa <= 3500) {
+        // Special logic for recent history: align ticks to nice round numbers based on the calendar year
         let startCE = currentYear - startYa;
         let firstVisual = Math.floor(currentYear / step) * step;
         let lastVisual = Math.ceil(startCE / step) * step;
@@ -594,6 +677,7 @@ Event Cards
           if (++count > 50) break;
         }
       } else {
+        // General logic for deep history: space ticks evenly based on 'years ago'
         for (let y = Math.floor(startYa / step) * step; y > 0; y -= step) {
           let val = Number(y.toPrecision(12));
           if (val <= startYa && val > 0) targetTicksYa.push(val);
@@ -602,12 +686,14 @@ Event Cards
       }
       const visibleTicks = new Set(targetTicksYa.map(String));
 
+      // Hide and mark for removal any existing ticks that are no longer needed
       Object.entries(ticks).forEach(([yaStr, tick]) => {
         if (visibleTicks.has(yaStr)) return;
         tick.style.opacity = '0';
         setTimeout(() => tick.remove(), SLIDE_MS + 50);
       });
 
+      // Render the newly calculated ticks (or update the positions of existing ones)
       targetTicksYa.forEach(ya => {
         const yaStr = String(ya);
         const dy = dotY(ya, startYa, rH);
@@ -638,7 +724,9 @@ Event Cards
         }
       });
 
-      // --- EXIT: dots going out of range → slide to top, then fade+remove ---
+      // --- EXIT ANIMATIONS ---
+      // Handle timeline markers (dots/periods) and their text cards that are scrolling out of the current zoom level's range.
+      // Behavior: Slide smoothly to the top of the rail, then fade out and remove from the DOM to free resources.
       [...Object.entries(dots), ...Object.entries(periods)].forEach(([name, dot]) => {
         if (visibleNames.has(name)) return;
         const conn = conns[name];
@@ -662,22 +750,30 @@ Event Cards
         }, SLIDE_MS + 50);
       });
 
-      // --- Compute stacked card positions ---
+      // --- EVENT CARDS PLACEMENT ---
+      // Compute the vertical positions for each event's text card.
+      // To prevent overlapping text cards, each card is "nudged" down if it collides with the card above it.
       const visible = ALL_EVENTS.filter(e => e.ya <= startYa || (typeof e.end_ya !== 'undefined' && e.end_ya <= startYa));
-      const usedY = [];
-      const ITEM_H = 44;
+      const usedY = []; // Keeps track of occupied vertical spaces
+      const ITEM_H = 44; // Estimated card height in pixels
+
       const positions = visible.map(e => {
-        const dy = dotY(e.ya, startYa, rH);
-        let iy = dy - 14;
+        const dy = dotY(e.ya, startYa, rH); // Ideal anchor point matching the dot on the rail
+        let iy = dy - 14; // Start attempting to place the card slightly above its dot's position
+
+        // Push the card down if its top overlaps with the bottom of any previously placed card
         for (const u of usedY) { if (iy < u + ITEM_H) iy = u + ITEM_H; }
-        iy = Math.max(0, iy);
+        iy = Math.max(0, iy); // Prevent cards from going off the very top of the screen
         usedY.push(iy);
-        return { e, dy, iy };
+
+        return { e, dy, iy }; // e: event data, dy: dot position on rail, iy: card position
       });
 
+      // Expand the scrollable container to fit the lowest positioned card
       inner.style.minHeight = ((usedY[usedY.length - 1] || 0) + 80) + 'px';
 
-      // --- ENTER + UPDATE ---
+      // --- ENTER + UPDATE ANIMATIONS ---
+      // Iterate over our newly calculated positions to either update existing elements or create new ones
       positions.forEach(({ e, dy, iy }) => {
         const hasEnd = typeof e.end_ya !== 'undefined';
         const existingEl = hasEnd ? periods[e.name] : dots[e.name];
@@ -691,7 +787,9 @@ Event Cards
         }
 
         if (isNew) {
-          // Create dot/period at top (opacity 0), then slide to position and fade in
+          // Create new visual elements (dot/period, connecting line, text card, divider).
+          // They are created initially at the top of the rail with 0 opacity, 
+          // allowing CSS transitions to slide them into position and fade them in via requestAnimationFrame below.
           const dot = document.createElement('div');
           dot.className = (hasEnd ? 'rail-period ' : 'rail-dot ') + (e.type || 'default');
           if (e.color) dot.style.background = e.color;
@@ -747,8 +845,9 @@ Event Cards
       });
     }
 
-    buildNotches();
+    buildZoomDots();
 
+    // Create the background color blocks for the timeline rail that signify eras
     function buildLevelBGs() {
       const layer = document.getElementById('level-bg-layer');
       LEVELS.forEach((l, i) => {
@@ -760,10 +859,76 @@ Event Cards
       });
     }
     buildLevelBGs();
-    document.getElementById('zoom-slider').addEventListener('input', function () {
-      currentLevel = parseInt(this.value);
-      render(currentLevel);
+
+    // Back / Forward navigation buttons
+    document.getElementById('nav-back').addEventListener('click', () => {
+      if (currentLevel > 0) {
+        currentLevel--;
+        render(currentLevel);
+        updateZoomDots();
+      }
     });
+    document.getElementById('nav-forward').addEventListener('click', () => {
+      if (currentLevel < LEVELS.length - 1) {
+        currentLevel++;
+        render(currentLevel);
+        updateZoomDots();
+      }
+    });
+
+    // --- Drag-to-scrub across zoom dots (mouse + touch) ---
+    (function setupDragScrub() {
+      const track = document.getElementById('zoom-dots');
+      let dragging = false;
+
+      function levelFromPointer(clientX) {
+        const dots = track.querySelectorAll('.zoom-dot');
+        if (!dots.length) return currentLevel;
+        // Find the dot whose center is closest to the pointer
+        let best = 0, bestDist = Infinity;
+        dots.forEach((d, i) => {
+          const rect = d.getBoundingClientRect();
+          const cx = rect.left + rect.width / 2;
+          const dist = Math.abs(clientX - cx);
+          if (dist < bestDist) { bestDist = dist; best = i; }
+        });
+        return best;
+      }
+
+      function applyLevel(clientX) {
+        const newLevel = levelFromPointer(clientX);
+        if (newLevel !== currentLevel) {
+          currentLevel = newLevel;
+          render(currentLevel);
+          updateZoomDots();
+        }
+      }
+
+      // Pointer events (covers both mouse and touch)
+      track.addEventListener('pointerdown', (e) => {
+        dragging = true;
+        track.setPointerCapture(e.pointerId);
+        applyLevel(e.clientX);
+      });
+
+      track.addEventListener('pointermove', (e) => {
+        if (!dragging) return;
+        applyLevel(e.clientX);
+      });
+
+      track.addEventListener('pointerup', (e) => {
+        dragging = false;
+        track.releasePointerCapture(e.pointerId);
+      });
+
+      track.addEventListener('pointercancel', (e) => {
+        dragging = false;
+      });
+
+      // Prevent default touch behavior (scrolling) while dragging the track
+      track.style.touchAction = 'none';
+    })();
+
     setTimeout(() => render(0), 60);
   </script>
 
