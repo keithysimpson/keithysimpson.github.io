@@ -179,6 +179,7 @@ Event Cards
       display: flex;
       flex: 1;
       overflow: hidden;
+      position: relative;
     }
 
     .rail-col {
@@ -300,6 +301,24 @@ Event Cards
       transition: top 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s;
     }
 
+    /* SVG overlay for connector lines between rail dots and event labels */
+    #connectors-svg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 5;
+      overflow: visible;
+    }
+
+    #connectors-svg path {
+      fill: none;
+      stroke-width: 1.5;
+      opacity: 0.5;
+    }
+
     .events-col {
       flex: 1;
       overflow-y: auto;
@@ -392,16 +411,17 @@ Event Cards
         <button class="nav-btn" id="nav-forward">Forward &gt;</button>
       </div>
     </div>
-    <div class="body">
+    <div class="body" id="body">
       <div class="rail-col" id="rail-col">
         <div class="level-bg-layer" id="level-bg-layer"></div>
         <div class="rail-line"></div>
         <div class="now-dot"></div>
         <div class="today-lbl">Today</div>
       </div>
-      <div class="events-col">
+      <div class="events-col" id="events-col">
         <div class="events-inner" id="events-inner"></div>
       </div>
+      <svg id="connectors-svg"></svg>
     </div>
   </div>
 
@@ -928,6 +948,84 @@ Event Cards
       // Prevent default touch behavior (scrolling) while dragging the track
       track.style.touchAction = 'none';
     })();
+
+    // --- Draw connector lines from rail dots/periods to their event cards ---
+    // Uses an SVG overlay on the body area. Lines are redrawn whenever
+    // the events column is scrolled or the window is resized.
+    function drawConnectors() {
+      const svg = document.getElementById('connectors-svg');
+      const body = document.getElementById('body');
+      const eventsCol = document.getElementById('events-col');
+      if (!svg || !body || !eventsCol) return;
+
+      const bodyRect = body.getBoundingClientRect();
+      // Size the SVG to match the body area
+      svg.setAttribute('width', bodyRect.width);
+      svg.setAttribute('height', bodyRect.height);
+
+      let paths = '';
+      const rail = document.getElementById('rail-col');
+
+      // Iterate over all visible events and draw a line from each rail element to its card
+      ALL_EVENTS.forEach(e => {
+        const hasEnd = typeof e.end_ya !== 'undefined';
+        const railEl = hasEnd
+          ? rail.querySelector(`.rail-period[data-name="${CSS.escape(e.name)}"]`)
+          : rail.querySelector(`.rail-dot[data-name="${CSS.escape(e.name)}"]`);
+        const cardEl = document.querySelector(`.event-item[data-name="${CSS.escape(e.name)}"]`);
+
+        if (!railEl || !cardEl) return;
+        // Skip fading-out elements
+        if (parseFloat(railEl.style.opacity) === 0 || parseFloat(cardEl.style.opacity) === 0) return;
+
+        const railRect = railEl.getBoundingClientRect();
+        const cardRect = cardEl.getBoundingClientRect();
+
+        // Start point: right edge of the rail dot/period, vertically centered
+        const x1 = railRect.right - bodyRect.left;
+        const y1 = railRect.top + railRect.height / 2 - bodyRect.top;
+
+        // End point: left edge of the card, vertically near the top (at the event name)
+        const x2 = cardRect.left - bodyRect.left;
+        const y2 = cardRect.top + 14 - bodyRect.top;
+
+        // Skip lines that would go off-screen
+        if (y1 < -50 || y1 > bodyRect.height + 50) return;
+        if (y2 < -50 || y2 > bodyRect.height + 50) return;
+
+        // Determine the line color based on the event's custom color or type
+        let color = 'rgba(0,0,0,0.2)';
+        if (e.color) {
+          color = e.color;
+        } else if (e.type === 'milestone') {
+          color = '#ffc86b';
+        } else if (e.type === 'epoch') {
+          color = '#5dcaa5';
+        } else {
+          color = '#648cff';
+        }
+
+        // Draw a cubic bezier curve for a smooth, organic connector
+        const cpx = x1 + (x2 - x1) * 0.5;
+        paths += `<path d="M${x1},${y1} C${cpx},${y1} ${cpx},${y2} ${x2},${y2}" stroke="${color}" />`;
+      });
+
+      svg.innerHTML = paths;
+    }
+
+    // Redraw connectors when events column is scrolled
+    document.getElementById('events-col').addEventListener('scroll', drawConnectors);
+    // Redraw connectors on window resize
+    window.addEventListener('resize', drawConnectors);
+
+    // Patch render() to also redraw connectors after transitions settle
+    const _originalRender = render;
+    render = function(levelIdx) {
+      _originalRender(levelIdx);
+      // Draw immediately for a snappy feel, then again after transitions finish
+      requestAnimationFrame(() => requestAnimationFrame(drawConnectors));
+      setTimeout(drawConnectors, 550);
+    };
 
     setTimeout(() => render(0), 60);
   </script>
