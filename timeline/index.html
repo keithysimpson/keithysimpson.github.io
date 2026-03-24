@@ -473,11 +473,11 @@ Event Cards
       { cal_year: -3e3, end_cal_year: -1.2e3, name: "Bronze Age", time: "3,000–1,200 BCE", desc: "Bronze Age", type: "epoch", color: "#ffbb00" },
       // iron age
       { cal_year: -1.2e3, end_cal_year: -500, name: "Iron Age", time: "1,200–500 BCE", desc: "Iron Age", type: "epoch" },
-      { cal_year: -5000, name: "Writing", time: "5,000 ya", desc: "Sumerian cuneiform; recorded history begins", type: "milestone" },
+      { ya: 5000, name: "Writing", time: "5,000 ya", desc: "Sumerian cuneiform; recorded history begins", type: "milestone" },
       // stonehenge
-      { cal_year: -5000, name: "Stonehenge", time: "5,000 ya", desc: "Stonehenge", type: "milestone" },
+      { ya: 5000, name: "Stonehenge", time: "5,000 ya", desc: "Stonehenge", type: "milestone" },
       // great pyramid of giza
-      { cal_year: -4500, name: "Great Pyramid of Giza", time: "4,500 ya", desc: "Great Pyramid of Giza", type: "milestone" },
+      { ya: 4500, name: "Great Pyramid of Giza", time: "4,500 ya", desc: "Great Pyramid of Giza", type: "milestone" },
       // ancient greece
       { cal_year: -800, end_cal_year: -146, name: "Ancient Greece", time: "800–146 BCE", desc: "Philosophy, democracy, and art", type: "milestone", color: "#00ff00", offset: 1 },
       // roman empire
@@ -507,6 +507,9 @@ Event Cards
         e.end_ya = currentYearGlobal - e.end_cal_year;
       }
     });
+
+    // Ensure chronological order so layout processing works correctly regardless of data order
+    ALL_EVENTS.sort((a, b) => b.ya - a.ya);
 
     let currentLevel = 0;
 
@@ -774,19 +777,30 @@ Event Cards
       // Compute the vertical positions for each event's text card.
       // To prevent overlapping text cards, each card is "nudged" down if it collides with the card above it.
       const visible = ALL_EVENTS.filter(e => e.ya <= startYa || (typeof e.end_ya !== 'undefined' && e.end_ya <= startYa));
+      
+      let positions = visible.map(e => {
+        const dy = dotY(e.ya, startYa, rH); // Ideal anchor point matching the dot on the rail
+        let labelDy = dy;
+        if (typeof e.end_ya !== 'undefined') {
+          const dyEnd = dotY(e.end_ya, startYa, rH);
+          labelDy = dy + (dyEnd - dy) / 2;
+        }
+        return { e, dy, labelDy };
+      });
+
+      // Sort by labelDy so that layout collision detection processes cards strictly top-to-bottom
+      positions.sort((a, b) => a.labelDy - b.labelDy);
+
       const usedY = []; // Keeps track of occupied vertical spaces
       const ITEM_H = 44; // Estimated card height in pixels
 
-      const positions = visible.map(e => {
-        const dy = dotY(e.ya, startYa, rH); // Ideal anchor point matching the dot on the rail
-        let iy = dy - 14; // Start attempting to place the card slightly above its dot's position
-
+      positions.forEach(pos => {
+        let iy = pos.labelDy - 14; // Start attempting to place the card slightly above its anchor position
         // Push the card down if its top overlaps with the bottom of any previously placed card
         for (const u of usedY) { if (iy < u + ITEM_H) iy = u + ITEM_H; }
         iy = Math.max(0, iy); // Prevent cards from going off the very top of the screen
         usedY.push(iy);
-
-        return { e, dy, iy }; // e: event data, dy: dot position on rail, iy: card position
+        pos.iy = iy;
       });
 
       // Expand the scrollable container to fit the lowest positioned card
@@ -794,7 +808,7 @@ Event Cards
 
       // --- ENTER + UPDATE ANIMATIONS ---
       // Iterate over our newly calculated positions to either update existing elements or create new ones
-      positions.forEach(({ e, dy, iy }) => {
+      positions.forEach(({ e, dy, labelDy, iy }) => {
         const hasEnd = typeof e.end_ya !== 'undefined';
         const existingEl = hasEnd ? periods[e.name] : dots[e.name];
         const isNew = !existingEl;
@@ -845,7 +859,7 @@ Event Cards
           requestAnimationFrame(() => {
             requestAnimationFrame(() => {
               dot.style.top = dy + 'px';
-              conn.style.top = dy + 'px';
+              conn.style.top = labelDy + 'px';
               dot.style.opacity = '1';
               conn.style.opacity = '1';
               card.style.opacity = '1';
@@ -858,7 +872,7 @@ Event Cards
           if (e.color) existingEl.style.background = e.color;
           if (hasEnd && typeof e.offset !== 'undefined') existingEl.style.left = `calc(50% + ${2 + e.offset * 6}px)`;
           existingEl.style.opacity = '1';
-          if (conns[e.name]) { conns[e.name].style.top = dy + 'px'; conns[e.name].style.opacity = '1'; }
+          if (conns[e.name]) { conns[e.name].style.top = labelDy + 'px'; conns[e.name].style.opacity = '1'; }
           if (cards[e.name]) { cards[e.name].style.top = iy + 'px'; cards[e.name].style.opacity = '1'; }
           if (divs[e.name]) { divs[e.name].style.top = (iy + ITEM_H - 2) + 'px'; }
         }
