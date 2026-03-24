@@ -54,6 +54,8 @@ Event Cards
       background: #ffffff;
       color: #e8e6df;
       height: 100vh;
+      /* height: 100dvh; overrides height: 100vh; on supporting browsers */
+      height: 100dvh;
       /* max-width: 420px; */
       margin: 0 auto;
       display: flex;
@@ -183,7 +185,7 @@ Event Cards
     }
 
     .rail-col {
-      width: 100px;
+      width: 150px;
       flex-shrink: 0;
       position: relative;
     }
@@ -777,7 +779,7 @@ Event Cards
       // Compute the vertical positions for each event's text card.
       // To prevent overlapping text cards, each card is "nudged" down if it collides with the card above it.
       const visible = ALL_EVENTS.filter(e => e.ya <= startYa || (typeof e.end_ya !== 'undefined' && e.end_ya <= startYa));
-      
+
       let positions = visible.map(e => {
         const dy = dotY(e.ya, startYa, rH); // Ideal anchor point matching the dot on the rail
         let labelDy = dy;
@@ -1034,7 +1036,7 @@ Event Cards
 
     // Patch render() to also redraw connectors after transitions settle
     const _originalRender = render;
-    render = function(levelIdx) {
+    render = function (levelIdx) {
       _originalRender(levelIdx);
       // Draw immediately for a snappy feel, then again after transitions finish
       requestAnimationFrame(() => requestAnimationFrame(drawConnectors));
