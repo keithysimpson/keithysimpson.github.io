@@ -445,6 +445,43 @@
                 font-size: 0.9rem;
             }
         }
+
+        /* Cell tap flash */
+        @keyframes cellFlash {
+            0%   { filter: brightness(1); }
+            30%  { filter: brightness(0.78); }
+            100% { filter: brightness(1); }
+        }
+
+        .day-cell.tapped {
+            animation: cellFlash 0.35s ease-out forwards;
+        }
+
+        /* Day-distance toast */
+        .day-toast {
+            position: fixed;
+            bottom: 90px;
+            left: 50%;
+            transform: translateX(-50%) translateY(8px);
+            background: rgba(15, 23, 42, 0.88);
+            color: white;
+            padding: 10px 18px;
+            border-radius: 22px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 60;
+            opacity: 0;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            backdrop-filter: blur(4px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+        }
+
+        .day-toast.visible {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
     </style>
 </head>
 <body>
@@ -489,6 +526,9 @@
         </div>
     </div>
 
+    <!-- Day-distance toast -->
+    <div class="day-toast" id="dayToast"></div>
+
     <!-- Event detail popup -->
     <div class="event-popup" id="eventPopup">
         <div class="event-popup-name" id="popupName"></div>
@@ -514,6 +554,98 @@
         const popupName        = document.getElementById('popupName');
         const popupDates       = document.getElementById('popupDates');
         const btnDeleteEvent   = document.getElementById('btnDeleteEvent');
+        const dayToast         = document.getElementById('dayToast');
+
+        // ── Day-distance toast ─────────────────────────────────────────────────
+        let toastTimeout = null;
+
+        function formatDaysAway(cellTs) {
+            const todayTs = today.getTime();
+            const diff = Math.round((cellTs - todayTs) / 86400000);
+            if (diff === 0) return 'Today';
+
+            const abs = Math.abs(diff);
+            const suffix = diff > 0 ? 'from now' : 'ago';
+
+            if (abs < 7) {
+                return abs === 1
+                    ? `1 day ${suffix}`
+                    : `${abs} days ${suffix}`;
+            }
+
+            const weeks = Math.floor(abs / 7);
+            const days  = abs % 7;
+            const weekPart = weeks === 1 ? '1 week' : `${weeks} weeks`;
+            const dayPart  = days  === 0 ? '' : days === 1 ? ', 1 day' : `, ${days} days`;
+            return `${weekPart}${dayPart} ${suffix} (${abs} days)`;
+        }
+
+        function showDayToast(cellTs) {
+            clearTimeout(toastTimeout);
+            dayToast.textContent = formatDaysAway(cellTs);
+            dayToast.classList.add('visible');
+            toastTimeout = setTimeout(() => {
+                dayToast.classList.remove('visible');
+            }, 3000);
+        }
+
+        function flashCell(cell) {
+            cell.classList.remove('tapped');
+            // Force reflow so re-adding the class restarts the animation
+            void cell.offsetWidth;
+            cell.classList.add('tapped');
+            cell.addEventListener('animationend', () => cell.classList.remove('tapped'), { once: true });
+        }
+
+        // Tap detection for normal mode: track touchstart position so we only
+        // fire on a genuine tap (not a scroll drag). Listener is passive so it
+        // never blocks scrolling.
+        let tapStartX = null;
+        let tapStartY = null;
+        let tapStartTs = null;
+        let lastTapHandled = 0;
+
+        scrollArea.addEventListener('touchstart', e => {
+            if (selectMode) return;
+            tapStartX  = e.touches[0].clientX;
+            tapStartY  = e.touches[0].clientY;
+            tapStartTs = Date.now();
+        }, { passive: true });
+
+        scrollArea.addEventListener('touchend', e => {
+            if (selectMode) return;
+            if (tapStartX === null) return;
+
+            const dx = Math.abs(e.changedTouches[0].clientX - tapStartX);
+            const dy = Math.abs(e.changedTouches[0].clientY - tapStartY);
+            const dt = Date.now() - tapStartTs;
+
+            // Only treat as a tap if movement < 10px and duration < 300ms
+            if (dx < 10 && dy < 10 && dt < 300) {
+                const cell = e.target.closest('.day-cell');
+                //if (cell && !e.target.closest('.event-band')) {
+                if (cell) {
+                    lastTapHandled = Date.now();
+                    flashCell(cell);
+                    showDayToast(parseInt(cell.dataset.ts));
+                }
+            }
+
+            tapStartX = tapStartY = tapStartTs = null;
+        }, { passive: true });
+
+        // Desktop click equivalent (guarded against firing after a touch tap
+        // by checking that no touch was recently handled)
+        scrollArea.addEventListener('click', e => {
+            if (selectMode) return;
+            // Suppress if a touch tap just fired (within 500ms) to avoid double-trigger
+            if (Date.now() - lastTapHandled < 500) return;
+            const cell = e.target.closest('.day-cell');
+            //if (!cell || e.target.closest('.event-band')) return;
+            if (!cell) return;
+            flashCell(cell);
+            showDayToast(parseInt(cell.dataset.ts));
+        });
 
         // ── Colour palette ─────────────────────────────────────────────────────
         const COLOURS = [
