@@ -150,7 +150,7 @@ Event Cards
     .zoom-dot {
       width: 22px;
       height: 22px;
-      border-radius: 50%;
+      border-radius: 20%;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -451,52 +451,54 @@ Event Cards
 
     // The complete list of data points to display on the timeline. Supports points in time and periods.
     const ALL_EVENTS = [
-      { ya: 13.8e9, name: "Big Bang", time: "13.8 bya", desc: "Origin of space, time and matter", type: "milestone" },
-      { ya: 13.6e9, name: "First stars", time: "13.6 bya", desc: "Hydrogen ignites across the universe", type: "epoch" },
-      { ya: 9e9, name: "Milky Way forms", time: "9 bya", desc: "Our galaxy coalesces from gas", type: "epoch" },
-      { ya: 4.6e9, name: "Earth forms", time: "4.6 bya", desc: "Solar system dust gathers into a planet", type: "milestone" },
-      { ya: 4.5e9, name: "Moon forms", time: "4.5 bya", desc: "Giant impact sends debris into orbit", type: "epoch" },
-      { ya: 3.8e9, name: "First life", time: "3.8 bya", desc: "Single-celled organisms in the oceans", type: "milestone" },
-      { ya: 2.4e9, name: "Great Oxygenation", time: "2.4 bya", desc: "Photosynthesis transforms the atmosphere", type: "milestone" },
-      { ya: 2e9, name: "Eukaryotes", time: "2 bya", desc: "Cells with a nucleus appear", type: "epoch" },
-      { ya: 700e6, name: "Multicellular life", time: "700 mya", desc: "Complex organisms emerge", type: "epoch" },
-      { ya: 540e6, name: "Cambrian explosion", time: "540 mya", desc: "Rapid diversification of animal life", type: "milestone" },
-      { ya: 375e6, name: "Life onto land", time: "375 mya", desc: "Tetrapods crawl from water to shore", type: "epoch" },
-      { ya: 230e6, end_ya: 66e6, name: "Dinosaurs", time: "230–66 mya", desc: "Reign of the dinosaurs begins", type: "epoch" },
-      { ya: 66e6, name: "Mass extinction", time: "66 mya", desc: "Asteroid ends the dinosaur era", type: "milestone" },
-      { ya: 25e6, name: "First apes", time: "25 mya", desc: "Primates diverge into Old World monkeys and apes", type: "epoch" },
-      { ya: 6e6, name: "Hominin split", time: "6 mya", desc: "Human and chimp lineages diverge", type: "epoch" },
-      { ya: 300e3, name: "Homo sapiens", time: "300,000 ya", desc: "Modern humans evolve in Africa", type: "milestone" },
-      { ya: 70e3, name: "Out of Africa", time: "70,000 ya", desc: "Humans migrate across the globe", type: "milestone" },
-      { ya: 12e3, name: "Agriculture", time: "12,000 ya", desc: "Farming replaces hunter-gathering", type: "milestone" },
+      // visibleFrom: the earliest zoom level (0–14) at which this event appears.
+      // This prevents clutter by hiding events that aren't relevant at the current zoom.
+      { ya: 13.8e9, name: "Big Bang", time: "13.8 bya", desc: "Origin of space, time and matter", type: "milestone", visibleFrom: 0 },
+      { ya: 13.6e9, name: "First stars", time: "13.6 bya", desc: "Hydrogen ignites across the universe", type: "epoch", visibleFrom: 0 },
+      { ya: 9e9, name: "Milky Way forms", time: "9 bya", desc: "Our galaxy coalesces from gas", type: "epoch", visibleFrom: 0 },
+      { ya: 4.6e9, name: "Earth forms", time: "4.6 bya", desc: "Solar system dust gathers into a planet", type: "milestone", visibleFrom: 0 },
+      { ya: 4.5e9, name: "Moon forms", time: "4.5 bya", desc: "Giant impact sends debris into orbit", type: "epoch", visibleFrom: 0 },
+      { ya: 3.8e9, name: "First life", time: "3.8 bya", desc: "Single-celled organisms in the oceans", type: "milestone", visibleFrom: 0 },
+      { ya: 2.4e9, name: "Great Oxygenation", time: "2.4 bya", desc: "Photosynthesis transforms the atmosphere", type: "milestone", visibleFrom: 0 },
+      { ya: 2e9, name: "Eukaryotes", time: "2 bya", desc: "Cells with a nucleus appear", type: "epoch", visibleFrom: 0 },
+      { ya: 700e6, name: "Multicellular life", time: "700 mya", desc: "Complex organisms emerge", type: "epoch", visibleFrom: 0 },
+      { ya: 540e6, name: "Cambrian explosion", time: "540 mya", desc: "Rapid diversification of animal life", type: "milestone", visibleFrom: 1 },
+      { ya: 375e6, name: "Life onto land", time: "375 mya", desc: "Tetrapods crawl from water to shore", type: "epoch", visibleFrom: 1 },
+      { ya: 230e6, end_ya: 66e6, name: "Dinosaurs", time: "230–66 mya", desc: "Reign of the dinosaurs begins", type: "epoch", visibleFrom: 2 },
+      { ya: 66e6, name: "Mass extinction", time: "66 mya", desc: "Asteroid ends the dinosaur era", type: "milestone", visibleFrom: 2 },
+      { ya: 25e6, name: "First apes", time: "25 mya", desc: "Primates diverge into Old World monkeys and apes", type: "epoch", visibleFrom: 3 },
+      { ya: 6e6, name: "Hominin split", time: "6 mya", desc: "Human and chimp lineages diverge", type: "epoch", visibleFrom: 3 },
+      { ya: 300e3, name: "Homo sapiens", time: "300,000 ya", desc: "Modern humans evolve in Africa", type: "milestone", visibleFrom: 5 },
+      { ya: 70e3, name: "Out of Africa", time: "70,000 ya", desc: "Humans migrate across the globe", type: "milestone", visibleFrom: 5 },
+      { ya: 12e3, name: "Agriculture", time: "12,000 ya", desc: "Farming replaces hunter-gathering", type: "milestone", visibleFrom: 6 },
       // stone age
-      { cal_year: -12e3, end_cal_year: -3e3, name: "Stone Age", time: "12,000–3,000 BCE", desc: "Stone Age", type: "epoch", color: "#999999" },
+      { cal_year: -12e3, end_cal_year: -3e3, name: "Stone Age", time: "12,000–3,000 BCE", desc: "Stone Age", type: "epoch", color: "#999999", visibleFrom: 5 },
       // bronze age
-      { cal_year: -3e3, end_cal_year: -1.2e3, name: "Bronze Age", time: "3,000–1,200 BCE", desc: "Bronze Age", type: "epoch", color: "#ffbb00" },
+      { cal_year: -3e3, end_cal_year: -1.2e3, name: "Bronze Age", time: "3,000–1,200 BCE", desc: "Bronze Age", type: "epoch", color: "#ffbb00", visibleFrom: 6 },
       // iron age
-      { cal_year: -1.2e3, end_cal_year: -500, name: "Iron Age", time: "1,200–500 BCE", desc: "Iron Age", type: "epoch" },
-      { ya: 5000, name: "Writing", time: "5,000 ya", desc: "Sumerian cuneiform; recorded history begins", type: "milestone" },
+      { cal_year: -1.2e3, end_cal_year: -500, name: "Iron Age", time: "1,200–500 BCE", desc: "Iron Age", type: "epoch", visibleFrom: 6 },
+      { ya: 5000, name: "Writing", time: "5,000 ya", desc: "Sumerian cuneiform; recorded history begins", type: "milestone", visibleFrom: 6 },
       // stonehenge
-      { ya: 5000, name: "Stonehenge", time: "5,000 ya", desc: "Stonehenge", type: "milestone" },
+      { ya: 5000, name: "Stonehenge", time: "5,000 ya", desc: "Stonehenge", type: "milestone", visibleFrom: 6 },
       // great pyramid of giza
-      { ya: 4500, name: "Great Pyramid of Giza", time: "4,500 ya", desc: "Great Pyramid of Giza", type: "milestone" },
+      { ya: 4500, name: "Great Pyramid of Giza", time: "4,500 ya", desc: "Great Pyramid of Giza", type: "milestone", visibleFrom: 6 },
       // ancient greece
-      { cal_year: -800, end_cal_year: -146, name: "Ancient Greece", time: "800–146 BCE", desc: "Philosophy, democracy, and art", type: "milestone", color: "#00ff00", offset: 1 },
+      { cal_year: -800, end_cal_year: -146, name: "Ancient Greece", time: "800–146 BCE", desc: "Philosophy, democracy, and art", type: "milestone", color: "#00ff00", offset: 1, visibleFrom: 7 },
       // roman empire
-      { cal_year: 27, end_cal_year: 476, name: "Roman Empire", time: "27 - 476 CE", desc: "Conquest and engineering", type: "milestone", color: "#ff0000", offset: 1 },
-      { cal_year: 1440, name: "Printing press", time: "1440 CE", desc: "Gutenberg democratises knowledge", type: "milestone" },
-      { cal_year: 1687, name: "Newton's Principia", time: "1687 CE", desc: "Laws of motion; modern science begins", type: "epoch" },
-      { cal_year: 1760, end_cal_year: 1840, name: "Industrial revolution", time: "1760s CE", desc: "Steam power transforms civilisation", type: "milestone" },
-      { cal_year: 1850, name: "Germ theory", time: "~1850 CE", desc: "Disease explained; medicine transformed", type: "epoch" },
-      { cal_year: 1903, name: "Powered flight", time: "1903 CE", desc: "Wright brothers' first flight", type: "milestone" },
-      { cal_year: 1914, end_cal_year: 1918, name: "World War I", time: "1914–18", desc: "Major global conflict", type: "milestone" },
-      { cal_year: 1939, end_cal_year: 1945, name: "World War II", time: "1939–45", desc: "Major global conflict", type: "milestone" },
-      { cal_year: 1945, name: "Nuclear age", time: "1945 CE", desc: "Atomic bomb; the Cold War begins", type: "epoch" },
-      { cal_year: 1969, name: "Moon landing", time: "1969 CE", desc: "Humans walk on another world", type: "milestone" },
-      { cal_year: 1991, name: "World Wide Web", time: "1991 CE", desc: "Berners-Lee connects global knowledge", type: "milestone" },
-      { cal_year: 2007, name: "Smartphones", time: "2007 CE", desc: "The internet fits in your pocket", type: "epoch" },
-      { cal_year: 2020, name: "COVID-19", time: "2020 CE", desc: "Global pandemic halts modern life", type: "milestone" },
-      { cal_year: 2022, name: "AI goes mainstream", time: "2022–23 CE", desc: "Large language models reshape culture", type: "milestone" },
+      { cal_year: 27, end_cal_year: 476, name: "Roman Empire", time: "27 - 476 CE", desc: "Conquest and engineering", type: "milestone", color: "#ff0000", offset: 1, visibleFrom: 7 },
+      { cal_year: 1440, name: "Printing press", time: "1440 CE", desc: "Gutenberg democratises knowledge", type: "milestone", visibleFrom: 7 },
+      { cal_year: 1687, name: "Newton's Principia", time: "1687 CE", desc: "Laws of motion; modern science begins", type: "epoch", visibleFrom: 8 },
+      { cal_year: 1760, end_cal_year: 1840, name: "Industrial revolution", time: "1760s CE", desc: "Steam power transforms civilisation", type: "milestone", visibleFrom: 8 },
+      { cal_year: 1850, name: "Germ theory", time: "~1850 CE", desc: "Disease explained; medicine transformed", type: "epoch", visibleFrom: 9 },
+      { cal_year: 1903, name: "Powered flight", time: "1903 CE", desc: "Wright brothers' first flight", type: "milestone", visibleFrom: 10 },
+      { cal_year: 1914, end_cal_year: 1918, name: "World War I", time: "1914–18", desc: "Major global conflict", type: "milestone", visibleFrom: 9 },
+      { cal_year: 1939, end_cal_year: 1945, name: "World War II", time: "1939–45", desc: "Major global conflict", type: "milestone", visibleFrom: 9 },
+      { cal_year: 1945, name: "Nuclear age", time: "1945 CE", desc: "Atomic bomb; the Cold War begins", type: "epoch", visibleFrom: 10 },
+      { cal_year: 1969, name: "Moon landing", time: "1969 CE", desc: "Humans walk on another world", type: "milestone", visibleFrom: 10 },
+      { cal_year: 1991, name: "World Wide Web", time: "1991 CE", desc: "Berners-Lee connects global knowledge", type: "milestone", visibleFrom: 10 },
+      { cal_year: 2007, name: "Smartphones", time: "2007 CE", desc: "The internet fits in your pocket", type: "epoch", visibleFrom: 11 },
+      { cal_year: 2020, name: "COVID-19", time: "2020 CE", desc: "Global pandemic halts modern life", type: "milestone", visibleFrom: 12 },
+      { cal_year: 2022, name: "AI goes mainstream", time: "2022–23 CE", desc: "Large language models reshape culture", type: "milestone", visibleFrom: 12 },
     ];
 
     // Convert all calendar year formats (cal_year) into "years ago" (ya) based on the current year
@@ -642,8 +644,15 @@ Event Cards
       const inner = document.getElementById('events-inner');
 
       // Determine which events/periods should be visible at the current zoom level.
-      // An event is visible if its 'years ago' (ya) or end time fits within the current level's start time (startYa).
-      const visibleNames = new Set(ALL_EVENTS.filter(e => e.ya <= startYa || (typeof e.end_ya !== 'undefined' && e.end_ya <= startYa)).map(e => e.name));
+      // An event is visible if its 'years ago' (ya) or end time fits within the current level's start time (startYa),
+      // AND the current level is within its visibleFrom / visibleUntil range.
+      const visible = ALL_EVENTS.filter(e => {
+        const from = e.visibleFrom ?? 0;
+        const until = e.visibleUntil ?? LEVELS.length - 1;
+        const inTimeRange = e.ya <= startYa || (typeof e.end_ya !== 'undefined' && e.end_ya <= startYa);
+        return inTimeRange && levelIdx >= from && levelIdx <= until;
+      });
+      const visibleNames = new Set(visible.map(e => e.name));
 
       // Update the header title with the current level's name and total time span
       document.getElementById('level-name').textContent =
@@ -778,7 +787,6 @@ Event Cards
       // --- EVENT CARDS PLACEMENT ---
       // Compute the vertical positions for each event's text card.
       // To prevent overlapping text cards, each card is "nudged" down if it collides with the card above it.
-      const visible = ALL_EVENTS.filter(e => e.ya <= startYa || (typeof e.end_ya !== 'undefined' && e.end_ya <= startYa));
 
       let positions = visible.map(e => {
         const dy = dotY(e.ya, startYa, rH); // Ideal anchor point matching the dot on the rail
