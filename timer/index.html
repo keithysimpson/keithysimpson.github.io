@@ -408,6 +408,7 @@
     <script src="celebrations/numbers.js?v=<?= time(); ?>"></script>
         
     <script src="celebrations/random_objects.js?v=<?= time(); ?>"></script>
+    <script src="celebrations/poo.js?v=<?= time(); ?>"></script>
 
 
     <script src="celebrations/kaleidoscope.js?v=<?= time(); ?>"></script>
@@ -509,6 +510,7 @@
             { id: 'fireworks',    label: '🎆 Fireworks' },
             { id: 'balloons',     label: '🎈 Balloons' },
             { id: 'bubbles',      label: '🫧 Bubbles' },
+            { id: 'poo',          label: '💩 Poo' },
         ];
 
         // ---- Default slot assignments ----
@@ -912,6 +914,9 @@
             } else if (celebration_effect == "kaleidoscope") {
                 //--- kaleidoscope:
                 cleanupKaleidoscope = createKaleidoscope();
+            } else if (celebration_effect == "poo") {
+                //--- poo:
+                cleanupPoo = createPooCelebration();
             }
             
             /*
@@ -996,6 +1001,10 @@
 
             if (typeof cleanupKaleidoscope === 'function') {
                 cleanupKaleidoscope();
+            }
+
+            if (typeof cleanupPoo === 'function') {
+                cleanupPoo();
             }
 
             setCogVisible(true); // back to start screen – show cog
