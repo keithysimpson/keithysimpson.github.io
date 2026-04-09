@@ -189,6 +189,145 @@
 
 		
 
+        /* ===== Settings Cog ===== */
+        #settings-cog {
+            position: fixed;
+            bottom: 22px;
+            right: 22px;
+            width: 46px;
+            height: 46px;
+            background: rgba(255,255,255,0.18);
+            border: 2px solid rgba(255,255,255,0.4);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 24px;
+            z-index: 20000;
+            backdrop-filter: blur(6px);
+            transition: transform 0.35s ease, background 0.2s ease, opacity 0.3s ease;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+            opacity: 1;
+        }
+        #settings-cog:hover {
+            transform: rotate(60deg) scale(1.1);
+            background: rgba(255,255,255,0.32);
+        }
+        #settings-cog.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* ===== Settings Modal ===== */
+        #settings-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.55);
+            z-index: 30000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+        #settings-overlay.open {
+            opacity: 1;
+            pointer-events: all;
+        }
+        #settings-modal {
+            background: #1a1a2e;
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 18px;
+            padding: 28px 32px 24px;
+            width: min(480px, 92vw);
+            box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+            color: #f0f0f0;
+            font-family: Arial, sans-serif;
+            transform: translateY(20px);
+            transition: transform 0.25s ease;
+        }
+        #settings-overlay.open #settings-modal {
+            transform: translateY(0);
+        }
+        #settings-modal h2 {
+            margin: 0 0 6px;
+            font-size: 1.3em;
+            letter-spacing: 0.04em;
+            color: #fff;
+        }
+        #settings-modal p.subtitle {
+            margin: 0 0 20px;
+            font-size: 0.82em;
+            color: #aaa;
+        }
+        .settings-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 13px;
+        }
+        .settings-swatch {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            flex-shrink: 0;
+            border: 2px solid rgba(255,255,255,0.25);
+        }
+        .settings-label {
+            font-size: 0.88em;
+            width: 60px;
+            color: #ccc;
+            flex-shrink: 0;
+        }
+        .settings-select {
+            flex: 1;
+            background: #0f0f23;
+            color: #f0f0f0;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            padding: 7px 10px;
+            font-size: 0.88em;
+            cursor: pointer;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .settings-select:hover, .settings-select:focus {
+            border-color: rgba(255,255,255,0.5);
+        }
+        .settings-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 22px;
+        }
+        .settings-btn {
+            padding: 9px 22px;
+            border-radius: 8px;
+            border: none;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+        .settings-btn:active { transform: scale(0.97); }
+        #settings-save {
+            background: #4f87ff;
+            color: #fff;
+        }
+        #settings-save:hover { background: #3a6fdf; }
+        #settings-cancel {
+            background: rgba(255,255,255,0.1);
+            color: #ddd;
+        }
+        #settings-cancel:hover { background: rgba(255,255,255,0.18); }
+        #settings-reset-defaults {
+            background: transparent;
+            color: #f08080;
+            border: 1px solid rgba(240,128,128,0.4);
+            margin-right: auto;
+        }
+        #settings-reset-defaults:hover { background: rgba(240,128,128,0.12); }
     </style>
 </head>
 
@@ -236,6 +375,23 @@
         </div>
     </div>
     <div id="colorOverlay" class="color-overlay"></div>
+
+    <!-- Settings cog button -->
+    <div id="settings-cog" title="Settings">⚙️</div>
+
+    <!-- Settings modal -->
+    <div id="settings-overlay">
+        <div id="settings-modal">
+            <h2>⚙️ Celebration Settings</h2>
+            <p class="subtitle">Choose which celebration plays for each colour slot.</p>
+            <div id="settings-rows"></div>
+            <div class="settings-footer">
+                <button class="settings-btn" id="settings-reset-defaults">Reset to defaults</button>
+                <button class="settings-btn" id="settings-cancel">Cancel</button>
+                <button class="settings-btn" id="settings-save">Save</button>
+            </div>
+        </div>
+    </div>
 
     <!-- load image list from image_list.js -->
     <script src="image_list.js?v=<?= time(); ?>"></script>
@@ -341,13 +497,57 @@
         let initial_width;
         let initial_height;
 
-        const effectLookup = {
-            'red': 'kaleidoscope', //'confetti',
-            'orange': 'flowers', //'fireworks',
+        // ---- All available celebrations ----
+        const ALL_CELEBRATIONS = [
+            { id: 'kaleidoscope', label: '🔮 Kaleidoscope' },
+            { id: 'flowers',      label: '🌸 Flowers' },
+            { id: 'stars',        label: '⭐ Stars' },
+            { id: 'rainbow',      label: '🌈 Rainbow' },
+            { id: 'numbers',      label: '🔢 Numbers' },
+            { id: '???',          label: '🎲 Random Objects' },
+            { id: 'confetti',     label: '🎊 Confetti' },
+            { id: 'fireworks',    label: '🎆 Fireworks' },
+            { id: 'balloons',     label: '🎈 Balloons' },
+            { id: 'bubbles',      label: '🫧 Bubbles' },
+        ];
+
+        // ---- Default slot assignments ----
+        const DEFAULT_EFFECT_LOOKUP = {
+            'red':    'kaleidoscope',
+            'orange': 'flowers',
             'yellow': 'stars',
-            'green': 'rainbow',
-            'blue': 'numbers',
+            'green':  'rainbow',
+            'blue':   'numbers',
             'purple': '???'
+        };
+
+        // ---- Load slot assignments from localStorage (or use defaults) ----
+        function loadEffectLookup() {
+            const stored = localStorage.getItem('timerCelebrationSlots');
+            if (stored) {
+                try {
+                    const parsed = JSON.parse(stored);
+                    // Ensure all 6 keys exist (fall back per-key if missing)
+                    const result = {};
+                    colors.forEach(c => {
+                        result[c] = parsed[c] || DEFAULT_EFFECT_LOOKUP[c];
+                    });
+                    return result;
+                } catch(e) {}
+            }
+            return { ...DEFAULT_EFFECT_LOOKUP };
+        }
+
+        let effectLookup = loadEffectLookup();
+
+        // ---- Slot colour visual lookup (for swatches in settings) ----
+        const slotSwatchColors = {
+            'red':    '#e05050',
+            'orange': '#e07820',
+            'yellow': '#d4c020',
+            'green':  '#40a050',
+            'blue':   '#3070d0',
+            'purple': '#8040b0'
         };
 
         // Add event listeners to color sections such that when clicked, the celebration effect is set to the index of the color
@@ -363,6 +563,89 @@
             });
 
         });
+
+        // ===================================================
+        // Settings modal logic
+        // ===================================================
+        const settingsCog     = document.getElementById('settings-cog');
+        const settingsOverlay = document.getElementById('settings-overlay');
+        const settingsRowsEl  = document.getElementById('settings-rows');
+        const settingsSave    = document.getElementById('settings-save');
+        const settingsCancel  = document.getElementById('settings-cancel');
+        const settingsResetDef= document.getElementById('settings-reset-defaults');
+
+        function buildSettingsRows(lookup) {
+            settingsRowsEl.innerHTML = '';
+            colors.forEach(color => {
+                const row = document.createElement('div');
+                row.className = 'settings-row';
+
+                const swatch = document.createElement('div');
+                swatch.className = 'settings-swatch';
+                swatch.style.background = slotSwatchColors[color];
+
+                const label = document.createElement('span');
+                label.className = 'settings-label';
+                label.textContent = color.charAt(0).toUpperCase() + color.slice(1);
+
+                const select = document.createElement('select');
+                select.className = 'settings-select';
+                select.dataset.color = color;
+
+                ALL_CELEBRATIONS.forEach(cel => {
+                    const opt = document.createElement('option');
+                    opt.value = cel.id;
+                    opt.textContent = cel.label;
+                    if (lookup[color] === cel.id) opt.selected = true;
+                    select.appendChild(opt);
+                });
+
+                row.appendChild(swatch);
+                row.appendChild(label);
+                row.appendChild(select);
+                settingsRowsEl.appendChild(row);
+            });
+        }
+
+        function openSettings() {
+            buildSettingsRows(effectLookup);
+            settingsOverlay.classList.add('open');
+        }
+
+        function closeSettings() {
+            settingsOverlay.classList.remove('open');
+        }
+
+        settingsCog.addEventListener('click', openSettings);
+
+        settingsCancel.addEventListener('click', closeSettings);
+
+        // Close if clicking the dim backdrop
+        settingsOverlay.addEventListener('click', (e) => {
+            if (e.target === settingsOverlay) closeSettings();
+        });
+
+        settingsSave.addEventListener('click', () => {
+            const selects = settingsRowsEl.querySelectorAll('select');
+            selects.forEach(sel => {
+                effectLookup[sel.dataset.color] = sel.value;
+            });
+            localStorage.setItem('timerCelebrationSlots', JSON.stringify(effectLookup));
+            closeSettings();
+        });
+
+        settingsResetDef.addEventListener('click', () => {
+            buildSettingsRows(DEFAULT_EFFECT_LOOKUP);
+        });
+
+        // ---- Show / hide cog based on app phase ----
+        function setCogVisible(visible) {
+            if (visible) {
+                settingsCog.classList.remove('hidden');
+            } else {
+                settingsCog.classList.add('hidden');
+            }
+        }
 
         let svgObjects = [];
         let animationId;
@@ -644,7 +927,9 @@
             if (isRunning) {
                 clearInterval(interval);
                 startPauseBtn.textContent = 'Start';
+                setCogVisible(true); // paused – show cog
             } else {
+                setCogVisible(false); // running – hide cog
                 interval = setInterval(() => {
                     if (time < timer_length_seconds) {
                         time++;
@@ -658,14 +943,11 @@
                         if (celebration_showing == false) {
                             celebration_showing = true;
                             showCelebration();
-
                         }
-                        
-						
+                        // celebration phase – keep cog hidden
                     }
                 }, 1000);
                 startPauseBtn.textContent = 'Pause';
-                //createSnow();
             }
             isRunning = !isRunning;
         }
@@ -715,6 +997,8 @@
             if (typeof cleanupKaleidoscope === 'function') {
                 cleanupKaleidoscope();
             }
+
+            setCogVisible(true); // back to start screen – show cog
         }
         
         // Initialize event listeners
