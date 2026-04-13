@@ -76,9 +76,11 @@ function createWhackAMole() {
     // Game state
     let molesRemaining = ['red', 'orange', 'yellow', 'green', 'blue', 'purple'];
     let visibleColors = [];
+    let whackOrder = []; // Track the order moles are whacked
     let holes = [];
     let gameInterval;
     let spawnTimeout;
+    let rainbowAnimInterval = null; // For rainbow cycling animation
 
     // Timer state
     let gameStartTime = null;
@@ -270,6 +272,7 @@ function createWhackAMole() {
             let index = molesRemaining.indexOf(color);
             if (index > -1) {
                 molesRemaining.splice(index, 1);
+                whackOrder.push(color);
                 addWhackedMoleToTopBar(color);
 
                 // Play sound mapping based on color
@@ -309,12 +312,55 @@ function createWhackAMole() {
         });
     }
 
+    // Check if whack order matches rainbow (forward or reverse)
+    function isRainbowOrder() {
+        const rainbow = ['red', 'orange', 'yellow', 'green', 'blue', 'purple'];
+        const reverseRainbow = [...rainbow].reverse();
+        if (whackOrder.length !== 6) return false;
+        const isForward = whackOrder.every((c, i) => c === rainbow[i]);
+        const isReverse = whackOrder.every((c, i) => c === reverseRainbow[i]);
+        return isForward || isReverse;
+    }
+
+    // Play "For He's a Jolly Good Fellow" melody
+    function playJollyGoodFellow() {
+        if (typeof playDingSound !== 'function' || typeof noteToFrequency !== 'function') return;
+        // "For he's a jolly good fellow" - simplified melody
+        // For  he's  a    jol- ly   good  fel- low,  for  he's  a    jol- ly   good  fel-  low
+        const notes = [
+            'C5', 'E5', 'E5', 'E5', 'D5', 'E5', 'F5', 'F5',
+            'E5', 'E5', 'D5', 'D5', 'C5', 'E5', 'D5', 'D5',
+            'C5', 'E5', 'E5', 'E5', 'D5', 'E5', 'F5', 'F5',
+            'G5', 'G5', 'F5', 'E5', 'D5', 'C5'
+        ];
+        playDingSound(noteToFrequency(notes), notes.length, 0.2);
+    }
+
+    // Start rainbow cycling animation on top bar mole icons
+    function startRainbowCycling() {
+        const rainbowColors = ['red', 'orange', 'yellow', 'green', 'blue', 'purple'];
+        // Get all mole icon imgs in the top bar (skip clockDisplay and separator)
+        const icons = topBar.querySelectorAll('img');
+        if (icons.length === 0) return;
+
+        let offset = 0;
+        rainbowAnimInterval = setInterval(() => {
+            icons.forEach((icon, i) => {
+                const colorIdx = (i + offset) % rainbowColors.length;
+                icon.style.transition = 'filter 0.4s ease';
+                icon.style.filter = colorFilters[rainbowColors[colorIdx]];
+            });
+            offset++;
+        }, 500);
+    }
+
     function winGame() {
         endGameLoop();
         stopClock();
 
         const bestTime = getBestTime();
         const isNewRecord = bestTime === null || finalTime < bestTime;
+        const gotRainbow = isRainbowOrder();
 
         if (isNewRecord) {
             saveBestTime(finalTime);
@@ -322,10 +368,12 @@ function createWhackAMole() {
 
         // Show result message
         if (typeof showFadeText === 'function') {
-            if (isNewRecord && bestTime !== null) {
-                showFadeText("⭐ New Record! ⭐", 200);
+            if (gotRainbow) {
+                showFadeText("🌈 Rainbow Bonus! 🌈", shiftDownPx = 200, duration = 5000);
+            } else if (isNewRecord && bestTime !== null) {
+                showFadeText("⭐ New Record! ⭐", shiftDownPx = 200, duration = 5000);
             } else {
-                showFadeText("Well Done!", 200);
+                showFadeText("Well Done!", shiftDownPx = 200, duration = 5000);
             }
         }
 
@@ -380,8 +428,12 @@ function createWhackAMole() {
         if (typeof createConfetti === 'function') {
             createConfetti();
         }
-        // Fanfare
-        if (typeof playDingSound === 'function' && typeof noteToFrequency === 'function') {
+
+        // Sound: rainbow bonus gets the jolly good fellow tune, otherwise normal fanfare
+        if (gotRainbow) {
+            playJollyGoodFellow();
+            startRainbowCycling();
+        } else if (typeof playDingSound === 'function' && typeof noteToFrequency === 'function') {
             playDingSound(noteToFrequency(['C5', 'E5', 'G5', 'C6']), 4, 0.15);
         }
 
@@ -477,6 +529,10 @@ function createWhackAMole() {
     return function cleanupWhackAMole() {
         endGameLoop();
         stopClock();
+        if (rainbowAnimInterval) {
+            clearInterval(rainbowAnimInterval);
+            rainbowAnimInterval = null;
+        }
         container.remove();
     };
 }
