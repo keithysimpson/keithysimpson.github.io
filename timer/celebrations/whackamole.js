@@ -14,7 +14,7 @@ function createWhackAMole() {
     container.style.pointerEvents = 'none'; 
     document.body.appendChild(container);
 
-    // Create top bar for whacked moles
+    // Create top bar for whacked moles and timer
     const topBar = document.createElement('div');
     topBar.style.display = 'flex';
     topBar.style.gap = '15px';
@@ -23,7 +23,28 @@ function createWhackAMole() {
     topBar.style.padding = '10px 20px';
     topBar.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
     topBar.style.borderRadius = '30px';
+    topBar.style.alignItems = 'center';
     container.appendChild(topBar);
+
+    // Create timer clock display
+    const clockDisplay = document.createElement('div');
+    clockDisplay.style.fontFamily = "'Courier New', Courier, monospace";
+    clockDisplay.style.fontSize = '28px';
+    clockDisplay.style.fontWeight = 'bold';
+    clockDisplay.style.color = '#fff';
+    clockDisplay.style.textShadow = '0 0 8px rgba(255,255,255,0.4)';
+    clockDisplay.style.minWidth = '70px';
+    clockDisplay.style.textAlign = 'center';
+    clockDisplay.textContent = '0.0';
+    topBar.appendChild(clockDisplay);
+
+    // Separator
+    const sep = document.createElement('div');
+    sep.style.width = '2px';
+    sep.style.height = '40px';
+    sep.style.backgroundColor = 'rgba(255,255,255,0.3)';
+    sep.style.borderRadius = '1px';
+    topBar.appendChild(sep);
 
     // Create grid container for holes
     const grid = document.createElement('div');
@@ -40,6 +61,40 @@ function createWhackAMole() {
     let holes = [];
     let gameInterval;
     let spawnTimeout;
+
+    // Timer state
+    let gameStartTime = null;
+    let clockInterval = null;
+    let finalTime = 0;
+    const BEST_TIME_KEY = 'whackamole_best_time';
+
+    function getBestTime() {
+        const stored = localStorage.getItem(BEST_TIME_KEY);
+        return stored !== null ? parseFloat(stored) : null;
+    }
+
+    function saveBestTime(t) {
+        localStorage.setItem(BEST_TIME_KEY, t.toFixed(1));
+    }
+
+    function startClock() {
+        gameStartTime = performance.now();
+        clockInterval = setInterval(() => {
+            const elapsed = (performance.now() - gameStartTime) / 1000;
+            clockDisplay.textContent = elapsed.toFixed(1);
+        }, 100);
+    }
+
+    function stopClock() {
+        if (clockInterval) {
+            clearInterval(clockInterval);
+            clockInterval = null;
+        }
+        if (gameStartTime) {
+            finalTime = (performance.now() - gameStartTime) / 1000;
+            clockDisplay.textContent = finalTime.toFixed(1);
+        }
+    }
 
     const moleSpeeds = {
         'red': 500,
@@ -238,9 +293,64 @@ function createWhackAMole() {
 
     function winGame() {
         endGameLoop();
-        if (typeof showFadeText === 'function') {
-            showFadeText("Well Done!");
+        stopClock();
+
+        const bestTime = getBestTime();
+        const isNewRecord = bestTime === null || finalTime < bestTime;
+
+        if (isNewRecord) {
+            saveBestTime(finalTime);
         }
+
+        // Show result message
+        if (typeof showFadeText === 'function') {
+            if (isNewRecord && bestTime !== null) {
+                showFadeText("⭐ New Record! ⭐");
+            } else {
+                showFadeText("Well Done!");
+            }
+        }
+
+        // Show time result below the top bar
+        const resultDiv = document.createElement('div');
+        resultDiv.style.textAlign = 'center';
+        resultDiv.style.color = '#fff';
+        resultDiv.style.fontSize = '18px';
+        resultDiv.style.marginTop = '15px';
+        resultDiv.style.fontFamily = "'Courier New', Courier, monospace";
+        resultDiv.style.pointerEvents = 'none';
+
+        const timeText = finalTime.toFixed(1) + 's';
+        const currentBest = isNewRecord ? finalTime : bestTime;
+
+        if (isNewRecord && bestTime !== null) {
+            resultDiv.innerHTML = `<span style="color:#ffd700;font-size:24px;font-weight:bold">${timeText}</span>`
+                + `<br><span style="color:#aaa;font-size:14px">Previous best: ${bestTime.toFixed(1)}s</span>`;
+        } else if (bestTime !== null) {
+            resultDiv.innerHTML = `<span style="font-size:22px">${timeText}</span>`
+                + `<br><span style="color:#aaa;font-size:14px">Best: ${currentBest.toFixed(1)}s</span>`;
+        } else {
+            resultDiv.innerHTML = `<span style="font-size:22px">${timeText}</span>`;
+        }
+
+        // Animate it in
+        resultDiv.animate([
+            { opacity: 0, transform: 'translateY(-10px)' },
+            { opacity: 1, transform: 'translateY(0)' }
+        ], { duration: 400, easing: 'ease-out', fill: 'forwards' });
+
+        container.insertBefore(resultDiv, grid);
+
+        // Pulse the clock gold on new record
+        if (isNewRecord) {
+            clockDisplay.style.color = '#ffd700';
+            clockDisplay.animate([
+                { transform: 'scale(1)' },
+                { transform: 'scale(1.3)' },
+                { transform: 'scale(1)' }
+            ], { duration: 600, easing: 'ease-in-out' });
+        }
+
         if (typeof createConfetti === 'function') {
             createConfetti();
         }
@@ -251,6 +361,9 @@ function createWhackAMole() {
     }
     
     function startGameLoop() {
+        // Start the clock
+        startClock();
+
         // Run game loop
         function scheduleNext() {
             // Wait random interval to spawn next mole
@@ -284,6 +397,7 @@ function createWhackAMole() {
     // Return cleanup function
     return function cleanupWhackAMole() {
         endGameLoop();
+        stopClock();
         container.remove();
     };
 }
