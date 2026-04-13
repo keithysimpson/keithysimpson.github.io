@@ -11,7 +11,7 @@ function createWhackAMole() {
     container.style.flexDirection = 'column';
     container.style.alignItems = 'center';
     container.style.backgroundColor = '#1e3b1c'; // Green grass background
-    container.style.pointerEvents = 'none'; 
+    container.style.pointerEvents = 'none';
     document.body.appendChild(container);
 
     // Create top bar for whacked moles and timer
@@ -45,6 +45,24 @@ function createWhackAMole() {
     sep.style.backgroundColor = 'rgba(255,255,255,0.3)';
     sep.style.borderRadius = '1px';
     topBar.appendChild(sep);
+
+    // Create best-time target display (shown from the start if a best exists)
+    const bestTimeLabel = document.createElement('div');
+    bestTimeLabel.style.fontFamily = "'Courier New', Courier, monospace";
+    bestTimeLabel.style.fontSize = '13px';
+    bestTimeLabel.style.color = 'rgba(255,255,255,0.55)';
+    bestTimeLabel.style.position = 'absolute';
+    bestTimeLabel.style.bottom = '-22px';
+    bestTimeLabel.style.left = '0';
+    bestTimeLabel.style.right = '0';
+    bestTimeLabel.style.textAlign = 'center';
+    bestTimeLabel.style.pointerEvents = 'none';
+    const initialBest = localStorage.getItem('whackamole_best_time');
+    if (initialBest !== null) {
+        bestTimeLabel.textContent = '⏱ Best: ' + parseFloat(initialBest).toFixed(1) + 's';
+    }
+    topBar.style.position = 'relative';
+    topBar.appendChild(bestTimeLabel);
 
     // Create grid container for holes
     const grid = document.createElement('div');
@@ -106,11 +124,11 @@ function createWhackAMole() {
     };
 
     const colorFilters = {
-        'red':    'invert(25%) sepia(99%) saturate(7400%) hue-rotate(352deg) brightness(101%) contrast(106%)',
+        'red': 'invert(25%) sepia(99%) saturate(7400%) hue-rotate(352deg) brightness(101%) contrast(106%)',
         'orange': 'invert(52%) sepia(87%) saturate(2250%) hue-rotate(1deg) brightness(105%) contrast(105%)',
         'yellow': 'invert(87%) sepia(82%) saturate(4050%) hue-rotate(356deg) brightness(105%) contrast(103%)',
-        'green':  'invert(40%) sepia(84%) saturate(786%) hue-rotate(85deg) brightness(115%) contrast(108%)',
-        'blue':   'invert(30%) sepia(87%) saturate(5436%) hue-rotate(212deg) brightness(100%) contrast(108%)',
+        'green': 'invert(40%) sepia(84%) saturate(786%) hue-rotate(85deg) brightness(115%) contrast(108%)',
+        'blue': 'invert(30%) sepia(87%) saturate(5436%) hue-rotate(212deg) brightness(100%) contrast(108%)',
         'purple': 'invert(26%) sepia(83%) saturate(5043%) hue-rotate(277deg) brightness(100%) contrast(116%)'
     };
 
@@ -120,7 +138,7 @@ function createWhackAMole() {
         holeContainer.style.width = '110px';
         holeContainer.style.height = '110px';
         holeContainer.style.position = 'relative';
-        
+
         // The visible hole (dark oval at the bottom)
         const holeBackground = document.createElement('div');
         holeBackground.style.width = '100px';
@@ -158,14 +176,14 @@ function createWhackAMole() {
         icon.style.width = '50px';
         icon.style.height = '50px';
         icon.style.filter = colorFilters[color];
-        
+
         // Pop-in animation
         icon.animate([
             { transform: 'scale(0)' },
             { transform: 'scale(1.2)' },
             { transform: 'scale(1)' }
         ], { duration: 400, easing: 'ease-out' });
-        
+
         topBar.appendChild(icon);
     }
 
@@ -181,7 +199,7 @@ function createWhackAMole() {
         flash.style.pointerEvents = 'none';
         flash.style.zIndex = '10001';
         document.body.appendChild(flash);
-        
+
         flash.animate([
             { transform: 'scale(0.5)', opacity: 1 },
             { transform: 'scale(3)', opacity: 0 }
@@ -190,20 +208,20 @@ function createWhackAMole() {
 
     function spawnMole() {
         if (molesRemaining.length === 0) return;
-        
+
         let emptyHoles = holes.filter(h => !h.hasMole);
         if (emptyHoles.length === 0) return;
-        
+
         let availableColors = molesRemaining.filter(c => !visibleColors.includes(c));
         if (availableColors.length === 0) return;
-        
+
         let holeObj = emptyHoles[Math.floor(Math.random() * emptyHoles.length)];
         let color = availableColors[Math.floor(Math.random() * availableColors.length)];
         let visibilityDuration = moleSpeeds[color];
-        
+
         visibleColors.push(color);
         holeObj.hasMole = true;
-        
+
         let moleEl = document.createElement('img');
         moleEl.src = 'images/mole.svg';
         moleEl.style.width = '80px';
@@ -212,26 +230,26 @@ function createWhackAMole() {
         moleEl.style.bottom = '-80px'; // start hidden below
         moleEl.style.left = '10px';
         moleEl.style.filter = colorFilters[color];
-        
+
         moleEl.style.transition = 'bottom 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275)'; // bouncy pop up
         moleEl.style.cursor = 'pointer';
         moleEl.style.pointerEvents = 'auto'; // ensure it receives clicks
-        
+
         holeObj.mask.appendChild(moleEl);
-        
+
         // Trigger reveal
         setTimeout(() => {
             moleEl.style.bottom = '0px';
         }, 20);
-        
+
         let isWhacked = false;
-        
+
         let hideTimer = setTimeout(() => {
             if (!isWhacked) {
                 hideMole();
             }
         }, visibilityDuration);
-        
+
         function hideMole() {
             if (isWhacked) return;
             visibleColors = visibleColors.filter(c => c !== color);
@@ -241,42 +259,42 @@ function createWhackAMole() {
                 holeObj.hasMole = false;
             }, 200);
         }
-        
+
         moleEl.addEventListener('mousedown', (e) => {
             if (isWhacked) return;
             isWhacked = true;
             visibleColors = visibleColors.filter(c => c !== color);
             clearTimeout(hideTimer);
-            
+
             // Register whack
             let index = molesRemaining.indexOf(color);
             if (index > -1) {
                 molesRemaining.splice(index, 1);
                 addWhackedMoleToTopBar(color);
-                
+
                 // Play sound mapping based on color
                 if (typeof playDingSound === 'function' && typeof noteToFrequency === 'function' && typeof colorSoundLookup !== 'undefined') {
                     const note = colorSoundLookup[color] || 'C5';
                     playDingSound(noteToFrequency([note]), 1);
                 }
-                
+
                 showHitEffect(e.clientX, e.clientY, color);
             }
-            
+
             // Visual feedback for whacking
             moleEl.style.transition = 'bottom 0.1s ease-in, transform 0.1s ease-in';
             moleEl.style.bottom = '-80px';
             moleEl.style.transform = 'scale(0.8)';
-            
+
             setTimeout(() => {
                 if (moleEl.parentNode) moleEl.parentNode.removeChild(moleEl);
                 holeObj.hasMole = false;
-                
+
                 if (molesRemaining.length === 0) {
                     setTimeout(winGame, 500);
                 }
             }, 100);
-            
+
             e.preventDefault(); // Stop double-firing from mouse/touch
         });
 
@@ -305,9 +323,18 @@ function createWhackAMole() {
         // Show result message
         if (typeof showFadeText === 'function') {
             if (isNewRecord && bestTime !== null) {
-                showFadeText("⭐ New Record! ⭐");
+                showFadeText("⭐ New Record! ⭐", 200);
             } else {
-                showFadeText("Well Done!");
+                showFadeText("Well Done!", 200);
+            }
+        }
+
+        // Update the best time label in the top bar
+        const newBest = isNewRecord ? finalTime : bestTime;
+        if (newBest !== null) {
+            bestTimeLabel.textContent = '⏱ Best: ' + newBest.toFixed(1) + 's';
+            if (isNewRecord) {
+                bestTimeLabel.style.color = '#ffd700';
             }
         }
 
@@ -316,19 +343,18 @@ function createWhackAMole() {
         resultDiv.style.textAlign = 'center';
         resultDiv.style.color = '#fff';
         resultDiv.style.fontSize = '18px';
-        resultDiv.style.marginTop = '15px';
+        resultDiv.style.marginTop = '20px';
         resultDiv.style.fontFamily = "'Courier New', Courier, monospace";
         resultDiv.style.pointerEvents = 'none';
 
         const timeText = finalTime.toFixed(1) + 's';
-        const currentBest = isNewRecord ? finalTime : bestTime;
 
         if (isNewRecord && bestTime !== null) {
             resultDiv.innerHTML = `<span style="color:#ffd700;font-size:24px;font-weight:bold">${timeText}</span>`
                 + `<br><span style="color:#aaa;font-size:14px">Previous best: ${bestTime.toFixed(1)}s</span>`;
         } else if (bestTime !== null) {
             resultDiv.innerHTML = `<span style="font-size:22px">${timeText}</span>`
-                + `<br><span style="color:#aaa;font-size:14px">Best: ${currentBest.toFixed(1)}s</span>`;
+                + `<br><span style="color:#aaa;font-size:14px">Best: ${newBest.toFixed(1)}s</span>`;
         } else {
             resultDiv.innerHTML = `<span style="font-size:22px">${timeText}</span>`;
         }
@@ -358,8 +384,61 @@ function createWhackAMole() {
         if (typeof playDingSound === 'function' && typeof noteToFrequency === 'function') {
             playDingSound(noteToFrequency(['C5', 'E5', 'G5', 'C6']), 4, 0.15);
         }
+
+        // --- Bring Start/Reset buttons above the game overlay ---
+        const contentEl = document.querySelector('.content');
+        if (contentEl) {
+            contentEl.style.zIndex = '9999';
+        }
+
+        // Change Start button to say "Play Again"
+        const startBtn = document.getElementById('startPauseBtn');
+        if (startBtn) {
+            startBtn.textContent = 'Play Again';
+        }
+
+        // Hijack the Start button to replay whack-a-mole
+        function replayHandler(e) {
+            e.stopImmediatePropagation();
+            e.preventDefault();
+
+            // Remove this listener
+            startBtn.removeEventListener('click', replayHandler, true);
+
+            // Restore button text
+            startBtn.textContent = 'Start';
+
+            // Restore content z-index
+            if (contentEl) {
+                contentEl.style.zIndex = '10';
+            }
+
+            // Clean up current game
+            endGameLoop();
+            stopClock();
+            container.remove();
+
+            // Start a fresh game
+            cleanupWhackAMole = createWhackAMole();
+        }
+
+        if (startBtn) {
+            startBtn.addEventListener('click', replayHandler, true);
+        }
+
+        // If Reset is clicked, clean up the replay handler too
+        const resetBtnEl = document.getElementById('resetBtn');
+        function resetCleanup() {
+            if (startBtn) startBtn.removeEventListener('click', replayHandler, true);
+            if (startBtn) startBtn.textContent = 'Start';
+            if (contentEl) contentEl.style.zIndex = '10';
+            resetBtnEl.removeEventListener('click', resetCleanup, true);
+        }
+        if (resetBtnEl) {
+            resetBtnEl.addEventListener('click', resetCleanup, true);
+        }
     }
-    
+
     function startGameLoop() {
         // Start the clock
         startClock();
@@ -375,7 +454,7 @@ function createWhackAMole() {
                 }
             }, delay);
         }
-        
+
         scheduleNext();
 
         // Extra loop sometimes spawning a double mole in case game drags
