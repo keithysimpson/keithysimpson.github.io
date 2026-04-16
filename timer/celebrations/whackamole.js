@@ -29,7 +29,7 @@ function createWhackAMole() {
     // Create timer clock display
     const clockDisplay = document.createElement('div');
     clockDisplay.style.fontFamily = "'Courier New', Courier, monospace";
-    clockDisplay.style.fontSize = '28px';
+    clockDisplay.style.fontSize = '20px';
     clockDisplay.style.fontWeight = 'bold';
     clockDisplay.style.color = '#fff';
     clockDisplay.style.textShadow = '0 0 8px rgba(255,255,255,0.4)';
@@ -175,8 +175,8 @@ function createWhackAMole() {
     function addWhackedMoleToTopBar(color) {
         const icon = document.createElement('img');
         icon.src = 'images/mole.svg';
-        icon.style.width = '50px';
-        icon.style.height = '50px';
+        icon.style.width = '40px';
+        icon.style.height = '40px';
         icon.style.filter = colorFilters[color];
 
         // Pop-in animation
