@@ -1258,45 +1258,163 @@
             }
         }
 
-        // Global Scrubbing Handlers
+        // --- Interaction State ---
+        // "Sticky" dot: shown via tap, stays visible until dismissed
+        let stickyDot = null;
+
+        // Scrubbing state (drag across dots)
         let isScrubbing = false;
+        let scrubStartX = 0;
+        let scrubStartY = 0;
+        let scrubMoved = false;   // true once the touch moves beyond tap threshold
         let activeScrubDot = null;
+        const SCRUB_THRESHOLD = 8; // px of movement before treating as scrub vs tap
 
         function getEventPoint(e) {
             if (e.touches && e.touches.length > 0) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            if (e.changedTouches && e.changedTouches.length > 0) return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
             return { x: e.clientX, y: e.clientY };
+        }
+
+        function isDotElement(el) {
+            return el && (el.classList.contains('rail-point') || el.classList.contains('year-dot'));
         }
 
         function handleScrubStart(e) {
             const pt = getEventPoint(e);
             const el = document.elementFromPoint(pt.x, pt.y);
-            if (el && (el.classList.contains('rail-point') || el.classList.contains('year-dot'))) {
+            scrubStartX = pt.x;
+            scrubStartY = pt.y;
+            scrubMoved = false;
+
+            if (isDotElement(el)) {
                 isScrubbing = true;
-                if (e.type === 'touchstart') e.preventDefault();
-                updateScrub(pt.x, pt.y);
+                if (e.cancelable) e.preventDefault();
+                // Don't show the dot yet — wait to see if this is a tap or a drag
+                activeScrubDot = el;
+            } else {
+                isScrubbing = false;
+                activeScrubDot = null;
             }
         }
 
         function handleScrubMove(e) {
             if (!isScrubbing) return;
-            if (e.type === 'touchmove') e.preventDefault();
+            if (e.cancelable) e.preventDefault();
             const pt = getEventPoint(e);
-            updateScrub(pt.x, pt.y);
+            const dx = pt.x - scrubStartX;
+            const dy = pt.y - scrubStartY;
+
+            if (!scrubMoved && Math.sqrt(dx * dx + dy * dy) > SCRUB_THRESHOLD) {
+                scrubMoved = true;
+                // Clear any sticky card when user starts scrubbing
+                if (stickyDot) {
+                    hideDot(stickyDot);
+                    stickyDot = null;
+                }
+            }
+
+            if (scrubMoved) {
+                updateScrub(pt.x, pt.y);
+            }
         }
 
         function handleScrubEnd(e) {
-            if (isScrubbing) {
-                isScrubbing = false;
+            if (!isScrubbing) return;
+            isScrubbing = false;
+
+            if (scrubMoved) {
+                // End of a drag scrub — hide the scrub dot, leave sticky alone (already cleared)
                 if (activeScrubDot) {
                     hideDot(activeScrubDot);
                     activeScrubDot = null;
                 }
+            } else {
+                // This was a tap — handle tap logic
+                const pt = getEventPoint(e);
+                const tappedEl = document.elementFromPoint(pt.x, pt.y) || activeScrubDot;
+
+                if (isDotElement(tappedEl)) {
+                    if (stickyDot === tappedEl) {
+                        // Tapped the same dot again — toggle off
+                        hideDot(stickyDot);
+                        stickyDot = null;
+                    } else {
+                        // Switch to new dot
+                        if (stickyDot) hideDot(stickyDot);
+                        stickyDot = tappedEl;
+                        showDot(stickyDot);
+                    }
+                } else {
+                    // Tapped on non-dot area — dismiss
+                    if (stickyDot) {
+                        hideDot(stickyDot);
+                        stickyDot = null;
+                    }
+                }
+                activeScrubDot = null;
+            }
+        }
+
+        // Mouse-only: show dot on mousedown, hide on mouseup (desktop scrubbing)
+        function handleMouseStart(e) {
+            const el = document.elementFromPoint(e.clientX, e.clientY);
+            scrubStartX = e.clientX;
+            scrubStartY = e.clientY;
+            scrubMoved = false;
+
+            if (isDotElement(el)) {
+                isScrubbing = true;
+                activeScrubDot = el;
+            } else {
+                isScrubbing = false;
+                // Clicking non-dot on desktop — dismiss sticky
+                if (stickyDot) {
+                    hideDot(stickyDot);
+                    stickyDot = null;
+                }
+                activeScrubDot = null;
+            }
+        }
+
+        function handleMouseMove(e) {
+            if (!isScrubbing) return;
+            const dx = e.clientX - scrubStartX;
+            const dy = e.clientY - scrubStartY;
+            if (!scrubMoved && Math.sqrt(dx * dx + dy * dy) > SCRUB_THRESHOLD) {
+                scrubMoved = true;
+                if (stickyDot) { hideDot(stickyDot); stickyDot = null; }
+            }
+            if (scrubMoved) updateScrub(e.clientX, e.clientY);
+        }
+
+        function handleMouseEnd(e) {
+            if (!isScrubbing) return;
+            isScrubbing = false;
+
+            if (scrubMoved) {
+                if (activeScrubDot) { hideDot(activeScrubDot); activeScrubDot = null; }
+            } else {
+                // Desktop click on dot
+                const tappedEl = document.elementFromPoint(e.clientX, e.clientY) || activeScrubDot;
+                if (isDotElement(tappedEl)) {
+                    if (stickyDot === tappedEl) {
+                        hideDot(stickyDot); stickyDot = null;
+                    } else {
+                        if (stickyDot) hideDot(stickyDot);
+                        stickyDot = tappedEl;
+                        showDot(stickyDot);
+                    }
+                } else {
+                    if (stickyDot) { hideDot(stickyDot); stickyDot = null; }
+                }
+                activeScrubDot = null;
             }
         }
 
         function updateScrub(x, y) {
             const el = document.elementFromPoint(x, y);
-            if (el && (el.classList.contains('rail-point') || el.classList.contains('year-dot'))) {
+            if (isDotElement(el)) {
                 if (activeScrubDot !== el) {
                     if (activeScrubDot) hideDot(activeScrubDot);
                     activeScrubDot = el;
@@ -1360,13 +1478,16 @@
             loadEvents();
             document.getElementById("inputDate").valueAsDate = new Date();
 
-            document.addEventListener('mousedown', handleScrubStart);
+            // Touch events (mobile)
             document.addEventListener('touchstart', handleScrubStart, { passive: false });
-            document.addEventListener('mousemove', handleScrubMove);
             document.addEventListener('touchmove', handleScrubMove, { passive: false });
-            document.addEventListener('mouseup', handleScrubEnd);
             document.addEventListener('touchend', handleScrubEnd);
             document.addEventListener('touchcancel', handleScrubEnd);
+
+            // Mouse events (desktop)
+            document.addEventListener('mousedown', handleMouseStart);
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseEnd);
 
             document.getElementById('eventsCol').addEventListener('scroll', () => {
                 requestAnimationFrame(drawConnections);
