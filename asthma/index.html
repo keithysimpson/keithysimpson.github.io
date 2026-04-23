@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Asthma Tracker</title>
+    <!-- Modern typography from Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Light theme variables */
+            --bg-body: #f8fafc;
+            --text-dark: #0f172a;
+            --text-muted: #64748b;
+
+            --card-bg: #ffffff;
+            --card-border: #e2e8f0;
+            --card-shadow: rgba(0, 0, 0, 0.05);
+            /* very soft shadow */
+
+            --color-blue: #74a9ff;
+            --color-yellow: #f59e0b;
+            --color-orange: #ea580c;
+            --color-red: #dc2626;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-dark);
+            line-height: 1.5;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .main-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 800px;
+            width: 100%;
+            margin: 0 auto;
+            position: relative;
+            min-height: 0;
+        }
+
+        /* --- Header --- */
+        .app-header {
+            flex-shrink: 0;
+            padding: 24px 16px 16px;
+            text-align: center;
+            z-index: 10;
+        }
+
+        .app-header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #0f172a, #475569);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em;
+        }
+
+        .app-header p {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            font-weight: 600;
+        }
+
+        /* --- Split View Layout --- */
+        .split-view {
+            flex: 1;
+            display: flex;
+            position: relative;
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        /* Static Rail Container */
+        .rail-col {
+            width: 200px;
+            /* widened for tick labels */
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .rail-line {
+            position: absolute;
+            left: 50%;
+            top: 20px;
+            bottom: 20px;
+            width: 2px;
+            transform: translateX(-50%);
+            background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.1) 5%, rgba(0, 0, 0, 0.1) 95%, transparent);
+            z-index: 1;
+        }
+
+        .rail-point {
+            position: absolute;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            z-index: 3;
+            /* above ticks */
+            border: 1px solid var(--bg-body);
+            /* cuts out line behind it cleanly */
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Make WTB dots interactive */
+        .rail-point.clickable {
+            cursor: pointer;
+        }
+
+        .rail-point.clickable:hover {
+            transform: translate(-50%, -50%) scale(1.4);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Timeline Scale / Ticks */
+        .rail-tick {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 10px;
+            height: 1px;
+            background: rgba(0, 0, 0, 0.15);
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .rail-tick-quarter {
+            width: 22px;
+            background: rgba(0, 0, 0, 0.25);
+        }
+
+        .tick-label {
+            position: absolute;
+            right: 100%;
+            margin-right: 8px;
+            /* buffer from the tick line to the text */
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        /* Scrollable Events Container */
+        .events-col {
+            flex: 1;
+            overflow-y: auto;
+            position: relative;
+            padding-right: 16px;
+            padding-bottom: 120px;
+            /* Space for the floating button */
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .events-inner {
+            padding-top: 20px;
+            padding-left: 20px;
+        }
+
+        /* Wrapper states to manage layout transitions */
+        .event-card-wrapper {
+            display: grid;
+            grid-template-rows: 0fr;
+            transition: grid-template-rows 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-bottom: 0px;
+        }
+
+        .collapsible-inner {
+            min-height: 0;
+            overflow: hidden;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+        }
+
+        .event-card-wrapper.visible {
+            grid-template-rows: 1fr;
+            margin-bottom: 0px;
+        }
+
+        .event-card-wrapper.visible .collapsible-inner {
+            opacity: 1;
+            padding-bottom: 5px;
+            padding-top: 2px;
+        }
+
+        /* Connecting lines overlay */
+        .connectors-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .connector-path {
+            fill: none;
+            stroke-width: 1.5px;
+            opacity: 0.6;
+            transition: stroke 0.3s ease;
+        }
+
+        /* Dynamic Colors Applied */
+        .timeline-yellow {
+            background: var(--color-yellow);
+        }
+
+        .connector-path.timeline-yellow {
+            stroke: var(--color-yellow);
+            z-index: 8 !important;
+        }
+
+        .timeline-orange {
+            background: var(--color-orange);
+            z-index: 9 !important;
+        }
+
+        .connector-path.timeline-orange {
+            stroke: var(--color-orange);
+        }
+
+        .timeline-red {
+            background: var(--color-red);
+            z-index: 10 !important;
+        }
+
+        .connector-path.timeline-red {
+            stroke: var(--color-red);
+        }
+
+        .timeline-blue {
+            background: var(--color-blue);
+            border-radius: 0% !important;
+            width: 8px !important;
+            height: 8px !important;
+        }
+
+        .connector-path.timeline-blue {
+            stroke: var(--color-blue);
+        }
+
+        /* --- Event Card --- */
+        .event-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 5px 16px;
+            position: relative;
+            box-shadow: 0 4px 10px -2px var(--card-shadow), 0 2px 4px -2px var(--card-shadow);
+            transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
+            cursor: default;
+        }
+
+        .event-card.has-notes {
+            cursor: pointer;
+        }
+
+        .event-card.has-notes:hover {
+            transform: translateY(-2px);
+            border-color: #cbd5e1;
+            box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.06);
+        }
+
+        .event-card.expanded {
+            background: #f8fafc;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            margin-bottom: 6px;
+        }
+
+        .card-date {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            white-space: nowrap;
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            line-height: 1.3;
+        }
+
+        .card-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .badge {
+            font-size: 0.65rem;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .badge-hospital {
+            background: #fff7ed;
+            color: #ea580c;
+            border: 1px solid #fdba74;
+        }
+
+        .badge-oxygen {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fca5a5;
+        }
+
+        .badge-severity {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #cbd5e1;
+        }
+
+        .severity-high {
+            background: #fef2f2;
+            color: #ef4444;
+            border-color: #fca5a5;
+        }
+
+        .severity-med,
+        .severity-medium {
+            background: #fefce8;
+            color: #eab308;
+            border-color: #fde047;
+        }
+
+        .severity-low {
+            background: #f0fdfa;
+            color: #14b8a6;
+            border-color: #5eead4;
+        }
+
+        /* Smooth expanding notes via Grid Height Animation */
+        .card-notes {
+            display: grid;
+            grid-template-rows: 0fr;
+            transition: grid-template-rows 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .notes-content {
+            overflow: hidden;
+            font-size: 0.85rem;
+            color: #475569;
+            line-height: 1.6;
+        }
+
+        .event-card.expanded .card-notes {
+            grid-template-rows: 1fr;
+            margin-top: 8px;
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .notes-content-inner {
+            padding-top: 4px;
+        }
+
+        /* --- Shared Modal/FAB details --- */
+        .fab-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--color-blue), #2563eb);
+            color: white;
+            border: none;
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+            z-index: 50;
+        }
+
+        .fab-btn:hover {
+            transform: scale(1.08) translateY(-2px);
+            box-shadow: 0 8px 24px rgba(59, 130, 246, 0.5);
+        }
+
+        .fab-btn svg {
+            width: 28px;
+            height: 28px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            z-index: 100;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .instant-overlay {
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+            background: rgba(15, 23, 42, 0.2);
+            transition: none;
+        }
+
+        .modal-content {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 24px;
+            width: 90%;
+            max-width: 440px;
+            transform: translateY(20px) scale(0.95);
+            transition: transform 0.3s;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: translateY(0) scale(1);
+        }
+
+        .modal-content h2 {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            color: var(--text-dark);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            color: var(--text-dark);
+            font-family: inherit;
+            font-size: 0.95rem;
+            padding: 10px 12px;
+            border-radius: 8px;
+            outline: none;
+            transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            border-color: var(--color-blue);
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        ::-webkit-calendar-picker-indicator {
+            opacity: 0.6;
+            cursor: pointer;
+        }
+
+        .check-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .check-group:hover {
+            background: #f1f5f9;
+        }
+
+        .check-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--color-blue);
+        }
+
+        .check-group label {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--text-dark);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .divider {
+            height: 1px;
+            background: #e2e8f0;
+            margin: 16px 0;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .btn {
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            border: none;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+        }
+
+        .btn-cancel {
+            background: transparent;
+            color: var(--text-muted);
+        }
+
+        .btn-cancel:hover {
+            background: #f1f5f9;
+            color: var(--text-dark);
+        }
+
+        .btn-save {
+            background: var(--color-blue);
+            color: white;
+        }
+
+        .btn-save:hover {
+            background: #2563eb;
+        }
+
+        .loading {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            padding: 40px;
+        }
+
+        /* --- Yearly Horizontal View --- */
+        .view-toggle {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 4px;
+            z-index: 10;
+        }
+
+        .view-btn {
+            padding: 6px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--card-border);
+            background: #fff;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.1s;
+        }
+
+        .view-btn:active {
+            transform: scale(0.97);
+        }
+
+        .view-btn.active {
+            background: var(--color-blue);
+            color: white;
+            border-color: var(--color-blue);
+        }
+
+        .yearly-view {
+            display: none;
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 40px 120px 40px;
+            flex-direction: column;
+        }
+
+        .yearly-view.active {
+            display: flex;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .year-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            position: relative;
+        }
+
+        /* Inline card panel shown below a year row on press */
+        .year-card-panel {
+            display: grid;
+            grid-template-rows: 0fr;
+            transition: grid-template-rows 0.12s ease;
+            margin-bottom: 0;
+        }
+
+        .year-card-panel.visible {
+            grid-template-rows: 1fr;
+            margin-bottom: 16px;
+        }
+
+        .year-card-inner {
+            min-height: 0;
+            overflow: hidden;
+            opacity: 0;
+            transition: opacity 0.12s ease;
+            padding: 0 4px;
+        }
+
+        .year-card-panel.visible .year-card-inner {
+            opacity: 1;
+            padding-bottom: 4px;
+            padding-top: 4px;
+        }
+
+        .year-label {
+            width: 50px;
+            font-weight: 700;
+            font-size: 1.0rem;
+            color: var(--text-dark);
+            flex-shrink: 0;
+            letter-spacing: -0.02em;
+        }
+
+        .year-timeline {
+            flex: 1;
+            position: relative;
+            height: 40px;
+            display: flex;
+            align-items: center;
+        }
+
+        .year-line {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 2px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .year-dot {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            top: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+            z-index: 5;
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), z-index 0s;
+        }
+
+        .year-dot:hover {
+            transform: translate(-50%, -50%) scale(1.4);
+            z-index: 15;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .year-header-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .year-header-timeline {
+            flex: 1;
+            position: relative;
+            height: 20px;
+            margin-left: 70px;
+        }
+
+        .year-header-label {
+            position: absolute;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 700;
+            transform: translateX(-50%);
+            bottom: 0;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .year-tick {
+            position: absolute;
+            width: 2px;
+            height: 10px;
+            background: rgba(0, 0, 0, 0.1);
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .year-tick-major {
+            height: 16px;
+            background: rgba(0, 0, 0, 0.25);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="main-wrapper">
+        <header class="app-header">
+            <h1>Asthma Tracker</h1>
+            <p>Respiratory History</p>
+            <div class="view-toggle" style="margin-top: 16px;">
+                <button id="btnVerticalView" class="view-btn active" onclick="setView('vertical')">Vertical
+                    Timeline</button>
+                <button id="btnYearlyView" class="view-btn" onclick="setView('yearly')">Yearly Layout</button>
+            </div>
+        </header>
+
+        <div class="split-view" id="splitView">
+            <div class="rail-col" id="railCol">
+                <div class="rail-line"></div>
+                <!-- Dynamic rail points and ticks go here -->
+            </div>
+
+            <div class="events-col" id="eventsCol">
+                <div class="events-inner" id="eventsInner">
+                    <div class="loading">Loading timeline...</div>
+                </div>
+            </div>
+
+            <svg class="connectors-overlay" id="connectorsOverlay"></svg>
+        </div>
+
+        <div class="yearly-view" id="yearlyView">
+            <!-- Dynamic yearly content -->
+        </div>
+    </div>
+
+    <!-- FAB -->
+    <button class="fab-btn" onclick="openModal()" title="Add new event">
+        <svg viewBox="0 0 24 24">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+    </button>
+
+
+
+    <!-- Modal Form -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-content">
+            <h2>Add Record</h2>
+            <form id="eventForm">
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="inputDate" required />
+                </div>
+
+                <div class="check-group">
+                    <input type="checkbox" id="inputWtb">
+                    <label for="inputWtb">Working to Breathe (WTB)</label>
+                </div>
+                <div class="check-group">
+                    <input type="checkbox" id="inputHosp">
+                    <label for="inputHosp">Taken to Hospital</label>
+                </div>
+                <div class="check-group">
+                    <input type="checkbox" id="inputOxy">
+                    <label for="inputOxy">Received Oxygen</label>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="form-group">
+                    <label>WTB Severity</label>
+                    <select id="inputSeverity">
+                        <option value="NA">NA / Not Applicable</option>
+                        <option value="low">Low</option>
+                        <option value="med">Medium</option>
+                        <option value="High">High</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Other Event / Title (Optional)</label>
+                    <input type="text" id="inputOther" placeholder="e.g. Started Nursery, Stomach bug" />
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Notes</label>
+                    <textarea id="inputNotes" placeholder="Describe the episode or event..."></textarea>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-cancel" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn btn-save" id="btnSave">Save Record</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="events_data.js"></script>
+    <script>
+        let events = [];
+
+        async function loadEvents() {
+            try {
+                let localEvents = [];
+                const stored = localStorage.getItem('addedEvents');
+                if (stored) {
+                    localEvents = JSON.parse(stored);
+                }
+                // initialEvents comes from events_data.js
+                events = [...initialEvents, ...localEvents];
+                renderTimeline();
+            } catch (err) {
+                console.error(err);
+                document.getElementById('eventsInner').innerHTML = `
+                    <div class="loading" style="color: #ef4444;">Failed to load data.</div>
+                `;
+            }
+        }
+
+        function renderTimeline() {
+            const railCol = document.getElementById('railCol');
+            const eventsInner = document.getElementById('eventsInner');
+
+            // Clean
+            railCol.querySelectorAll('.rail-point, .rail-tick').forEach(el => el.remove());
+            eventsInner.innerHTML = '';
+
+            if (events.length === 0) {
+                eventsInner.innerHTML = '<div class="loading">No events recorded.</div>';
+                return;
+            }
+
+            events.sort((a, b) => new Date(a.Date).getTime() - new Date(b.Date).getTime());
+
+            // Mathematical bound constants
+            const firstEv = new Date(events[0].Date).getTime();
+            const lastEv = Date.now();
+            let totalRange = lastEv - firstEv;
+            if (totalRange <= 0) totalRange = 1;
+
+            // DRAW TICKS SCALE
+            const activeRangePadding = 1000 * 60 * 60 * 24 * 31; // Add ~1mo buffer so labels extend cleanly
+            let currentCursor = new Date(firstEv);
+            currentCursor.setDate(1);
+
+            let maxCursor = new Date(lastEv);
+            maxCursor.setDate(1);
+            maxCursor.setMonth(maxCursor.getMonth() + 1);
+
+            while (currentCursor.getTime() <= maxCursor.getTime()) {
+                const t = currentCursor.getTime();
+                let pct = (t - firstEv) / totalRange;
+                const finalPct = 5 + (pct * 90);
+
+                // Ensure it draws within the visual UI area
+                if (finalPct >= 0 && finalPct <= 100) {
+                    const month = currentCursor.getMonth();
+                    const isQuarter = (month % 3 === 0);
+
+                    const tick = document.createElement('div');
+                    tick.className = 'rail-tick' + (isQuarter ? ' rail-tick-quarter' : '');
+                    tick.style.top = `${finalPct}%`;
+
+                    if (isQuarter) {
+                        const yr = currentCursor.getFullYear().toString().slice(2);
+                        const msStr = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][month];
+                        tick.innerHTML = `<span class="tick-label">${msStr}'${yr}</span>`;
+                    }
+                    railCol.appendChild(tick);
+                }
+                currentCursor.setMonth(currentCursor.getMonth() + 1);
+            }
+
+            // SET UP EVENTS
+            events.forEach((ev, i) => {
+                const d = new Date(ev.Date);
+                if (isNaN(d.getTime())) return;
+
+                let pct = (d.getTime() - firstEv) / totalRange;
+                const finalPct = 5 + (pct * 90);
+
+                const isWtb = ev.working_to_breath === '1';
+                const isOther = !isWtb;
+
+                let colorClass = 'timeline-blue';
+                let categoryName = 'Event';
+
+                if (isWtb) {
+                    if (ev.in_hospital === '1') {
+                        if (ev.received_oxygen === '1') { colorClass = 'timeline-red'; categoryName = 'WTB (Hospital, Oxygen)'; }
+                        else { colorClass = 'timeline-orange'; categoryName = 'WTB (Hospital, No Oxygen)'; }
+                    } else { colorClass = 'timeline-yellow'; categoryName = 'WTB (No Hospital)'; }
+                }
+
+                let title = ev.other_event;
+                if (!title) title = categoryName;
+
+                const dateStr = `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+
+                let tagsHtml = '';
+                if (isWtb && ev.wtb_severity && ev.wtb_severity.toUpperCase() !== 'NA') {
+                    const sev = ev.wtb_severity.toLowerCase();
+                    tagsHtml += `<span class="badge badge-severity severity-${sev}">Severity: ${ev.wtb_severity}</span>`;
+                }
+                if (ev.in_hospital === '1') tagsHtml += `<span class="badge badge-hospital">Hospital</span>`;
+                if (ev.received_oxygen === '1') tagsHtml += `<span class="badge badge-oxygen">Oxygen</span>`;
+
+                const rawNotes = ev.Notes || "";
+                const safeNotes = rawNotes.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+                // All cards start hidden; they appear while the dot is pressed
+                const cardExpandedClass = safeNotes ? 'expanded has-notes' : 'expanded';
+
+                const dot = document.createElement('div');
+                dot.className = `rail-point ${colorClass} clickable`;
+                dot.style.top = `${finalPct}%`;
+                dot.id = `dot-${i}`;
+                dot.title = "Hold to show details";
+
+                const wrapper = document.createElement('div');
+                wrapper.className = `event-card-wrapper`;
+                wrapper.id = `wrapper-${i}`;
+
+                wrapper.innerHTML = `
+                    <div class="collapsible-inner">
+                        <div class="event-card ${cardExpandedClass}" id="card-${i}">
+                            <div class="card-header">
+                                <div class="card-date">${dateStr}</div>
+                                <div class="card-title">${title} <span style="font-weight:400; font-size:0.85rem; color:var(--text-muted);">${!title.includes("WTB") && isWtb ? "(Working to breathe)" : ""}</span></div>
+                            </div>
+                            ${tagsHtml ? `<div class="card-meta">${tagsHtml}</div>` : ''}
+                            ${safeNotes ? `
+                                <div class="card-notes">
+                                    <div class="notes-content">
+                                        <div class="notes-content-inner">${safeNotes}</div>
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+
+
+
+                railCol.appendChild(dot);
+                eventsInner.appendChild(wrapper);
+
+                ev._index = i;
+                ev.colorClass = colorClass;
+            });
+
+            setupSVGPaths();
+            setTimeout(drawConnections, 50);
+            renderYearlyView();
+        }
+
+        // SVG Connector Logic
+        function setupSVGPaths() {
+            const svg = document.getElementById('connectorsOverlay');
+            svg.innerHTML = '';
+            events.forEach(ev => {
+                if (typeof ev._index === 'undefined') return;
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('class', `connector-path ${ev.colorClass}`);
+                path.setAttribute('id', `path-${ev._index}`);
+                svg.appendChild(path);
+            });
+        }
+
+        function drawConnections() {
+            const splitViewRect = document.getElementById('splitView').getBoundingClientRect();
+
+            events.forEach(ev => {
+                if (typeof ev._index === 'undefined') return;
+
+                const dot = document.getElementById(`dot-${ev._index}`);
+                const wrapper = document.getElementById(`wrapper-${ev._index}`);
+                const card = document.getElementById(`card-${ev._index}`);
+                const path = document.getElementById(`path-${ev._index}`);
+
+                if (!dot || !card || !path || !wrapper) return;
+
+                // Handle interactive hidden WTB cards gracefully so line isn't errantly anchored or floating
+                if (!wrapper.classList.contains('visible')) {
+                    path.setAttribute('d', ''); // Erase line completely
+                    return;
+                }
+
+                const dotRect = dot.getBoundingClientRect();
+                const cardRect = card.getBoundingClientRect();
+
+                const x1 = dotRect.left - splitViewRect.left + (dotRect.width / 2);
+                const y1 = dotRect.top - splitViewRect.top + (dotRect.height / 2);
+
+                const linkOffset = 30; // connects onto the left middle area of the card title
+                const x2 = cardRect.left - splitViewRect.left - 1;
+                const y2 = cardRect.top - splitViewRect.top + linkOffset;
+
+                path.setAttribute('d', `M ${x1} ${y1} C ${(x1 + x2) / 2} ${y1}, ${(x1 + x2) / 2} ${y2}, ${x2} ${y2}`);
+            });
+        }
+
+        function animateConnections() {
+            const start = performance.now();
+            function run(time) {
+                drawConnections();
+                if (time - start < 450) { // Keep animating to cover the 400ms transition cleanly
+                    requestAnimationFrame(run);
+                }
+            }
+            requestAnimationFrame(run);
+        }
+
+        function renderYearlyView() {
+            const container = document.getElementById('yearlyView');
+            container.innerHTML = '';
+
+            if (events.length === 0) {
+                container.innerHTML = '<div class="loading">No events recorded.</div>';
+                return;
+            }
+
+            const byYear = {};
+            events.forEach(ev => {
+                const d = new Date(ev.Date);
+                if (isNaN(d.getTime())) return;
+                const y = d.getFullYear();
+                if (!byYear[y]) byYear[y] = [];
+                byYear[y].push({ ev, d });
+            });
+
+            const years = Object.keys(byYear).sort((a, b) => a - b);
+
+            const qLabels = [
+                { text: 'Jan', month: 0 },
+                { text: 'Apr', month: 3 },
+                { text: 'Jul', month: 6 },
+                { text: 'Oct', month: 9 }
+            ];
+
+            const headerRow = document.createElement('div');
+            headerRow.className = 'year-header-row';
+            const headerTimeline = document.createElement('div');
+            headerTimeline.className = 'year-header-timeline';
+
+            // Generate dynamic header labels
+            qLabels.forEach(l => {
+                const pct = new Date(2023, l.month, 1).getTime() - new Date(2023, 0, 1).getTime();
+                const total = new Date(2023, 11, 31, 23, 59, 59).getTime() - new Date(2023, 0, 1).getTime();
+                const d = document.createElement('div');
+                d.className = 'year-header-label';
+                d.style.left = `${(pct / total) * 100}%`;
+                d.innerText = l.text;
+                headerTimeline.appendChild(d);
+            });
+            headerRow.appendChild(headerTimeline);
+            container.appendChild(headerRow);
+
+            // Single card panel rendered at the bottom of the yearly view
+            const cardPanel = document.createElement('div');
+            cardPanel.className = 'year-card-panel';
+            const cardInner = document.createElement('div');
+            cardInner.className = 'year-card-inner';
+            cardPanel.appendChild(cardInner);
+
+            // Track currently-pressed dot so we can manage one card at a time
+            let activeDot = null;
+
+            years.forEach(y => {
+                const row = document.createElement('div');
+                row.className = 'year-row';
+
+                const label = document.createElement('div');
+                label.className = 'year-label';
+                label.innerText = y;
+
+                const timeline = document.createElement('div');
+                timeline.className = 'year-timeline';
+
+                const line = document.createElement('div');
+                line.className = 'year-line';
+                timeline.appendChild(line);
+
+                // Generate monthly ticks
+                const startOfYear = new Date(y, 0, 1).getTime();
+                const endOfYear = new Date(y, 11, 31, 23, 59, 59).getTime();
+
+                for (let m = 0; m < 12; m++) {
+                    const pct = (new Date(y, m, 1).getTime() - startOfYear) / (endOfYear - startOfYear);
+                    const t = document.createElement('div');
+                    t.className = 'year-tick';
+                    if (m === 0 || m === 3 || m === 6 || m === 9) t.classList.add('year-tick-major');
+                    t.style.left = `${pct * 100}%`;
+                    timeline.appendChild(t);
+                }
+
+                byYear[y].forEach(item => {
+                    const { ev, d } = item;
+                    let pct = (d.getTime() - startOfYear) / (endOfYear - startOfYear);
+                    if (pct < 0) pct = 0; if (pct > 1) pct = 1;
+
+                    const dot = document.createElement('div');
+                    dot.className = `year-dot ${ev.colorClass || 'timeline-blue'}`;
+                    dot.style.left = `${pct * 100}%`;
+
+                    const isWtb = ev.working_to_breath === '1';
+                    let categoryName = 'Event';
+                    if (isWtb) {
+                        if (ev.in_hospital === '1') {
+                            categoryName = ev.received_oxygen === '1' ? 'WTB (Hospital, Oxygen)' : 'WTB (Hospital, No Oxygen)';
+                        } else {
+                            categoryName = 'WTB (No Hospital)';
+                        }
+                    }
+                    let title = ev.other_event;
+                    if (!title) title = categoryName;
+
+                    const dateStr = `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+
+                    let tagsHtml = '';
+                    if (isWtb && ev.wtb_severity && ev.wtb_severity.toUpperCase() !== 'NA') {
+                        const sev = ev.wtb_severity.toLowerCase();
+                        tagsHtml += `<span class="badge badge-severity severity-${sev}">Severity: ${ev.wtb_severity}</span>`;
+                    }
+                    if (ev.in_hospital === '1') tagsHtml += `<span class="badge badge-hospital">Hospital</span>`;
+                    if (ev.received_oxygen === '1') tagsHtml += `<span class="badge badge-oxygen">Oxygen</span>`;
+
+                    const rawNotes = ev.Notes || "";
+                    const safeNotes = rawNotes.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+                    const cardHTML = `
+                        <div class="event-card expanded" style="cursor:default;">
+                            <div class="card-header">
+                                <div class="card-date">${dateStr}</div>
+                                <div class="card-title">${title} <span style="font-weight:400;font-size:0.85rem;color:var(--text-muted);">${!title.includes('WTB') && isWtb ? '(Working to breathe)' : ''}</span></div>
+                            </div>
+                            ${tagsHtml ? `<div class="card-meta">${tagsHtml}</div>` : ''}
+                            ${safeNotes ? `
+                                <div class="card-notes" style="grid-template-rows:1fr;margin-top:8px;opacity:1;pointer-events:auto;">
+                                    <div class="notes-content"><div class="notes-content-inner">${safeNotes}</div></div>
+                                </div>` : ''}
+                        </div>`;
+
+                    dot.dataset.cardHtml = cardHTML;
+
+                    timeline.appendChild(dot);
+                });
+
+                row.appendChild(label);
+                row.appendChild(timeline);
+                container.appendChild(row);
+            });
+
+            // Append the single card panel at the very bottom
+            container.appendChild(cardPanel);
+        }
+
+        let currentView = 'vertical';
+        function setView(view) {
+            currentView = view;
+            document.getElementById('btnVerticalView').classList.toggle('active', view === 'vertical');
+            document.getElementById('btnYearlyView').classList.toggle('active', view === 'yearly');
+
+            const splitView = document.getElementById('splitView');
+            const yearlyView = document.getElementById('yearlyView');
+
+            if (view === 'vertical') {
+                splitView.style.display = 'flex';
+                yearlyView.classList.remove('active');
+                drawConnections();
+            } else {
+                splitView.style.display = 'none';
+                yearlyView.classList.add('active');
+            }
+        }
+
+        // Global Scrubbing Handlers
+        let isScrubbing = false;
+        let activeScrubDot = null;
+
+        function getEventPoint(e) {
+            if (e.touches && e.touches.length > 0) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            return { x: e.clientX, y: e.clientY };
+        }
+
+        function handleScrubStart(e) {
+            const pt = getEventPoint(e);
+            const el = document.elementFromPoint(pt.x, pt.y);
+            if (el && (el.classList.contains('rail-point') || el.classList.contains('year-dot'))) {
+                isScrubbing = true;
+                if (e.type === 'touchstart') e.preventDefault();
+                updateScrub(pt.x, pt.y);
+            }
+        }
+
+        function handleScrubMove(e) {
+            if (!isScrubbing) return;
+            if (e.type === 'touchmove') e.preventDefault();
+            const pt = getEventPoint(e);
+            updateScrub(pt.x, pt.y);
+        }
+
+        function handleScrubEnd(e) {
+            if (isScrubbing) {
+                isScrubbing = false;
+                if (activeScrubDot) {
+                    hideDot(activeScrubDot);
+                    activeScrubDot = null;
+                }
+            }
+        }
+
+        function updateScrub(x, y) {
+            const el = document.elementFromPoint(x, y);
+            if (el && (el.classList.contains('rail-point') || el.classList.contains('year-dot'))) {
+                if (activeScrubDot !== el) {
+                    if (activeScrubDot) hideDot(activeScrubDot);
+                    activeScrubDot = el;
+                    showDot(activeScrubDot);
+                }
+            }
+        }
+
+        function showDot(dot) {
+            dot.style.transform = 'translate(-50%, -50%) scale(1.4)';
+            dot.style.zIndex = '15';
+
+            if (dot.classList.contains('rail-point')) {
+                const id = dot.id.split('-')[1];
+                const wrapper = document.getElementById(`wrapper-${id}`);
+                const eventsInner = document.getElementById('eventsInner');
+                const dotRect = dot.getBoundingClientRect();
+                const eventsInnerRect = eventsInner.getBoundingClientRect();
+
+                let marginTop = (dotRect.top - eventsInnerRect.top) - 40;
+                if (marginTop < 0) marginTop = 0;
+                wrapper.style.marginTop = `${marginTop}px`;
+                wrapper.classList.add('visible');
+                animateConnections();
+            } else if (dot.classList.contains('year-dot')) {
+                const cardInner = document.querySelector('.year-card-inner');
+                const cardPanel = document.querySelector('.year-card-panel');
+                if (cardInner && cardPanel) {
+                    cardInner.innerHTML = dot.dataset.cardHtml;
+                    cardPanel.classList.add('visible');
+                }
+            }
+        }
+
+        function hideDot(dot) {
+            dot.style.transform = '';
+            dot.style.zIndex = '';
+
+            if (dot.classList.contains('rail-point')) {
+                const id = dot.id.split('-')[1];
+                const wrapper = document.getElementById(`wrapper-${id}`);
+                if (wrapper) {
+                    wrapper.classList.remove('visible');
+                    setTimeout(() => {
+                        if (!wrapper.classList.contains('visible')) {
+                            wrapper.style.marginTop = '0px';
+                        }
+                    }, 150);
+                }
+                animateConnections();
+            } else if (dot.classList.contains('year-dot')) {
+                const cardPanel = document.querySelector('.year-card-panel');
+                if (cardPanel) {
+                    cardPanel.classList.remove('visible');
+                }
+            }
+        }
+
+        // Setup DOM Listeners
+        document.addEventListener("DOMContentLoaded", () => {
+            loadEvents();
+            document.getElementById("inputDate").valueAsDate = new Date();
+
+            document.addEventListener('mousedown', handleScrubStart);
+            document.addEventListener('touchstart', handleScrubStart, { passive: false });
+            document.addEventListener('mousemove', handleScrubMove);
+            document.addEventListener('touchmove', handleScrubMove, { passive: false });
+            document.addEventListener('mouseup', handleScrubEnd);
+            document.addEventListener('touchend', handleScrubEnd);
+            document.addEventListener('touchcancel', handleScrubEnd);
+
+            document.getElementById('eventsCol').addEventListener('scroll', () => {
+                requestAnimationFrame(drawConnections);
+            });
+            window.addEventListener('resize', drawConnections);
+
+            document.getElementById("modalOverlay").addEventListener("click", (e) => {
+                if (e.target.id === "modalOverlay") closeModal();
+            });
+
+            document.getElementById("eventForm").addEventListener("submit", async (e) => {
+                e.preventDefault();
+                const btnSave = document.getElementById("btnSave");
+                btnSave.textContent = "Saving...";
+                btnSave.disabled = true;
+
+                const payload = {
+                    Date: document.getElementById("inputDate").value,
+                    working_to_breath: document.getElementById("inputWtb").checked ? "1" : "0",
+                    in_hospital: document.getElementById("inputHosp").checked ? "1" : "0",
+                    received_oxygen: document.getElementById("inputOxy").checked ? "1" : "0",
+                    wtb_severity: document.getElementById("inputSeverity").value,
+                    other_event: document.getElementById("inputOther").value.trim(),
+                    Notes: document.getElementById("inputNotes").value.trim()
+                };
+
+                try {
+                    let localEvents = [];
+                    const stored = localStorage.getItem('addedEvents');
+                    if (stored) {
+                        localEvents = JSON.parse(stored);
+                    }
+                    localEvents.push(payload);
+                    localStorage.setItem('addedEvents', JSON.stringify(localEvents));
+
+                    closeModal();
+                    document.getElementById("eventForm").reset();
+                    document.getElementById("inputDate").valueAsDate = new Date();
+                    await loadEvents();
+
+                    document.getElementById("eventsCol").scrollTo({
+                        top: document.getElementById("eventsInner").scrollHeight,
+                        behavior: 'smooth'
+                    });
+                } catch (err) {
+                    alert("Failed to save event.");
+                } finally {
+                    btnSave.textContent = "Save Record";
+                    btnSave.disabled = false;
+                }
+            });
+        });
+
+        function openModal() { document.getElementById("modalOverlay").classList.add("active"); }
+        function closeModal() { document.getElementById("modalOverlay").classList.remove("active"); }
+    </script>
+</body>
+
+</html>
