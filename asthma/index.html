@@ -5,22 +5,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Asthma Tracker</title>
-    <!-- Modern typography from Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            /* Light theme variables */
             --bg-body: #f8fafc;
             --text-dark: #0f172a;
             --text-muted: #64748b;
-
             --card-bg: #ffffff;
             --card-border: #e2e8f0;
             --card-shadow: rgba(0, 0, 0, 0.05);
-            /* very soft shadow */
-
             --color-blue: #74a9ff;
             --color-yellow: #ffd813;
             --color-orange: #ff962e;
@@ -45,6 +40,91 @@
             -webkit-font-smoothing: antialiased;
         }
 
+        /* ── Auth Banner ── */
+        #auth-banner {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 6px 16px;
+            background: #fff;
+            border-bottom: 1px solid var(--card-border);
+            font-size: 0.82rem;
+            min-height: 40px;
+        }
+
+        #auth-banner button {
+            padding: 4px 14px;
+            border-radius: 20px;
+            border: none;
+            font-family: inherit;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        #auth-banner button:hover {
+            opacity: 0.8;
+        }
+
+        .btn-google {
+            background: #4285F4;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-signout {
+            background: #f1f5f9;
+            color: var(--text-muted);
+        }
+
+        .btn-family-code {
+            background: transparent;
+            color: var(--color-blue);
+            text-decoration: underline;
+            font-weight: 600;
+            border: none !important;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.82rem;
+        }
+
+        /* ── Auth wall (shown when signed out) ── */
+        #auth-wall {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            color: var(--text-muted);
+        }
+
+        #auth-wall.visible {
+            display: flex;
+        }
+
+        #auth-wall h2 {
+            font-size: 1.2rem;
+            color: var(--text-dark);
+        }
+
+        /* ── Main content ── */
+        #app-content {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        #app-content.visible {
+            display: flex;
+        }
+
         .main-wrapper {
             flex: 1;
             display: flex;
@@ -56,10 +136,9 @@
             min-height: 0;
         }
 
-        /* --- Header --- */
         .app-header {
             flex-shrink: 0;
-            padding: 24px 16px 16px;
+            padding: 16px 16px 10px;
             text-align: center;
             z-index: 10;
         }
@@ -82,7 +161,6 @@
             font-weight: 600;
         }
 
-        /* --- Split View Layout --- */
         .split-view {
             flex: 1;
             display: flex;
@@ -91,10 +169,8 @@
             min-height: 0;
         }
 
-        /* Static Rail Container */
         .rail-col {
-            width: 200px;
-            /* widened for tick labels */
+            width: 120px;
             flex-shrink: 0;
             position: relative;
         }
@@ -118,14 +194,11 @@
             height: 10px;
             border-radius: 50%;
             z-index: 3;
-            /* above ticks */
             border: 1px solid var(--bg-body);
-            /* cuts out line behind it cleanly */
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
             transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* Make WTB dots interactive */
         .rail-point.clickable {
             cursor: pointer;
         }
@@ -135,7 +208,6 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
         }
 
-        /* Timeline Scale / Ticks */
         .rail-tick {
             position: absolute;
             left: 50%;
@@ -156,7 +228,6 @@
             position: absolute;
             right: 100%;
             margin-right: 8px;
-            /* buffer from the tick line to the text */
             top: 50%;
             transform: translateY(-50%);
             font-size: 0.65rem;
@@ -164,14 +235,12 @@
             font-weight: 600;
         }
 
-        /* Scrollable Events Container */
         .events-col {
             flex: 1;
             overflow-y: auto;
             position: relative;
             padding-right: 16px;
             padding-bottom: 120px;
-            /* Space for the floating button */
             -webkit-overflow-scrolling: touch;
         }
 
@@ -180,12 +249,11 @@
             padding-left: 20px;
         }
 
-        /* Wrapper states to manage layout transitions */
         .event-card-wrapper {
             display: grid;
             grid-template-rows: 0fr;
             transition: grid-template-rows 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-            margin-bottom: 0px;
+            margin-bottom: 0;
         }
 
         .collapsible-inner {
@@ -197,7 +265,6 @@
 
         .event-card-wrapper.visible {
             grid-template-rows: 1fr;
-            margin-bottom: 0px;
         }
 
         .event-card-wrapper.visible .collapsible-inner {
@@ -206,7 +273,6 @@
             padding-top: 2px;
         }
 
-        /* Connecting lines overlay */
         .connectors-overlay {
             position: absolute;
             top: 0;
@@ -224,19 +290,16 @@
             transition: stroke 0.3s ease;
         }
 
-        /* Dynamic Colors Applied */
         .timeline-yellow {
             background: var(--color-yellow);
         }
 
         .connector-path.timeline-yellow {
             stroke: var(--color-yellow);
-            z-index: 8 !important;
         }
 
         .timeline-orange {
             background: var(--color-orange);
-            z-index: 9 !important;
         }
 
         .connector-path.timeline-orange {
@@ -245,7 +308,6 @@
 
         .timeline-red {
             background: var(--color-red);
-            z-index: 10 !important;
         }
 
         .connector-path.timeline-red {
@@ -263,12 +325,11 @@
             stroke: var(--color-blue);
         }
 
-        /* --- Event Card --- */
         .event-card {
             background: var(--card-bg);
             border: 1px solid var(--card-border);
             border-radius: 10px;
-            padding: 5px 16px;
+            padding: 5px 10px;
             position: relative;
             box-shadow: 0 4px 10px -2px var(--card-shadow), 0 2px 4px -2px var(--card-shadow);
             transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
@@ -364,7 +425,6 @@
             border-color: #5eead4;
         }
 
-        /* Smooth expanding notes via Grid Height Animation */
         .card-notes {
             display: grid;
             grid-template-rows: 0fr;
@@ -391,7 +451,6 @@
             padding-top: 4px;
         }
 
-        /* --- Shared Modal/FAB details --- */
         .fab-btn {
             position: fixed;
             bottom: 30px;
@@ -444,13 +503,6 @@
         .modal-overlay.active {
             opacity: 1;
             pointer-events: auto;
-        }
-
-        .instant-overlay {
-            backdrop-filter: none;
-            -webkit-backdrop-filter: none;
-            background: rgba(15, 23, 42, 0.2);
-            transition: none;
         }
 
         .modal-content {
@@ -514,11 +566,6 @@
         .form-group textarea {
             resize: vertical;
             min-height: 80px;
-        }
-
-        ::-webkit-calendar-picker-indicator {
-            opacity: 0.6;
-            cursor: pointer;
         }
 
         .check-group {
@@ -604,7 +651,6 @@
             padding: 40px;
         }
 
-        /* --- Yearly Horizontal View --- */
         .view-toggle {
             display: flex;
             justify-content: center;
@@ -668,7 +714,6 @@
             position: relative;
         }
 
-        /* Inline card panel shown below a year row on press */
         .year-card-panel {
             display: grid;
             grid-template-rows: 0fr;
@@ -698,7 +743,7 @@
         .year-label {
             width: 50px;
             font-weight: 700;
-            font-size: 1.0rem;
+            font-size: 1rem;
             color: var(--text-dark);
             flex-shrink: 0;
             letter-spacing: -0.02em;
@@ -781,7 +826,6 @@
             background: rgba(0, 0, 0, 0.25);
         }
 
-        /* --- Filter / Control Toolbar --- */
         .filter-toolbar {
             display: flex;
             justify-content: center;
@@ -855,13 +899,11 @@
             border-color: var(--color-blue);
         }
 
-        /* Dimmed = hidden type */
         .filter-pill.dimmed {
             opacity: 0.35;
             box-shadow: none;
         }
 
-        /* Show-all-cards toggle button (vertical only) */
         .cards-toggle-btn {
             padding: 4px 12px;
             border-radius: 20px;
@@ -887,12 +929,10 @@
             border-color: #0f172a;
         }
 
-        /* Elements hidden by the type-filter */
         .type-hidden {
             display: none !important;
         }
 
-        /* Vertical-only controls hidden when yearly view is active */
         .vertical-only {
             transition: opacity 0.2s;
         }
@@ -902,15 +942,12 @@
             pointer-events: none;
         }
 
-        /* --- Today indicator --- */
         .today-dot {
             background: #affccc;
             width: 8px !important;
             height: 8px !important;
             border: 1px solid #61ff06;
-            /*box-shadow: 0 0 0 2px #affccc, 0 2px 6px rgba(0, 0, 0, 0.15);*/
             cursor: default !important;
-            /*animation: today-pulse 2.5s ease-in-out infinite;*/
             z-index: 5 !important;
         }
 
@@ -941,96 +978,238 @@
             transform: translate(-50%, -50%);
             background: #affccc;
             border: 1px solid #61ff06;
-            /* box-shadow: 0 0 0 2px #affccc, 0 2px 6px rgba(0, 0, 0, 0.15);*/
             cursor: default !important;
             z-index: 10;
-            /* animation: today-pulse 2.5s ease-in-out infinite;*/
         }
 
-        @keyframes today-pulse {
+        /* ── Family / Code modals ── */
+        .simple-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(6px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+        }
 
-            0%,
-            100% {
-                box-shadow: 0 0 0 2px #22c55e, 0 2px 6px rgba(0, 0, 0, 0.15);
-            }
+        .simple-modal-overlay.hidden {
+            display: none;
+        }
 
-            50% {
-                box-shadow: 0 0 0 5px rgba(34, 197, 94, 0.25), 0 2px 6px rgba(0, 0, 0, 0.15);
-            }
+        .simple-modal-box {
+            background: #fff;
+            border-radius: 16px;
+            padding: 28px 24px;
+            width: 90%;
+            max-width: 380px;
+            text-align: center;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        .simple-modal-box h3 {
+            font-size: 1.15rem;
+            margin-bottom: 8px;
+        }
+
+        .simple-modal-box p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+
+        .simple-modal-box input[type="text"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            outline: none;
+            margin-bottom: 10px;
+        }
+
+        .simple-modal-box input[type="text"]:focus {
+            border-color: var(--color-blue);
+        }
+
+        .btn-primary-full {
+            width: 100%;
+            padding: 12px;
+            background: #4285F4;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-family: inherit;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            margin-bottom: 10px;
+            transition: opacity 0.2s;
+        }
+
+        .btn-primary-full:hover {
+            opacity: 0.88;
+        }
+
+        .btn-secondary-full {
+            width: 100%;
+            padding: 10px;
+            background: #f1f5f9;
+            color: var(--text-dark);
+            border: none;
+            border-radius: 10px;
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-secondary-full:hover {
+            background: #e2e8f0;
+        }
+
+        .code-display-box {
+            background: #f8fafc;
+            border: 2px dashed #cbd5e1;
+            border-radius: 10px;
+            padding: 14px 16px;
+            position: relative;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 0.95rem;
+            letter-spacing: 0.04em;
+            color: var(--text-dark);
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: #f1f5f9;
+        }
+
+        .copy-btn svg {
+            display: block;
+            width: 16px;
+            height: 16px;
+            color: var(--text-muted);
+        }
+
+        .divider-text {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            margin: 14px 0;
+        }
+
+        .divider-text::before,
+        .divider-text::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #e2e8f0;
         }
     </style>
 </head>
 
 <body>
 
-    <div class="main-wrapper">
-        <header class="app-header">
-            <h1>Asthma Tracker</h1>
-            <div class="view-toggle" style="margin-top: 16px;">
-                <button id="btnVerticalView" class="view-btn active" onclick="setView('vertical')">Vertical
-                    Timeline</button>
-                <button id="btnYearlyView" class="view-btn" onclick="setView('yearly')">Yearly Layout</button>
-            </div>
+    <!-- Auth banner (always visible) -->
+    <div id="auth-banner">
+        <span id="banner-content">Loading…</span>
+    </div>
 
-            <!-- Filter & control toolbar -->
-            <div class="filter-toolbar">
-                <div class="filter-group" id="colorFilters">
-                    <button id="filterRed" class="filter-pill pill-red" onclick="toggleTypeFilter('timeline-red')"
-                        title="Toggle Red events">
-                        <span class="pill-dot"></span>Hsp+Ox
-                    </button>
-                    <button id="filterOrange" class="filter-pill pill-orange"
-                        onclick="toggleTypeFilter('timeline-orange')" title="Toggle Orange events">
-                        <span class="pill-dot"></span>Hsp
-                    </button>
-                    <button id="filterYellow" class="filter-pill pill-yellow"
-                        onclick="toggleTypeFilter('timeline-yellow')" title="Toggle Yellow events">
-                        <span class="pill-dot"></span>WTB
-                    </button>
-                    <button id="filterBlue" class="filter-pill pill-blue" onclick="toggleTypeFilter('timeline-blue')"
-                        title="Toggle Blue events">
-                        <span class="pill-dot"></span>Other
+    <!-- Auth wall (shown when signed out) -->
+    <div id="auth-wall">
+        <h2>Asthma Tracker</h2>
+        <p style="text-align:center; max-width:280px;">Sign in with Google to view and add records, and share access
+            with family.</p>
+        <button class="btn-google" id="wall-sign-in-btn"
+            style="padding:10px 20px; border-radius:8px; border:none; font-family:inherit; font-size:0.95rem; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:8px; background:#4285F4; color:#fff;">
+            <svg width="18" height="18" viewBox="0 0 48 48">
+                <path fill="#fff"
+                    d="M44.5 20H24v8.5h11.7C34.2 33.6 29.6 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.7 1.1 7.8 2.9l6.2-6.2C34.2 5.8 29.4 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 19.7-8 19.7-20 0-1.3-.1-2.7-.2-4z" />
+            </svg>
+            Sign in with Google
+        </button>
+    </div>
+
+    <!-- App content (shown when signed in + in a group) -->
+    <div id="app-content">
+        <div class="main-wrapper">
+            <header class="app-header">
+                <h1>Asthma Tracker</h1>
+                <div class="view-toggle" style="margin-top: 16px;">
+                    <button id="btnVerticalView" class="view-btn active" onclick="setView('vertical')">Vertical
+                        Timeline</button>
+                    <button id="btnYearlyView" class="view-btn" onclick="setView('yearly')">Yearly Layout</button>
+                </div>
+                <div class="filter-toolbar">
+                    <div class="filter-group" id="colorFilters">
+                        <button id="filterRed" class="filter-pill pill-red" onclick="toggleTypeFilter('timeline-red')"
+                            title="Toggle Red events">
+                            <span class="pill-dot"></span>Hsp+Ox
+                        </button>
+                        <button id="filterOrange" class="filter-pill pill-orange"
+                            onclick="toggleTypeFilter('timeline-orange')" title="Toggle Orange events">
+                            <span class="pill-dot"></span>Hsp
+                        </button>
+                        <button id="filterYellow" class="filter-pill pill-yellow"
+                            onclick="toggleTypeFilter('timeline-yellow')" title="Toggle Yellow events">
+                            <span class="pill-dot"></span>WTB
+                        </button>
+                        <button id="filterBlue" class="filter-pill pill-blue"
+                            onclick="toggleTypeFilter('timeline-blue')" title="Toggle Blue events">
+                            <span class="pill-dot"></span>Other
+                        </button>
+                    </div>
+                    <div class="filter-sep"></div>
+                    <button id="showCardsBtn" class="cards-toggle-btn vertical-only" onclick="toggleShowAllCards()"
+                        title="Show or hide all event cards">
+                        Show Cards
                     </button>
                 </div>
-                <div class="filter-sep"></div>
-                <button id="showCardsBtn" class="cards-toggle-btn vertical-only" onclick="toggleShowAllCards()"
-                    title="Show or hide all event cards">
-                    Show Cards
-                </button>
-            </div>
-        </header>
+            </header>
 
-        <div class="split-view" id="splitView">
-            <div class="rail-col" id="railCol">
-                <div class="rail-line"></div>
-                <!-- Dynamic rail points and ticks go here -->
-            </div>
-
-            <div class="events-col" id="eventsCol">
-                <div class="events-inner" id="eventsInner">
-                    <div class="loading">Loading timeline...</div>
+            <div class="split-view" id="splitView">
+                <div class="rail-col" id="railCol">
+                    <div class="rail-line"></div>
                 </div>
+                <div class="events-col" id="eventsCol">
+                    <div class="events-inner" id="eventsInner">
+                        <div class="loading">Loading timeline…</div>
+                    </div>
+                </div>
+                <svg class="connectors-overlay" id="connectorsOverlay"></svg>
             </div>
 
-            <svg class="connectors-overlay" id="connectorsOverlay"></svg>
-        </div>
-
-        <div class="yearly-view" id="yearlyView">
-            <!-- Dynamic yearly content -->
+            <div class="yearly-view" id="yearlyView"></div>
         </div>
     </div>
 
-    <!-- FAB -->
-    <button class="fab-btn" onclick="openModal()" title="Add new event">
+    <!-- FAB (only shown when signed in) -->
+    <button class="fab-btn" id="fabBtn" onclick="openModal()" title="Add new event" style="display:none;">
         <svg viewBox="0 0 24 24">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
         </svg>
     </button>
 
-
-
-    <!-- Modal Form -->
+    <!-- Add Record Modal -->
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal-content">
             <h2>Add Record</h2>
@@ -1039,7 +1218,6 @@
                     <label>Date</label>
                     <input type="date" id="inputDate" required />
                 </div>
-
                 <div class="check-group">
                     <input type="checkbox" id="inputWtb">
                     <label for="inputWtb">Working to Breathe (WTB)</label>
@@ -1052,9 +1230,7 @@
                     <input type="checkbox" id="inputOxy">
                     <label for="inputOxy">Received Oxygen</label>
                 </div>
-
                 <div class="divider"></div>
-
                 <div class="form-group">
                     <label>WTB Severity</label>
                     <select id="inputSeverity">
@@ -1064,17 +1240,14 @@
                         <option value="High">High</option>
                     </select>
                 </div>
-
                 <div class="form-group">
                     <label>Other Event / Title (Optional)</label>
                     <input type="text" id="inputOther" placeholder="e.g. Started Nursery, Stomach bug" />
                 </div>
-
                 <div class="form-group" style="margin-bottom: 0;">
                     <label>Notes</label>
-                    <textarea id="inputNotes" placeholder="Describe the episode or event..."></textarea>
+                    <textarea id="inputNotes" placeholder="Describe the episode or event…"></textarea>
                 </div>
-
                 <div class="modal-actions">
                     <button type="button" class="btn btn-cancel" onclick="closeModal()">Cancel</button>
                     <button type="submit" class="btn btn-save" id="btnSave">Save Record</button>
@@ -1083,54 +1256,310 @@
         </div>
     </div>
 
-    <script src="events_data.js"></script>
-    <script>
+    <!-- Family Setup Modal (new users) -->
+    <div class="simple-modal-overlay hidden" id="familySetupModal">
+        <div class="simple-modal-box">
+            <h3>Welcome!</h3>
+            <p>Create a new tracker or join an existing one with a sharing code.</p>
+
+            <div id="familySetupContent">
+                <button class="btn-primary-full" id="createGroupBtn">Create New Tracker</button>
+                <div class="divider-text">or join existing</div>
+                <input type="text" id="joinCodeInput" placeholder="Paste sharing code here…">
+                <button class="btn-secondary-full" id="joinGroupBtn">Join</button>
+            </div>
+
+            <div id="familySetupFeedback" style="display:none;">
+                <p style="color:#16a34a; font-weight:600; margin-bottom:6px;">✓ Tracker created!</p>
+                <p style="margin-bottom:12px;">Share this code with family members so they can access the same data:</p>
+                <div class="code-display-box" id="newGroupCodeDisplay">
+                    <button class="copy-btn" id="copyNewCodeBtn" title="Copy">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" />
+                            <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                        </svg>
+                    </button>
+                    <span id="newGroupCodeText"></span>
+                </div>
+                <button class="btn-primary-full" id="startTrackingBtn" style="margin-top:16px;">Start Tracking</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Sharing Code Modal -->
+    <div class="simple-modal-overlay hidden" id="viewCodeModal">
+        <div class="simple-modal-box">
+            <h3>Sharing Code</h3>
+            <p>Share this code with a family member so they can view and add records.</p>
+            <div class="code-display-box" id="viewCodeDisplay">
+                <button class="copy-btn" id="copyViewCodeBtn" title="Copy">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <rect x="9" y="9" width="13" height="13" rx="2" />
+                        <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                    </svg>
+                </button>
+                <span id="viewCodeText"></span>
+            </div>
+            <button class="btn-secondary-full" id="closeViewCodeBtn" style="margin-top:16px;">Close</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, onSnapshot, setDoc, addDoc, getDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // ── FIREBASE CONFIG  ─────────────────────────────
+        const firebaseConfig = {
+            apiKey: "AIzaSyBdvWvLUF24hgk15S3dN_zr6NkrBxikvXc",
+            authDomain: "health-tracker-3c70e.firebaseapp.com",
+            projectId: "health-tracker-3c70e",
+            storageBucket: "health-tracker-3c70e.firebasestorage.app",
+            messagingSenderId: "460301262807",
+            appId: "1:460301262807:web:801460b0ef3f5581713592"
+        };
+        // ───────────────────────────────────────────────────────────────────────
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // ── State ──
+        let currentGroupId = null;
+        let eventsUnsubscribe = () => { };
         let events = [];
 
-        async function loadEvents() {
-            try {
-                let localEvents = [];
-                const stored = localStorage.getItem('addedEvents');
-                if (stored) {
-                    localEvents = JSON.parse(stored);
-                }
-                // initialEvents comes from events_data.js
-                events = [...initialEvents, ...localEvents];
-                renderTimeline();
-            } catch (err) {
-                console.error(err);
-                document.getElementById('eventsInner').innerHTML = `
-                    <div class="loading" style="color: #ef4444;">Failed to load data.</div>
-                `;
+        // ── DOM refs ──
+        const authBanner = document.getElementById('auth-banner');
+        const bannerContent = document.getElementById('banner-content');
+        const authWall = document.getElementById('auth-wall');
+        const appContent = document.getElementById('app-content');
+        const fabBtn = document.getElementById('fabBtn');
+        const familySetupModal = document.getElementById('familySetupModal');
+        const familySetupContent = document.getElementById('familySetupContent');
+        const familySetupFeedback = document.getElementById('familySetupFeedback');
+        const createGroupBtn = document.getElementById('createGroupBtn');
+        const joinCodeInput = document.getElementById('joinCodeInput');
+        const joinGroupBtn = document.getElementById('joinGroupBtn');
+        const newGroupCodeDisplay = document.getElementById('newGroupCodeDisplay');
+        const newGroupCodeText = document.getElementById('newGroupCodeText');
+        const copyNewCodeBtn = document.getElementById('copyNewCodeBtn');
+        const startTrackingBtn = document.getElementById('startTrackingBtn');
+        const viewCodeModal = document.getElementById('viewCodeModal');
+        const viewCodeText = document.getElementById('viewCodeText');
+        const copyViewCodeBtn = document.getElementById('copyViewCodeBtn');
+        const closeViewCodeBtn = document.getElementById('closeViewCodeBtn');
+
+        // ── Auth ──
+        onAuthStateChanged(auth, user => {
+            if (user) {
+                showBannerUser(user);
+                checkUserGroup(user);
+            } else {
+                showBannerGuest();
+            }
+        });
+
+        function showBannerGuest() {
+            bannerContent.innerHTML = `<button id="banner-sign-in-btn" class="btn-google" style="padding:4px 14px; border-radius:20px; border:none; font-family:inherit; font-size:0.82rem; font-weight:600; cursor:pointer; background:#4285F4; color:#fff; display:flex; align-items:center; gap:6px;">Sign in with Google</button>`;
+            document.getElementById('banner-sign-in-btn').onclick = doSignIn;
+            authWall.classList.add('visible');
+            appContent.classList.remove('visible');
+            fabBtn.style.display = 'none';
+            eventsUnsubscribe();
+        }
+
+        function showBannerUser(user) {
+            const name = user.displayName ? user.displayName.split(' ')[0] : (user.email ? user.email.split('@')[0] : 'User');
+            bannerContent.innerHTML = `
+                <button class="btn-family-code" id="banner-code-btn">📋 ${name}'s Tracker — Share Code</button>
+                <button class="btn-signout" id="banner-signout-btn">Sign Out</button>
+            `;
+            document.getElementById('banner-code-btn').onclick = showViewCodeModal;
+            document.getElementById('banner-signout-btn').onclick = () => signOut(auth);
+        }
+
+        document.getElementById('wall-sign-in-btn').onclick = doSignIn;
+
+        function doSignIn() {
+            const provider = new GoogleAuthProvider();
+            signInWithPopup(auth, provider).catch(err => console.error('Sign in error', err));
+        }
+
+        // ── Group / Family logic ──
+        async function checkUserGroup(user) {
+            const userRef = doc(db, 'users', user.uid);
+            const userSnap = await getDoc(userRef);
+
+            if (userSnap.exists() && userSnap.data().groupId) {
+                currentGroupId = userSnap.data().groupId;
+                launchApp();
+            } else {
+                // New user — show setup modal
+                familySetupModal.classList.remove('hidden');
             }
         }
+
+        createGroupBtn.onclick = async () => {
+            const user = auth.currentUser;
+            if (!user) return;
+
+            const groupRef = await addDoc(collection(db, 'groups'), {
+                ownerId: user.uid,
+                createdAt: serverTimestamp()
+            });
+
+            currentGroupId = groupRef.id;
+
+            await setDoc(doc(db, 'users', user.uid), {
+                email: user.email,
+                displayName: user.displayName,
+                groupId: currentGroupId
+            });
+
+            newGroupCodeText.textContent = currentGroupId;
+            familySetupContent.style.display = 'none';
+            familySetupFeedback.style.display = 'block';
+
+            launchApp(); // Start listening in background
+        };
+
+        joinGroupBtn.onclick = async () => {
+            const user = auth.currentUser;
+            if (!user) return;
+            const code = joinCodeInput.value.trim();
+            if (!code) { alert('Please enter a sharing code.'); return; }
+
+            const groupSnap = await getDoc(doc(db, 'groups', code));
+            if (!groupSnap.exists()) { alert('That code is not valid. Please check and try again.'); return; }
+
+            currentGroupId = code;
+            await setDoc(doc(db, 'users', user.uid), {
+                email: user.email,
+                displayName: user.displayName,
+                groupId: currentGroupId
+            });
+
+            familySetupModal.classList.add('hidden');
+            launchApp();
+        };
+
+        startTrackingBtn.onclick = () => {
+            familySetupModal.classList.add('hidden');
+            familySetupFeedback.style.display = 'none';
+            familySetupContent.style.display = 'block';
+        };
+
+        copyNewCodeBtn.onclick = () => copyToClipboard(currentGroupId, copyNewCodeBtn);
+
+        // ── View code modal ──
+        function showViewCodeModal() {
+            if (!currentGroupId) return;
+            viewCodeText.textContent = currentGroupId;
+            viewCodeModal.classList.remove('hidden');
+        }
+
+        closeViewCodeBtn.onclick = () => viewCodeModal.classList.add('hidden');
+        copyViewCodeBtn.onclick = () => copyToClipboard(currentGroupId, copyViewCodeBtn);
+
+        function copyToClipboard(text, btn) {
+            if (!navigator.clipboard) return;
+            navigator.clipboard.writeText(text).then(() => {
+                const orig = btn.innerHTML;
+                btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;display:block;"><polyline points="20 6 9 17 4 12"/></svg>`;
+                setTimeout(() => { btn.innerHTML = orig; }, 2000);
+            });
+        }
+
+        // ── Launch app ──
+        function launchApp() {
+            authWall.classList.remove('visible');
+            appContent.classList.add('visible');
+            fabBtn.style.display = 'flex';
+            setupFirestoreListener();
+        }
+
+        function setupFirestoreListener() {
+            eventsUnsubscribe();
+            const eventsCol = collection(db, `groups/${currentGroupId}/events`);
+            const q = query(eventsCol, orderBy('Date', 'asc'));
+            eventsUnsubscribe = onSnapshot(q, snapshot => {
+                events = snapshot.docs.map(d => ({ _firestoreId: d.id, ...d.data() }));
+                renderTimeline();
+            });
+        }
+
+        // ── Save new event ──
+        document.getElementById('eventForm').addEventListener('submit', async e => {
+            e.preventDefault();
+            if (!currentGroupId) return;
+
+            const btnSave = document.getElementById('btnSave');
+            btnSave.textContent = 'Saving…';
+            btnSave.disabled = true;
+
+            const payload = {
+                Date: document.getElementById('inputDate').value,
+                working_to_breath: document.getElementById('inputWtb').checked ? '1' : '0',
+                in_hospital: document.getElementById('inputHosp').checked ? '1' : '0',
+                received_oxygen: document.getElementById('inputOxy').checked ? '1' : '0',
+                wtb_severity: document.getElementById('inputSeverity').value,
+                other_event: document.getElementById('inputOther').value.trim(),
+                Notes: document.getElementById('inputNotes').value.trim(),
+                addedAt: serverTimestamp()
+            };
+
+            try {
+                await addDoc(collection(db, `groups/${currentGroupId}/events`), payload);
+                closeModal();
+                document.getElementById('eventForm').reset();
+                document.getElementById('inputDate').valueAsDate = new Date();
+                // Scroll to bottom after re-render (triggered by snapshot)
+                setTimeout(() => {
+                    document.getElementById('eventsCol').scrollTo({ top: document.getElementById('eventsInner').scrollHeight, behavior: 'smooth' });
+                }, 300);
+            } catch (err) {
+                alert('Failed to save event.');
+                console.error(err);
+            } finally {
+                btnSave.textContent = 'Save Record';
+                btnSave.disabled = false;
+            }
+        });
+
+        // ══════════════════════════════════════════════════════════════
+        //  Everything below is the original rendering/interaction logic
+        //  (unchanged except it now reads from the `events` array above
+        //  which is kept in sync by Firestore instead of localStorage)
+        // ══════════════════════════════════════════════════════════════
 
         function renderTimeline() {
             const railCol = document.getElementById('railCol');
             const eventsInner = document.getElementById('eventsInner');
 
-            // Clean
             railCol.querySelectorAll('.rail-point, .rail-tick').forEach(el => el.remove());
             eventsInner.innerHTML = '';
 
             if (events.length === 0) {
-                eventsInner.innerHTML = '<div class="loading">No events recorded.</div>';
+                eventsInner.innerHTML = '<div class="loading">No events recorded yet. Use the + button to add one.</div>';
+                renderYearlyView();
                 return;
             }
 
-            events.sort((a, b) => new Date(a.Date).getTime() - new Date(b.Date).getTime());
+            const sorted = [...events].sort((a, b) => new Date(a.Date) - new Date(b.Date));
+            events.length = 0;
+            sorted.forEach(ev => events.push(ev));
 
-            // Mathematical bound constants
             const firstEv = new Date(events[0].Date).getTime();
             const lastEv = Date.now();
             let totalRange = lastEv - firstEv;
             if (totalRange <= 0) totalRange = 1;
 
-            // DRAW TICKS SCALE
-            const activeRangePadding = 1000 * 60 * 60 * 24 * 31; // Add ~1mo buffer so labels extend cleanly
+            // Draw ticks
             let currentCursor = new Date(firstEv);
             currentCursor.setDate(1);
-
             let maxCursor = new Date(lastEv);
             maxCursor.setDate(1);
             maxCursor.setMonth(maxCursor.getMonth() + 1);
@@ -1139,16 +1568,12 @@
                 const t = currentCursor.getTime();
                 let pct = (t - firstEv) / totalRange;
                 const finalPct = 5 + (pct * 90);
-
-                // Ensure it draws within the visual UI area
                 if (finalPct >= 0 && finalPct <= 100) {
                     const month = currentCursor.getMonth();
                     const isQuarter = (month % 3 === 0);
-
                     const tick = document.createElement('div');
                     tick.className = 'rail-tick' + (isQuarter ? ' rail-tick-quarter' : '');
                     tick.style.top = `${finalPct}%`;
-
                     if (isQuarter) {
                         const yr = currentCursor.getFullYear().toString().slice(2);
                         const msStr = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][month];
@@ -1159,7 +1584,6 @@
                 currentCursor.setMonth(currentCursor.getMonth() + 1);
             }
 
-            // SET UP EVENTS
             events.forEach((ev, i) => {
                 const d = new Date(ev.Date);
                 if (isNaN(d.getTime())) return;
@@ -1168,8 +1592,6 @@
                 const finalPct = 5 + (pct * 90);
 
                 const isWtb = ev.working_to_breath === '1';
-                const isOther = !isWtb;
-
                 let colorClass = 'timeline-blue';
                 let categoryName = 'Event';
 
@@ -1193,20 +1615,19 @@
                 if (ev.in_hospital === '1') tagsHtml += `<span class="badge badge-hospital">Hospital</span>`;
                 if (ev.received_oxygen === '1') tagsHtml += `<span class="badge badge-oxygen">Oxygen</span>`;
 
-                const rawNotes = ev.Notes || "";
-                const safeNotes = rawNotes.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                const rawNotes = ev.Notes || '';
+                const safeNotes = rawNotes.replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-                // All cards start hidden; they appear while the dot is pressed
                 const cardExpandedClass = safeNotes ? 'expanded has-notes' : 'expanded';
 
                 const dot = document.createElement('div');
                 dot.className = `rail-point ${colorClass} clickable`;
                 dot.style.top = `${finalPct}%`;
                 dot.id = `dot-${i}`;
-                dot.title = "Hold to show details";
+                dot.title = 'Hold to show details';
 
                 const wrapper = document.createElement('div');
-                wrapper.className = `event-card-wrapper`;
+                wrapper.className = 'event-card-wrapper';
                 wrapper.id = `wrapper-${i}`;
 
                 wrapper.innerHTML = `
@@ -1214,7 +1635,7 @@
                         <div class="event-card ${cardExpandedClass}" id="card-${i}">
                             <div class="card-header">
                                 <div class="card-date">${dateStr}</div>
-                                <div class="card-title">${title} <span style="font-weight:400; font-size:0.85rem; color:var(--text-muted);">${!title.includes("WTB") && isWtb ? "(Working to breathe)" : ""}</span></div>
+                                <div class="card-title">${title} <span style="font-weight:400;font-size:0.85rem;color:var(--text-muted);">${!title.includes('WTB') && isWtb ? '(Working to breathe)' : ''}</span></div>
                             </div>
                             ${tagsHtml ? `<div class="card-meta">${tagsHtml}</div>` : ''}
                             ${safeNotes ? `
@@ -1222,13 +1643,10 @@
                                     <div class="notes-content">
                                         <div class="notes-content-inner">${safeNotes}</div>
                                     </div>
-                                </div>
-                            ` : ''}
+                                </div>` : ''}
                         </div>
                     </div>
                 `;
-
-
 
                 railCol.appendChild(dot);
                 eventsInner.appendChild(wrapper);
@@ -1237,25 +1655,21 @@
                 ev.colorClass = colorClass;
             });
 
-            // Add "Today" indicator dot to the vertical rail
-            {
-                const todayTs = Date.now();
-                const todayPct = 5 + ((todayTs - firstEv) / totalRange * 90);
-                if (todayPct >= 0 && todayPct <= 100) {
-                    const todayDot = document.createElement('div');
-                    todayDot.className = 'rail-point today-dot';
-                    todayDot.style.top = `${todayPct}%`;
-                    todayDot.id = 'dot-today';
-                    todayDot.title = 'Today';
-
-                    const todayLabel = document.createElement('span');
-                    todayLabel.className = 'today-rail-label';
-                    todayLabel.style.top = `${todayPct}%`;
-                    todayLabel.textContent = 'Today';
-
-                    railCol.appendChild(todayDot);
-                    railCol.appendChild(todayLabel);
-                }
+            // Today dot
+            const todayTs = Date.now();
+            const todayPct = 5 + ((todayTs - firstEv) / totalRange * 90);
+            if (todayPct >= 0 && todayPct <= 100) {
+                const todayDot = document.createElement('div');
+                todayDot.className = 'rail-point today-dot';
+                todayDot.style.top = `${todayPct}%`;
+                todayDot.id = 'dot-today';
+                todayDot.title = 'Today';
+                const todayLabel = document.createElement('span');
+                todayLabel.className = 'today-rail-label';
+                todayLabel.style.top = `${todayPct}%`;
+                todayLabel.textContent = 'Today';
+                railCol.appendChild(todayDot);
+                railCol.appendChild(todayLabel);
             }
 
             setupSVGPaths();
@@ -1263,7 +1677,6 @@
             renderYearlyView();
         }
 
-        // SVG Connector Logic
         function setupSVGPaths() {
             const svg = document.getElementById('connectorsOverlay');
             svg.innerHTML = '';
@@ -1278,33 +1691,20 @@
 
         function drawConnections() {
             const splitViewRect = document.getElementById('splitView').getBoundingClientRect();
-
             events.forEach(ev => {
                 if (typeof ev._index === 'undefined') return;
-
                 const dot = document.getElementById(`dot-${ev._index}`);
                 const wrapper = document.getElementById(`wrapper-${ev._index}`);
                 const card = document.getElementById(`card-${ev._index}`);
                 const path = document.getElementById(`path-${ev._index}`);
-
                 if (!dot || !card || !path || !wrapper) return;
-
-                // Handle interactive hidden WTB cards gracefully so line isn't errantly anchored or floating
-                if (!wrapper.classList.contains('visible')) {
-                    path.setAttribute('d', ''); // Erase line completely
-                    return;
-                }
-
+                if (!wrapper.classList.contains('visible')) { path.setAttribute('d', ''); return; }
                 const dotRect = dot.getBoundingClientRect();
                 const cardRect = card.getBoundingClientRect();
-
                 const x1 = dotRect.left - splitViewRect.left + (dotRect.width / 2);
                 const y1 = dotRect.top - splitViewRect.top + (dotRect.height / 2);
-
-                const linkOffset = 30; // connects onto the left middle area of the card title
                 const x2 = cardRect.left - splitViewRect.left - 1;
-                const y2 = cardRect.top - splitViewRect.top + linkOffset;
-
+                const y2 = cardRect.top - splitViewRect.top + 30;
                 path.setAttribute('d', `M ${x1} ${y1} C ${(x1 + x2) / 2} ${y1}, ${(x1 + x2) / 2} ${y2}, ${x2} ${y2}`);
             });
         }
@@ -1313,9 +1713,7 @@
             const start = performance.now();
             function run(time) {
                 drawConnections();
-                if (time - start < 450) { // Keep animating to cover the 400ms transition cleanly
-                    requestAnimationFrame(run);
-                }
+                if (time - start < 450) requestAnimationFrame(run);
             }
             requestAnimationFrame(run);
         }
@@ -1324,10 +1722,7 @@
             const container = document.getElementById('yearlyView');
             container.innerHTML = '';
 
-            if (events.length === 0) {
-                container.innerHTML = '<div class="loading">No events recorded.</div>';
-                return;
-            }
+            if (events.length === 0) { container.innerHTML = '<div class="loading">No events recorded.</div>'; return; }
 
             const byYear = {};
             events.forEach(ev => {
@@ -1339,20 +1734,12 @@
             });
 
             const years = Object.keys(byYear).sort((a, b) => a - b);
-
-            const qLabels = [
-                { text: 'Jan', month: 0 },
-                { text: 'Apr', month: 3 },
-                { text: 'Jul', month: 6 },
-                { text: 'Oct', month: 9 }
-            ];
+            const qLabels = [{ text: 'Jan', month: 0 }, { text: 'Apr', month: 3 }, { text: 'Jul', month: 6 }, { text: 'Oct', month: 9 }];
 
             const headerRow = document.createElement('div');
             headerRow.className = 'year-header-row';
             const headerTimeline = document.createElement('div');
             headerTimeline.className = 'year-header-timeline';
-
-            // Generate dynamic header labels
             qLabels.forEach(l => {
                 const pct = new Date(2023, l.month, 1).getTime() - new Date(2023, 0, 1).getTime();
                 const total = new Date(2023, 11, 31, 23, 59, 59).getTime() - new Date(2023, 0, 1).getTime();
@@ -1365,32 +1752,24 @@
             headerRow.appendChild(headerTimeline);
             container.appendChild(headerRow);
 
-            // Single card panel rendered at the bottom of the yearly view
             const cardPanel = document.createElement('div');
             cardPanel.className = 'year-card-panel';
             const cardInner = document.createElement('div');
             cardInner.className = 'year-card-inner';
             cardPanel.appendChild(cardInner);
 
-            // Track currently-pressed dot so we can manage one card at a time
-            let activeDot = null;
-
             years.forEach(y => {
                 const row = document.createElement('div');
                 row.className = 'year-row';
-
                 const label = document.createElement('div');
                 label.className = 'year-label';
                 label.innerText = y;
-
                 const timeline = document.createElement('div');
                 timeline.className = 'year-timeline';
-
                 const line = document.createElement('div');
                 line.className = 'year-line';
                 timeline.appendChild(line);
 
-                // Generate monthly ticks
                 const startOfYear = new Date(y, 0, 1).getTime();
                 const endOfYear = new Date(y, 11, 31, 23, 59, 59).getTime();
 
@@ -1407,7 +1786,6 @@
                     const { ev, d } = item;
                     let pct = (d.getTime() - startOfYear) / (endOfYear - startOfYear);
                     if (pct < 0) pct = 0; if (pct > 1) pct = 1;
-
                     const dot = document.createElement('div');
                     dot.className = `year-dot ${ev.colorClass || 'timeline-blue'}`;
                     dot.style.left = `${pct * 100}%`;
@@ -1415,15 +1793,10 @@
                     const isWtb = ev.working_to_breath === '1';
                     let categoryName = 'Event';
                     if (isWtb) {
-                        if (ev.in_hospital === '1') {
-                            categoryName = ev.received_oxygen === '1' ? 'WTB (Hospital, Oxygen)' : 'WTB (Hospital, No Oxygen)';
-                        } else {
-                            categoryName = 'WTB (No Hospital)';
-                        }
+                        if (ev.in_hospital === '1') categoryName = ev.received_oxygen === '1' ? 'WTB (Hospital, Oxygen)' : 'WTB (Hospital, No Oxygen)';
+                        else categoryName = 'WTB (No Hospital)';
                     }
-                    let title = ev.other_event;
-                    if (!title) title = categoryName;
-
+                    let title = ev.other_event || categoryName;
                     const dateStr = `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
 
                     let tagsHtml = '';
@@ -1434,28 +1807,22 @@
                     if (ev.in_hospital === '1') tagsHtml += `<span class="badge badge-hospital">Hospital</span>`;
                     if (ev.received_oxygen === '1') tagsHtml += `<span class="badge badge-oxygen">Oxygen</span>`;
 
-                    const rawNotes = ev.Notes || "";
-                    const safeNotes = rawNotes.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                    const rawNotes = ev.Notes || '';
+                    const safeNotes = rawNotes.replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-                    const cardHTML = `
+                    dot.dataset.cardHtml = `
                         <div class="event-card expanded" style="cursor:default;">
                             <div class="card-header">
                                 <div class="card-date">${dateStr}</div>
                                 <div class="card-title">${title} <span style="font-weight:400;font-size:0.85rem;color:var(--text-muted);">${!title.includes('WTB') && isWtb ? '(Working to breathe)' : ''}</span></div>
                             </div>
                             ${tagsHtml ? `<div class="card-meta">${tagsHtml}</div>` : ''}
-                            ${safeNotes ? `
-                                <div class="card-notes" style="grid-template-rows:1fr;margin-top:8px;opacity:1;pointer-events:auto;">
-                                    <div class="notes-content"><div class="notes-content-inner">${safeNotes}</div></div>
-                                </div>` : ''}
+                            ${safeNotes ? `<div class="card-notes" style="grid-template-rows:1fr;margin-top:8px;opacity:1;pointer-events:auto;"><div class="notes-content"><div class="notes-content-inner">${safeNotes}</div></div></div>` : ''}
                         </div>`;
-
-                    dot.dataset.cardHtml = cardHTML;
 
                     timeline.appendChild(dot);
                 });
 
-                // Add "Today" dot if this is the current year
                 const todayNow = new Date();
                 if (parseInt(y) === todayNow.getFullYear()) {
                     const todayPct = (todayNow.getTime() - startOfYear) / (endOfYear - startOfYear);
@@ -1471,60 +1838,34 @@
                 container.appendChild(row);
             });
 
-            // If the current year has no events it won't be in byYear — render an empty row
-            // so the "Today" dot is always visible.
             const currentYear = new Date().getFullYear();
             if (!byYear[currentYear]) {
                 const todayNow = new Date();
                 const startOfYear = new Date(currentYear, 0, 1).getTime();
                 const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59).getTime();
-
-                const row = document.createElement('div');
-                row.className = 'year-row';
-
-                const label = document.createElement('div');
-                label.className = 'year-label';
-                label.innerText = currentYear;
-
-                const timeline = document.createElement('div');
-                timeline.className = 'year-timeline';
-
-                const line = document.createElement('div');
-                line.className = 'year-line';
-                timeline.appendChild(line);
-
-                // Monthly ticks
+                const row = document.createElement('div'); row.className = 'year-row';
+                const label = document.createElement('div'); label.className = 'year-label'; label.innerText = currentYear;
+                const timeline = document.createElement('div'); timeline.className = 'year-timeline';
+                const line = document.createElement('div'); line.className = 'year-line'; timeline.appendChild(line);
                 for (let m = 0; m < 12; m++) {
                     const pct = (new Date(currentYear, m, 1).getTime() - startOfYear) / (endOfYear - startOfYear);
-                    const t = document.createElement('div');
-                    t.className = 'year-tick';
+                    const t = document.createElement('div'); t.className = 'year-tick';
                     if (m === 0 || m === 3 || m === 6 || m === 9) t.classList.add('year-tick-major');
-                    t.style.left = `${pct * 100}%`;
-                    timeline.appendChild(t);
+                    t.style.left = `${pct * 100}%`; timeline.appendChild(t);
                 }
-
-                // Today dot
                 const todayPct = (todayNow.getTime() - startOfYear) / (endOfYear - startOfYear);
                 const todayDot = document.createElement('div');
                 todayDot.className = 'year-today-dot';
                 todayDot.style.left = `${Math.min(Math.max(todayPct * 100, 0), 100)}%`;
-                todayDot.title = 'Today';
-                timeline.appendChild(todayDot);
-
-                row.appendChild(label);
-                row.appendChild(timeline);
-                container.appendChild(row);
+                todayDot.title = 'Today'; timeline.appendChild(todayDot);
+                row.appendChild(label); row.appendChild(timeline); container.appendChild(row);
             }
 
-            // Append the single card panel at the very bottom
             container.appendChild(cardPanel);
         }
 
-        // --- Type-filter state ---
-        // Set of colorClass strings that are currently HIDDEN
+        // ── Filter state ──
         const hiddenTypes = new Set();
-
-        // Pill button id mapped to colorClass
         const pillMap = {
             'filterRed': 'timeline-red',
             'filterOrange': 'timeline-orange',
@@ -1532,23 +1873,17 @@
             'filterBlue': 'timeline-blue'
         };
 
-        function toggleTypeFilter(colorClass) {
-            if (hiddenTypes.has(colorClass)) {
-                hiddenTypes.delete(colorClass);
-            } else {
-                hiddenTypes.add(colorClass);
-            }
+        window.toggleTypeFilter = function (colorClass) {
+            if (hiddenTypes.has(colorClass)) hiddenTypes.delete(colorClass);
+            else hiddenTypes.add(colorClass);
             applyTypeFilters();
-        }
+        };
 
         function applyTypeFilters() {
-            // Update pill appearance
             Object.entries(pillMap).forEach(([btnId, cls]) => {
                 const btn = document.getElementById(btnId);
                 if (btn) btn.classList.toggle('dimmed', hiddenTypes.has(cls));
             });
-
-            // Vertical view: dots + wrappers
             document.querySelectorAll('.rail-point').forEach(dot => {
                 const colorClass = [...dot.classList].find(c => c.startsWith('timeline-'));
                 const hide = colorClass && hiddenTypes.has(colorClass);
@@ -1557,88 +1892,57 @@
                 const wrapper = document.getElementById(`wrapper-${id}`);
                 if (wrapper) {
                     wrapper.classList.toggle('type-hidden', hide);
-                    // If now hidden, also collapse it
-                    if (hide) {
-                        wrapper.classList.remove('visible');
-                        wrapper.style.marginTop = '0px';
-                        if (stickyDot === dot) { stickyDot = null; }
-                    }
+                    if (hide) { wrapper.classList.remove('visible'); wrapper.style.marginTop = '0px'; if (stickyDot === dot) stickyDot = null; }
                 }
             });
-
-            // Yearly view: year-dots
             document.querySelectorAll('.year-dot').forEach(dot => {
                 const colorClass = [...dot.classList].find(c => c.startsWith('timeline-'));
                 dot.classList.toggle('type-hidden', !!(colorClass && hiddenTypes.has(colorClass)));
             });
-
-            // Reapply show-all-cards for newly-visible dots in vertical view
             if (showAllCards) applyShowAllCards();
-
-            // Redraw connectors
             drawConnections();
         }
 
-        // --- Show all cards toggle (vertical view only) ---
         let showAllCards = false;
 
-        function toggleShowAllCards() {
+        window.toggleShowAllCards = function () {
             showAllCards = !showAllCards;
             const btn = document.getElementById('showCardsBtn');
             btn.classList.toggle('active', showAllCards);
             btn.textContent = showAllCards ? 'Hide Cards' : 'Show Cards';
             applyShowAllCards();
-        }
+        };
 
         function applyShowAllCards() {
             document.querySelectorAll('.event-card-wrapper').forEach(wrapper => {
-                // Skip filtered-out wrappers
                 if (wrapper.classList.contains('type-hidden')) return;
                 if (showAllCards) {
-                    // Stack cards naturally — no gap alignment with dots
                     wrapper.style.marginTop = '0px';
                     wrapper.classList.add('visible');
                 } else {
-                    // Only collapse if it's not pinned open by a tap
                     const idStr = wrapper.id.split('-')[1];
                     const dot = document.getElementById(`dot-${idStr}`);
-                    if (dot !== stickyDot) {
-                        wrapper.classList.remove('visible');
-                        wrapper.style.marginTop = '0px';
-                    }
+                    if (dot !== stickyDot) { wrapper.classList.remove('visible'); wrapper.style.marginTop = '0px'; }
                 }
             });
             animateConnections();
         }
 
         let currentView = 'vertical';
-        function setView(view) {
+        window.setView = function (view) {
             currentView = view;
             document.getElementById('btnVerticalView').classList.toggle('active', view === 'vertical');
             document.getElementById('btnYearlyView').classList.toggle('active', view === 'yearly');
-
             const splitView = document.getElementById('splitView');
             const yearlyView = document.getElementById('yearlyView');
-            // Show/hide the vertical-only controls
             document.getElementById('showCardsBtn').classList.toggle('hide', view !== 'vertical');
+            if (view === 'vertical') { splitView.style.display = 'flex'; yearlyView.classList.remove('active'); drawConnections(); }
+            else { splitView.style.display = 'none'; yearlyView.classList.add('active'); }
+        };
 
-            if (view === 'vertical') {
-                splitView.style.display = 'flex';
-                yearlyView.classList.remove('active');
-                drawConnections();
-            } else {
-                splitView.style.display = 'none';
-                yearlyView.classList.add('active');
-            }
-        }
-
-        // --- Interaction State ---
-        let stickyDot = null;       // card pinned open by a tap
-        let isTouching = false;     // any active touch/mouse press
-        let touchStartedOnDot = false;
-        let scrubStartX = 0, scrubStartY = 0;
-        let scrubMoved = false;
-        let activeScrubDot = null;
+        // ── Touch / Mouse interaction ──
+        let stickyDot = null, isTouching = false, touchStartedOnDot = false;
+        let scrubStartX = 0, scrubStartY = 0, scrubMoved = false, activeScrubDot = null;
         const SCRUB_THRESHOLD = 8;
 
         function getEventPoint(e) {
@@ -1647,21 +1951,15 @@
             return { x: e.clientX, y: e.clientY };
         }
 
-        function isDotElement(el) {
-            return el && (el.classList.contains('rail-point') || el.classList.contains('year-dot'));
-        }
+        function isDotElement(el) { return el && (el.classList.contains('rail-point') || el.classList.contains('year-dot')); }
 
-        // Find nearest dot within maxDist px — far more reliable than exact elementFromPoint
-        // on small (10px) targets, especially on mobile.
         function findNearestDot(x, y, maxDist) {
             const exact = document.elementFromPoint(x, y);
             if (isDotElement(exact)) return exact;
-            let nearest = null;
-            let minD = maxDist;
+            let nearest = null, minD = maxDist;
             document.querySelectorAll('.rail-point.clickable, .year-dot').forEach(dot => {
                 const r = dot.getBoundingClientRect();
-                const cx = r.left + r.width / 2;
-                const cy = r.top + r.height / 2;
+                const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
                 const d = Math.hypot(x - cx, y - cy);
                 if (d < minD) { minD = d; nearest = dot; }
             });
@@ -1669,27 +1967,16 @@
         }
 
         function applyTap(dot) {
-            if (!dot) {
-                if (stickyDot) { hideDot(stickyDot); stickyDot = null; }
-                return;
-            }
-            if (stickyDot === dot) {
-                hideDot(stickyDot); stickyDot = null;
-            } else {
-                if (stickyDot) hideDot(stickyDot);
-                stickyDot = dot;
-                showDot(stickyDot);
-            }
+            if (!dot) { if (stickyDot) { hideDot(stickyDot); stickyDot = null; } return; }
+            if (stickyDot === dot) { hideDot(stickyDot); stickyDot = null; }
+            else { if (stickyDot) hideDot(stickyDot); stickyDot = dot; showDot(stickyDot); }
         }
 
-        // --- Touch handlers ---
         function handleTouchStart(e) {
-            const pt = getEventPoint(e);
-            scrubStartX = pt.x; scrubStartY = pt.y;
+            const pt = getEventPoint(e); scrubStartX = pt.x; scrubStartY = pt.y;
             scrubMoved = false; isTouching = true;
             const near = findNearestDot(pt.x, pt.y, 35);
-            touchStartedOnDot = !!near;
-            activeScrubDot = near;
+            touchStartedOnDot = !!near; activeScrubDot = near;
             if (near && e.cancelable) e.preventDefault();
         }
 
@@ -1697,81 +1984,56 @@
             if (!isTouching) return;
             const pt = getEventPoint(e);
             const dx = pt.x - scrubStartX, dy = pt.y - scrubStartY;
-            if (!scrubMoved && Math.hypot(dx, dy) > SCRUB_THRESHOLD) {
-                scrubMoved = true;
-                if (stickyDot) { hideDot(stickyDot); stickyDot = null; }
-            }
-            if (scrubMoved && touchStartedOnDot) {
-                if (e.cancelable) e.preventDefault();
-                updateScrub(pt.x, pt.y);
-            }
+            if (!scrubMoved && Math.hypot(dx, dy) > SCRUB_THRESHOLD) { scrubMoved = true; if (stickyDot) { hideDot(stickyDot); stickyDot = null; } }
+            if (scrubMoved && touchStartedOnDot) { if (e.cancelable) e.preventDefault(); updateScrub(pt.x, pt.y); }
         }
 
         function handleTouchEnd(e) {
-            if (!isTouching) return;
-            isTouching = false;
-            if (scrubMoved) {
-                if (activeScrubDot) { hideDot(activeScrubDot); activeScrubDot = null; }
-            } else {
+            if (!isTouching) return; isTouching = false;
+            if (scrubMoved) { if (activeScrubDot) { hideDot(activeScrubDot); activeScrubDot = null; } }
+            else {
                 const pt = getEventPoint(e);
-                // Use proximity search; fall back to activeScrubDot if elementFromPoint misses
                 const tapped = findNearestDot(pt.x, pt.y, 35) || (touchStartedOnDot ? activeScrubDot : null);
-                applyTap(tapped);
-                activeScrubDot = null;
+                applyTap(tapped); activeScrubDot = null;
             }
         }
 
-        // --- Mouse handlers ---
         function handleMouseStart(e) {
-            scrubStartX = e.clientX; scrubStartY = e.clientY;
-            scrubMoved = false; isTouching = true;
+            scrubStartX = e.clientX; scrubStartY = e.clientY; scrubMoved = false; isTouching = true;
             const near = findNearestDot(e.clientX, e.clientY, 12);
-            touchStartedOnDot = !!near;
-            activeScrubDot = near;
+            touchStartedOnDot = !!near; activeScrubDot = near;
         }
 
         function handleMouseMove(e) {
             if (!isTouching) return;
             const dx = e.clientX - scrubStartX, dy = e.clientY - scrubStartY;
-            if (!scrubMoved && Math.hypot(dx, dy) > SCRUB_THRESHOLD) {
-                scrubMoved = true;
-                if (stickyDot) { hideDot(stickyDot); stickyDot = null; }
-            }
+            if (!scrubMoved && Math.hypot(dx, dy) > SCRUB_THRESHOLD) { scrubMoved = true; if (stickyDot) { hideDot(stickyDot); stickyDot = null; } }
             if (scrubMoved && touchStartedOnDot) updateScrub(e.clientX, e.clientY);
         }
 
         function handleMouseEnd(e) {
-            if (!isTouching) return;
-            isTouching = false;
-            if (scrubMoved) {
-                if (activeScrubDot) { hideDot(activeScrubDot); activeScrubDot = null; }
-            } else {
+            if (!isTouching) return; isTouching = false;
+            if (scrubMoved) { if (activeScrubDot) { hideDot(activeScrubDot); activeScrubDot = null; } }
+            else {
                 const tapped = findNearestDot(e.clientX, e.clientY, 12) || (touchStartedOnDot ? activeScrubDot : null);
-                applyTap(tapped);
-                activeScrubDot = null;
+                applyTap(tapped); activeScrubDot = null;
             }
         }
 
         function updateScrub(x, y) {
             const el = findNearestDot(x, y, 35);
-            if (el && el !== activeScrubDot) {
-                if (activeScrubDot) hideDot(activeScrubDot);
-                activeScrubDot = el;
-                showDot(activeScrubDot);
-            }
+            if (el && el !== activeScrubDot) { if (activeScrubDot) hideDot(activeScrubDot); activeScrubDot = el; showDot(activeScrubDot); }
         }
 
         function showDot(dot) {
-            dot.style.transform = 'translate(-50%, -50%) scale(1.4)';
+            dot.style.transform = 'translate(-50%,-50%) scale(1.4)';
             dot.style.zIndex = '15';
-
             if (dot.classList.contains('rail-point')) {
                 const id = dot.id.split('-')[1];
                 const wrapper = document.getElementById(`wrapper-${id}`);
                 const eventsInner = document.getElementById('eventsInner');
                 const dotRect = dot.getBoundingClientRect();
                 const eventsInnerRect = eventsInner.getBoundingClientRect();
-
                 let marginTop = (dotRect.top - eventsInnerRect.top) - 40;
                 if (marginTop < 0) marginTop = 0;
                 wrapper.style.marginTop = `${marginTop}px`;
@@ -1780,107 +2042,47 @@
             } else if (dot.classList.contains('year-dot')) {
                 const cardInner = document.querySelector('.year-card-inner');
                 const cardPanel = document.querySelector('.year-card-panel');
-                if (cardInner && cardPanel) {
-                    cardInner.innerHTML = dot.dataset.cardHtml;
-                    cardPanel.classList.add('visible');
-                }
+                if (cardInner && cardPanel) { cardInner.innerHTML = dot.dataset.cardHtml; cardPanel.classList.add('visible'); }
             }
         }
 
         function hideDot(dot) {
-            dot.style.transform = '';
-            dot.style.zIndex = '';
-
+            dot.style.transform = ''; dot.style.zIndex = '';
             if (dot.classList.contains('rail-point')) {
                 const id = dot.id.split('-')[1];
                 const wrapper = document.getElementById(`wrapper-${id}`);
                 if (wrapper) {
                     wrapper.classList.remove('visible');
-                    setTimeout(() => {
-                        if (!wrapper.classList.contains('visible')) {
-                            wrapper.style.marginTop = '0px';
-                        }
-                    }, 150);
+                    setTimeout(() => { if (!wrapper.classList.contains('visible')) wrapper.style.marginTop = '0px'; }, 150);
                 }
                 animateConnections();
             } else if (dot.classList.contains('year-dot')) {
                 const cardPanel = document.querySelector('.year-card-panel');
-                if (cardPanel) {
-                    cardPanel.classList.remove('visible');
-                }
+                if (cardPanel) cardPanel.classList.remove('visible');
             }
         }
 
-        // Setup DOM Listeners
-        document.addEventListener("DOMContentLoaded", () => {
-            loadEvents();
-            document.getElementById("inputDate").valueAsDate = new Date();
+        // ── Init ──
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('inputDate').valueAsDate = new Date();
 
-            // Touch events (mobile)
             document.addEventListener('touchstart', handleTouchStart, { passive: false });
             document.addEventListener('touchmove', handleTouchMove, { passive: false });
             document.addEventListener('touchend', handleTouchEnd);
             document.addEventListener('touchcancel', handleTouchEnd);
-
-            // Mouse events (desktop)
             document.addEventListener('mousedown', handleMouseStart);
             document.addEventListener('mousemove', handleMouseMove);
             document.addEventListener('mouseup', handleMouseEnd);
 
-            document.getElementById('eventsCol').addEventListener('scroll', () => {
-                requestAnimationFrame(drawConnections);
-            });
+            document.getElementById('eventsCol').addEventListener('scroll', () => requestAnimationFrame(drawConnections));
             window.addEventListener('resize', drawConnections);
 
-            document.getElementById("modalOverlay").addEventListener("click", (e) => {
-                if (e.target.id === "modalOverlay") closeModal();
-            });
-
-            document.getElementById("eventForm").addEventListener("submit", async (e) => {
-                e.preventDefault();
-                const btnSave = document.getElementById("btnSave");
-                btnSave.textContent = "Saving...";
-                btnSave.disabled = true;
-
-                const payload = {
-                    Date: document.getElementById("inputDate").value,
-                    working_to_breath: document.getElementById("inputWtb").checked ? "1" : "0",
-                    in_hospital: document.getElementById("inputHosp").checked ? "1" : "0",
-                    received_oxygen: document.getElementById("inputOxy").checked ? "1" : "0",
-                    wtb_severity: document.getElementById("inputSeverity").value,
-                    other_event: document.getElementById("inputOther").value.trim(),
-                    Notes: document.getElementById("inputNotes").value.trim()
-                };
-
-                try {
-                    let localEvents = [];
-                    const stored = localStorage.getItem('addedEvents');
-                    if (stored) {
-                        localEvents = JSON.parse(stored);
-                    }
-                    localEvents.push(payload);
-                    localStorage.setItem('addedEvents', JSON.stringify(localEvents));
-
-                    closeModal();
-                    document.getElementById("eventForm").reset();
-                    document.getElementById("inputDate").valueAsDate = new Date();
-                    await loadEvents();
-
-                    document.getElementById("eventsCol").scrollTo({
-                        top: document.getElementById("eventsInner").scrollHeight,
-                        behavior: 'smooth'
-                    });
-                } catch (err) {
-                    alert("Failed to save event.");
-                } finally {
-                    btnSave.textContent = "Save Record";
-                    btnSave.disabled = false;
-                }
-            });
+            document.getElementById('modalOverlay').addEventListener('click', e => { if (e.target.id === 'modalOverlay') closeModal(); });
         });
 
-        function openModal() { document.getElementById("modalOverlay").classList.add("active"); }
-        function closeModal() { document.getElementById("modalOverlay").classList.remove("active"); }
+        window.openModal = () => document.getElementById('modalOverlay').classList.add('active');
+        window.closeModal = () => document.getElementById('modalOverlay').classList.remove('active');
+
     </script>
 </body>
 
