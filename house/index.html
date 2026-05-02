@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hex Tile Grid</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f13;
+    --ui-font: 'Space Mono', monospace;
+  }
+
+  body {
+    background: var(--bg);
+    font-family: var(--ui-font);
+    color: #fff;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+  }
+
+  #arena {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    background: #16161d;
+    overflow: hidden;
+  }
+
+  #arena::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px);
+    background-size: 28px 28px;
+    pointer-events: none;
+  }
+
+  #grid-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  #tile-layer {
+    position: absolute;
+    inset: 0;
+  }
+
+  /*
+    Stretched pointy-top hex derived from reference image (978 x 878 px, flat sides 485 px):
+      Angled cap height = (878 - 485) / 2 = 196.5 px
+      Cap as % of total height = 196.5 / 878 = 22.38%
+      So the flat sides run from 22.38% to 77.62% vertically.
+      Points sit at 50% horizontally, flat sides span the full width.
+  */
+  .hex-slot, .hex-tile {
+    clip-path: polygon(
+      50%   0%,
+      100%  22.38%,
+      100%  77.62%,
+      50%   100%,
+      0%    77.62%,
+      0%    22.38%
+    );
+    position: absolute;
+    transition: filter 0.15s;
+  }
+
+  .hex-slot {
+    background: rgba(255,255,255,0.04);
+    cursor: default;
+  }
+  .hex-slot.highlight {
+    background: rgba(255,255,255,0.14);
+    filter: drop-shadow(0 0 8px rgba(255,255,255,0.25));
+  }
+
+  .hex-tile {
+    cursor: grab;
+    transition: transform 0.12s ease, filter 0.12s ease, opacity 0.12s ease;
+    will-change: transform;
+  }
+  .hex-tile.dragging {
+    cursor: grabbing;
+    opacity: 0.92;
+    transform: scale(1.12) translateZ(0);
+    filter: brightness(1.25) drop-shadow(0 12px 32px rgba(0,0,0,0.7));
+    z-index: 1000 !important;
+    transition: filter 0.12s ease, opacity 0.12s ease;
+  }
+
+  .hex-tile .shine {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .hex-tile .label {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.5);
+    text-transform: uppercase;
+    pointer-events: none;
+  }
+
+</style>
+</head>
+<body>
+
+<div id="arena">
+  <div id="grid-layer"></div>
+  <div id="tile-layer"></div>
+</div>
+
+<script>
+// ── Config ───────────────────────────────────────────────────────────────────
+//
+// Reference hex: 978 px wide × 878 px tall, flat sides = 485 px
+// Aspect ratio (W:H) = 978 / 878 ≈ 1.1139
+//
+// For pointy-top grid stepping:
+//   - Columns step by full tile width (no overlap horizontally)
+//   - Rows overlap vertically by one angled cap.
+//     Cap fraction = (878 - 485) / 2 / 878 = 196.5 / 878 ≈ 0.2238
+//     Row step = TILE_H * (1 - CAP_FRAC)
+//
+const TILE_H   = 150;
+const TILE_W   = Math.round(TILE_H * (978 / 878));   // ≈ 107
+
+const CAP_FRAC = (878 - 485) / 2 / 878;              // ≈ 0.2238
+const ROW_STEP = Math.round(TILE_H * (1 - CAP_FRAC)); // ≈ 75
+
+const COLS = Math.ceil(window.innerWidth / TILE_W) + 1;
+const ROWS = Math.ceil(window.innerHeight / ROW_STEP) + 1;
+
+const COLORS = [
+  { bg: 'url("test_1.png") center/cover no-repeat', name: '' },
+  { bg: 'url("test_2.png") center/cover no-repeat', name: '' },
+  { bg: 'url("test_3.png") center/cover no-repeat', name: '' },
+  { bg: 'url("test_4.png") center/cover no-repeat', name: '' },
+  { bg: 'url("test_5.png") center/cover no-repeat', name: '' },
+  { bg: 'url("test_6.png") center/cover no-repeat', name: '' }
+];
+
+// ── Build grid slots ──────────────────────────────────────────────────────────
+const gridLayer = document.getElementById('grid-layer');
+const tileLayer = document.getElementById('tile-layer');
+const arena     = document.getElementById('arena');
+
+const slots = [];
+
+const OFFSET_X = 20;
+const OFFSET_Y = 16;
+
+for (let row = 0; row < ROWS; row++) {
+  for (let col = 0; col < COLS; col++) {
+    // Odd rows are staggered right by half a tile width
+    const cx = OFFSET_X + col * TILE_W + (row % 2 === 1 ? TILE_W / 2 : 0) + TILE_W / 2;
+    const cy = OFFSET_Y + row * ROW_STEP + TILE_H / 2;
+
+    if (cx + TILE_W / 2 > window.innerWidth) continue;
+    if (cy + TILE_H / 2 > window.innerHeight) continue;
+
+    const el = document.createElement('div');
+    el.className    = 'hex-slot';
+    el.style.width  = TILE_W + 'px';
+    el.style.height = TILE_H + 'px';
+    el.style.left   = (cx - TILE_W / 2) + 'px';
+    el.style.top    = (cy - TILE_H / 2) + 'px';
+
+    gridLayer.appendChild(el);
+    slots.push({ el, col, row, cx, cy, tileId: null });
+  }
+}
+
+// ── Place 9 coloured tiles on the first 9 slots ───────────────────────────────
+const tiles = [];
+
+COLORS.forEach((color, i) => {
+  const slot = slots[i];
+
+  const el = document.createElement('div');
+  el.className        = 'hex-tile';
+  el.style.width      = TILE_W + 'px';
+  el.style.height     = TILE_H + 'px';
+  el.style.background = color.bg;
+  el.style.zIndex     = i + 1;
+  el.style.left       = (slot.cx - TILE_W / 2) + 'px';
+  el.style.top        = (slot.cy - TILE_H / 2) + 'px';
+
+  el.innerHTML = `<div class="shine"></div><div class="label">${color.name}</div>`;
+  tileLayer.appendChild(el);
+
+  const tile = { el, id: i, color, slotIndex: i };
+  slot.tileId = i;
+  tiles.push(tile);
+  makeDraggable(el, tile);
+});
+
+// ── Drag ──────────────────────────────────────────────────────────────────────
+let dragging    = null;
+let dragOffsetX = 0;
+let dragOffsetY = 0;
+
+function makeDraggable(el, tile) {
+  el.addEventListener('mousedown',  e => startDrag(e, tile));
+  el.addEventListener('touchstart', e => startDrag(e, tile), { passive: false });
+}
+
+function startDrag(e, tile) {
+  e.preventDefault();
+  const pt        = getPoint(e);
+  const arenaRect = arena.getBoundingClientRect();
+
+  if (tile.slotIndex !== null) {
+    slots[tile.slotIndex].tileId = null;
+    tile.slotIndex = null;
+  }
+
+  dragOffsetX = pt.x - arenaRect.left - parseFloat(tile.el.style.left) - TILE_W / 2;
+  dragOffsetY = pt.y - arenaRect.top  - parseFloat(tile.el.style.top)  - TILE_H / 2;
+
+  tile.el.classList.add('dragging');
+  tile.el.style.zIndex     = 999;
+  tile.el.style.transition = 'none';
+  dragging = tile;
+}
+
+window.addEventListener('mousemove', onMove);
+window.addEventListener('touchmove', onMove, { passive: false });
+
+function onMove(e) {
+  if (!dragging) return;
+  e.preventDefault();
+  const pt        = getPoint(e);
+  const arenaRect = arena.getBoundingClientRect();
+
+  const x = pt.x - arenaRect.left - dragOffsetX - TILE_W / 2;
+  const y = pt.y - arenaRect.top  - dragOffsetY - TILE_H / 2;
+
+  dragging.el.style.left = x + 'px';
+  dragging.el.style.top  = y + 'px';
+
+  const nearest = nearestSlot(x + TILE_W / 2, y + TILE_H / 2);
+  slots.forEach(s => s.el.classList.remove('highlight'));
+  if (nearest && nearest.tileId === null) {
+    nearest.el.classList.add('highlight');
+  }
+}
+
+window.addEventListener('mouseup',  onDrop);
+window.addEventListener('touchend', onDrop);
+
+function onDrop() {
+  if (!dragging) return;
+  const tile = dragging;
+  dragging = null;
+
+  tile.el.classList.remove('dragging');
+  tile.el.style.transition = '';
+
+  const cx      = parseFloat(tile.el.style.left) + TILE_W / 2;
+  const cy      = parseFloat(tile.el.style.top)  + TILE_H / 2;
+  const nearest = nearestSlot(cx, cy);
+
+  slots.forEach(s => s.el.classList.remove('highlight'));
+
+  if (nearest && nearest.tileId === null) {
+    tile.slotIndex = slots.indexOf(nearest);
+    nearest.tileId = tile.id;
+    snapTo(tile, nearest);
+
+  } else if (nearest && nearest.tileId !== null && nearest.tileId !== tile.id) {
+    const other      = tiles[nearest.tileId];
+    const oldSlotIdx = tile.slotIndex;
+
+    tile.slotIndex = slots.indexOf(nearest);
+    nearest.tileId = tile.id;
+    snapTo(tile, nearest);
+
+    if (oldSlotIdx !== null) {
+      const oldSlot = slots[oldSlotIdx];
+      other.slotIndex = oldSlotIdx;
+      oldSlot.tileId  = other.id;
+      snapTo(other, oldSlot);
+    } else {
+      other.slotIndex = null;
+    }
+
+  } else {
+    tile.slotIndex = null;
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function snapTo(tile, slot) {
+  tile.el.style.left = (slot.cx - TILE_W / 2) + 'px';
+  tile.el.style.top  = (slot.cy - TILE_H / 2) + 'px';
+}
+
+function nearestSlot(cx, cy) {
+  let best = null, bestDist = Infinity;
+  for (const s of slots) {
+    const d = Math.hypot(s.cx - cx, s.cy - cy);
+    if (d < bestDist) { bestDist = d; best = s; }
+  }
+  return bestDist < Math.min(TILE_W, TILE_H) * 0.6 ? best : null;
+}
+
+function getPoint(e) {
+  if (e.touches        && e.touches.length)        return { x: e.touches[0].clientX,        y: e.touches[0].clientY };
+  if (e.changedTouches && e.changedTouches.length) return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+  return { x: e.clientX, y: e.clientY };
+}
+</script>
+</body>
+</html>
