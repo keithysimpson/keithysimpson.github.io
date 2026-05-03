@@ -1218,17 +1218,14 @@
                     <label>Date</label>
                     <input type="date" id="inputDate" required />
                 </div>
-                <div class="check-group">
-                    <input type="checkbox" id="inputWtb">
-                    <label for="inputWtb">Working to Breathe (WTB)</label>
-                </div>
-                <div class="check-group">
-                    <input type="checkbox" id="inputHosp">
-                    <label for="inputHosp">Taken to Hospital</label>
-                </div>
-                <div class="check-group">
-                    <input type="checkbox" id="inputOxy">
-                    <label for="inputOxy">Received Oxygen</label>
+                <div class="form-group">
+                    <label>Event Type</label>
+                    <select id="inputType">
+                        <option value="wtb">Working to Breathe (WTB)</option>
+                        <option value="wtb_hosp">WTB + Hospital</option>
+                        <option value="wtb_hosp_oxy">WTB + Hospital + Oxygen</option>
+                        <option value="other">Other</option>
+                    </select>
                 </div>
                 <div class="divider"></div>
                 <div class="form-group">
@@ -1330,6 +1327,7 @@
         let currentGroupId = null;
         let eventsUnsubscribe = () => { };
         let events = [];
+        let editingEventId = null;
 
         // ── DOM refs ──
         const authBanner = document.getElementById('auth-banner');
@@ -1500,26 +1498,32 @@
             btnSave.textContent = 'Saving…';
             btnSave.disabled = true;
 
+            const eventType = document.getElementById('inputType').value;
+            
             const payload = {
                 Date: document.getElementById('inputDate').value,
-                working_to_breath: document.getElementById('inputWtb').checked ? '1' : '0',
-                in_hospital: document.getElementById('inputHosp').checked ? '1' : '0',
-                received_oxygen: document.getElementById('inputOxy').checked ? '1' : '0',
+                working_to_breath: (eventType === 'wtb' || eventType === 'wtb_hosp' || eventType === 'wtb_hosp_oxy') ? '1' : '0',
+                in_hospital: (eventType === 'wtb_hosp' || eventType === 'wtb_hosp_oxy') ? '1' : '0',
+                received_oxygen: (eventType === 'wtb_hosp_oxy') ? '1' : '0',
                 wtb_severity: document.getElementById('inputSeverity').value,
                 other_event: document.getElementById('inputOther').value.trim(),
-                Notes: document.getElementById('inputNotes').value.trim(),
-                addedAt: serverTimestamp()
+                Notes: document.getElementById('inputNotes').value.trim()
             };
 
             try {
-                await addDoc(collection(db, `groups/${currentGroupId}/events`), payload);
+                if (editingEventId) {
+                    await setDoc(doc(db, `groups/${currentGroupId}/events`, editingEventId), payload, { merge: true });
+                } else {
+                    payload.addedAt = serverTimestamp();
+                    await addDoc(collection(db, `groups/${currentGroupId}/events`), payload);
+                }
                 closeModal();
-                document.getElementById('eventForm').reset();
-                document.getElementById('inputDate').valueAsDate = new Date();
                 // Scroll to bottom after re-render (triggered by snapshot)
-                setTimeout(() => {
-                    document.getElementById('eventsCol').scrollTo({ top: document.getElementById('eventsInner').scrollHeight, behavior: 'smooth' });
-                }, 300);
+                if (!editingEventId) {
+                    setTimeout(() => {
+                        document.getElementById('eventsCol').scrollTo({ top: document.getElementById('eventsInner').scrollHeight, behavior: 'smooth' });
+                    }, 300);
+                }
             } catch (err) {
                 alert('Failed to save event.');
                 console.error(err);
@@ -1636,6 +1640,9 @@
                             <div class="card-header">
                                 <div class="card-date">${dateStr}</div>
                                 <div class="card-title">${title} <span style="font-weight:400;font-size:0.85rem;color:var(--text-muted);">${!title.includes('WTB') && isWtb ? '(Working to breathe)' : ''}</span></div>
+                                <button onclick="editEvent('${ev._firestoreId}')" style="margin-left:auto; background:transparent; border:none; cursor:pointer; color:var(--text-muted); padding:2px;" title="Edit Event">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                </button>
                             </div>
                             ${tagsHtml ? `<div class="card-meta">${tagsHtml}</div>` : ''}
                             ${safeNotes ? `
@@ -1725,15 +1732,24 @@
             if (events.length === 0) { container.innerHTML = '<div class="loading">No events recorded.</div>'; return; }
 
             const byYear = {};
+            let minYear = Infinity;
             events.forEach(ev => {
                 const d = new Date(ev.Date);
                 if (isNaN(d.getTime())) return;
                 const y = d.getFullYear();
+                if (y < minYear) minYear = y;
                 if (!byYear[y]) byYear[y] = [];
                 byYear[y].push({ ev, d });
             });
 
-            const years = Object.keys(byYear).sort((a, b) => a - b);
+            const currentYear = new Date().getFullYear();
+            if (minYear === Infinity) minYear = currentYear;
+
+            const years = [];
+            for (let y = minYear; y <= currentYear; y++) {
+                years.push(String(y));
+                if (!byYear[y]) byYear[y] = [];
+            }
             const qLabels = [{ text: 'Jan', month: 0 }, { text: 'Apr', month: 3 }, { text: 'Jul', month: 6 }, { text: 'Oct', month: 9 }];
 
             const headerRow = document.createElement('div');
@@ -1815,6 +1831,9 @@
                             <div class="card-header">
                                 <div class="card-date">${dateStr}</div>
                                 <div class="card-title">${title} <span style="font-weight:400;font-size:0.85rem;color:var(--text-muted);">${!title.includes('WTB') && isWtb ? '(Working to breathe)' : ''}</span></div>
+                                <button onclick="editEvent('${ev._firestoreId}')" style="margin-left:auto; background:transparent; border:none; cursor:pointer; color:var(--text-muted); padding:2px;" title="Edit Event">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                </button>
                             </div>
                             ${tagsHtml ? `<div class="card-meta">${tagsHtml}</div>` : ''}
                             ${safeNotes ? `<div class="card-notes" style="grid-template-rows:1fr;margin-top:8px;opacity:1;pointer-events:auto;"><div class="notes-content"><div class="notes-content-inner">${safeNotes}</div></div></div>` : ''}
@@ -1838,28 +1857,6 @@
                 container.appendChild(row);
             });
 
-            const currentYear = new Date().getFullYear();
-            if (!byYear[currentYear]) {
-                const todayNow = new Date();
-                const startOfYear = new Date(currentYear, 0, 1).getTime();
-                const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59).getTime();
-                const row = document.createElement('div'); row.className = 'year-row';
-                const label = document.createElement('div'); label.className = 'year-label'; label.innerText = currentYear;
-                const timeline = document.createElement('div'); timeline.className = 'year-timeline';
-                const line = document.createElement('div'); line.className = 'year-line'; timeline.appendChild(line);
-                for (let m = 0; m < 12; m++) {
-                    const pct = (new Date(currentYear, m, 1).getTime() - startOfYear) / (endOfYear - startOfYear);
-                    const t = document.createElement('div'); t.className = 'year-tick';
-                    if (m === 0 || m === 3 || m === 6 || m === 9) t.classList.add('year-tick-major');
-                    t.style.left = `${pct * 100}%`; timeline.appendChild(t);
-                }
-                const todayPct = (todayNow.getTime() - startOfYear) / (endOfYear - startOfYear);
-                const todayDot = document.createElement('div');
-                todayDot.className = 'year-today-dot';
-                todayDot.style.left = `${Math.min(Math.max(todayPct * 100, 0), 100)}%`;
-                todayDot.title = 'Today'; timeline.appendChild(todayDot);
-                row.appendChild(label); row.appendChild(timeline); container.appendChild(row);
-            }
 
             container.appendChild(cardPanel);
         }
@@ -2080,8 +2077,34 @@
             document.getElementById('modalOverlay').addEventListener('click', e => { if (e.target.id === 'modalOverlay') closeModal(); });
         });
 
-        window.openModal = () => document.getElementById('modalOverlay').classList.add('active');
-        window.closeModal = () => document.getElementById('modalOverlay').classList.remove('active');
+        window.openModal = () => {
+            document.querySelector('.modal-content h2').textContent = editingEventId ? 'Edit Record' : 'Add Record';
+            document.getElementById('modalOverlay').classList.add('active');
+        };
+        window.closeModal = () => {
+            editingEventId = null;
+            document.getElementById('eventForm').reset();
+            document.getElementById('inputDate').valueAsDate = new Date();
+            document.getElementById('modalOverlay').classList.remove('active');
+        };
+
+        window.editEvent = (id) => {
+            const ev = events.find(e => e._firestoreId === id);
+            if (!ev) return;
+            editingEventId = id;
+            document.getElementById('inputDate').value = ev.Date || '';
+            
+            let type = 'other';
+            if (ev.working_to_breath === '1') {
+                if (ev.in_hospital === '1') type = ev.received_oxygen === '1' ? 'wtb_hosp_oxy' : 'wtb_hosp';
+                else type = 'wtb';
+            }
+            document.getElementById('inputType').value = type;
+            document.getElementById('inputSeverity').value = ev.wtb_severity || 'NA';
+            document.getElementById('inputOther').value = ev.other_event || '';
+            document.getElementById('inputNotes').value = ev.Notes || '';
+            openModal();
+        };
 
     </script>
 </body>
