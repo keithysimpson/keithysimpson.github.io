@@ -125,14 +125,69 @@
       text-transform: uppercase;
       pointer-events: none;
     }
+
+    #zoom-container {
+      position: absolute;
+      inset: 0;
+      transform-origin: center center;
+      transition: transform 0.2s ease;
+    }
+
+    .zoom-btn {
+      position: absolute;
+      bottom: 30px;
+      width: 50px;
+      height: 50px;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      color: white;
+      font-size: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      backdrop-filter: blur(5px);
+      transition: all 0.2s ease;
+      z-index: 2000;
+    }
+
+    .zoom-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: scale(1.1);
+    }
+
+    #zoom-out {
+      left: 30px;
+    }
+
+    #zoom-in {
+      right: 30px;
+    }
+
+    #arena.zoomed-in {
+      cursor: grab;
+    }
+
+    #arena.zoomed-in:active {
+      cursor: grabbing;
+    }
+
+    #arena.zoomed-in .hex-tile {
+      cursor: inherit;
+    }
   </style>
 </head>
 
 <body>
 
   <div id="arena">
-    <div id="grid-layer"></div>
-    <div id="tile-layer"></div>
+    <div id="zoom-container">
+      <div id="grid-layer"></div>
+      <div id="tile-layer"></div>
+    </div>
+    <button id="zoom-out" class="zoom-btn">-</button>
+    <button id="zoom-in" class="zoom-btn">+</button>
   </div>
 
   <script>
@@ -147,7 +202,7 @@
     //     Cap fraction = (878 - 485) / 2 / 878 = 196.5 / 878 ≈ 0.2238
     //     Row step = TILE_H * (1 - CAP_FRAC)
     //
-    const TILE_H = 120;
+    const TILE_H = 100;
     const TILE_W = Math.round(TILE_H * (978 / 878));   // ≈ 107
 
     const CAP_FRAC = (878 - 485) / 2 / 878;              // ≈ 0.2238
@@ -223,6 +278,88 @@
       makeDraggable(el, tile);
     });
 
+    // ── Zoom & Pan ────────────────────────────────────────────────────────────────
+    let currentZoom = 1;
+    let panX = 0;
+    let panY = 0;
+    const zoomContainer = document.getElementById('zoom-container');
+
+    document.getElementById('zoom-in').addEventListener('click', () => {
+      currentZoom = Math.min(3, currentZoom + 0.25);
+      updateZoom();
+    });
+
+    document.getElementById('zoom-out').addEventListener('click', () => {
+      currentZoom = Math.max(1, currentZoom - 0.25);
+      updateZoom();
+    });
+
+    function updateZoom() {
+      if (currentZoom === 1) {
+        panX = 0;
+        panY = 0;
+        arena.classList.remove('zoomed-in');
+      } else {
+        arena.classList.add('zoomed-in');
+      }
+      zoomContainer.style.transform = `translate(${panX}px, ${panY}px) scale(${currentZoom})`;
+    }
+
+    let isPanning = false;
+    let startPanX = 0;
+    let startPanY = 0;
+    let initialPanX = 0;
+    let initialPanY = 0;
+
+    arena.addEventListener('mousedown', startPan);
+    arena.addEventListener('touchstart', startPan, { passive: false });
+
+    function startPan(e) {
+      if (currentZoom === 1) return;
+      if (e.target.closest('.zoom-btn')) return;
+
+      e.preventDefault();
+      isPanning = true;
+      const pt = getPoint(e);
+      startPanX = pt.x;
+      startPanY = pt.y;
+      initialPanX = panX;
+      initialPanY = panY;
+      
+      zoomContainer.style.transition = 'none';
+    }
+
+    window.addEventListener('mousemove', onArenaMove);
+    window.addEventListener('touchmove', onArenaMove, { passive: false });
+
+    function onArenaMove(e) {
+      if (!isPanning) return;
+      e.preventDefault();
+      const pt = getPoint(e);
+      panX = initialPanX + (pt.x - startPanX);
+      panY = initialPanY + (pt.y - startPanY);
+      zoomContainer.style.transform = `translate(${panX}px, ${panY}px) scale(${currentZoom})`;
+    }
+
+    window.addEventListener('mouseup', endPan);
+    window.addEventListener('touchend', endPan);
+
+    function endPan() {
+      if (!isPanning) return;
+      isPanning = false;
+      zoomContainer.style.transition = 'transform 0.2s ease';
+    }
+
+    function getUnscaledPt(screenX, screenY) {
+      const arenaRect = arena.getBoundingClientRect();
+      const W = arenaRect.width;
+      const H = arenaRect.height;
+      return {
+        x: (screenX - arenaRect.left - W / 2) / currentZoom + W / 2,
+        y: (screenY - arenaRect.top - H / 2) / currentZoom + H / 2
+      };
+    }
+
     // ── Drag ──────────────────────────────────────────────────────────────────────
     let dragging = null;
     let dragOffsetX = 0;
@@ -234,9 +371,10 @@
     }
 
     function startDrag(e, tile) {
+      if (currentZoom > 1) return;
       e.preventDefault();
       const pt = getPoint(e);
-      const arenaRect = arena.getBoundingClientRect();
+      const uPt = getUnscaledPt(pt.x, pt.y);
 
       if (tile.slotIndex !== null) {
         slots[tile.slotIndex].tileId = null;
@@ -246,8 +384,8 @@
         tile.originalSlotIndex = null;
       }
 
-      dragOffsetX = pt.x - arenaRect.left - parseFloat(tile.el.style.left) - TILE_W / 2;
-      dragOffsetY = pt.y - arenaRect.top - parseFloat(tile.el.style.top) - TILE_H / 2;
+      dragOffsetX = uPt.x - parseFloat(tile.el.style.left) - TILE_W / 2;
+      dragOffsetY = uPt.y - parseFloat(tile.el.style.top) - TILE_H / 2;
 
       tile.el.classList.add('dragging');
       tile.el.style.zIndex = 999;
@@ -262,10 +400,10 @@
       if (!dragging) return;
       e.preventDefault();
       const pt = getPoint(e);
-      const arenaRect = arena.getBoundingClientRect();
+      const uPt = getUnscaledPt(pt.x, pt.y);
 
-      const x = pt.x - arenaRect.left - dragOffsetX - TILE_W / 2;
-      const y = pt.y - arenaRect.top - dragOffsetY - TILE_H / 2;
+      const x = uPt.x - dragOffsetX - TILE_W / 2;
+      const y = uPt.y - dragOffsetY - TILE_H / 2;
 
       dragging.el.style.left = x + 'px';
       dragging.el.style.top = y + 'px';
