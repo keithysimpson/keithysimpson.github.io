@@ -573,6 +573,7 @@
             { id: 'bubbles', label: '🫧 Bubbles' },
             { id: 'poo', label: '💩 Poo' },
             { id: 'whackamole', label: '🔨 Mole' },
+            { id: 'house', label: '🏠 House' },
         ];
 
         // ---- Default slot assignments ----
@@ -983,6 +984,19 @@
             } else if (celebration_effect == "whackamole") {
                 //--- whack a mole:
                 cleanupWhackAMole = createWhackAMole();
+            } else if (celebration_effect == "house") {
+                //--- house:
+                const houseIframe = document.createElement('iframe');
+                houseIframe.id = 'house-iframe';
+                houseIframe.src = '../house/index.html';
+                houseIframe.style.position = 'fixed';
+                houseIframe.style.top = '0';
+                houseIframe.style.left = '0';
+                houseIframe.style.width = '100%';
+                houseIframe.style.height = '100%';
+                houseIframe.style.border = 'none';
+                houseIframe.style.zIndex = '9000';
+                document.body.appendChild(houseIframe);
             }
 
             /*
@@ -1075,6 +1089,11 @@
 
             if (typeof cleanupWhackAMole === 'function') {
                 cleanupWhackAMole();
+            }
+
+            const houseIframe = document.getElementById('house-iframe');
+            if (houseIframe) {
+                houseIframe.remove();
             }
 
             setCogVisible(true); // back to start screen – show cog
