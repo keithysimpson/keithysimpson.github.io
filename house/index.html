@@ -82,7 +82,7 @@
     }
 
     .hex-slot {
-      background: rgba(255, 255, 255, 0.4);
+      background: rgba(0, 0, 0, 0.4);
       cursor: default;
     }
 
@@ -287,7 +287,7 @@
     const zoomContainer = document.getElementById('zoom-container');
 
     document.getElementById('zoom-in').addEventListener('click', () => {
-      currentZoom = Math.min(3, currentZoom + 0.75);
+      currentZoom = Math.min(4, currentZoom + 0.75);
       updateZoom();
     });
 
