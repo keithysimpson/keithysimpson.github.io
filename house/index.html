@@ -82,7 +82,7 @@
     }
 
     .hex-slot {
-      background: rgba(0, 0, 0, 0.4);
+      background: rgba(255, 255, 255, 0.4);
       cursor: default;
     }
 
@@ -135,7 +135,7 @@
 
     .zoom-btn {
       position: absolute;
-      bottom: 30px;
+      bottom: 100px;
       width: 50px;
       height: 50px;
       background: rgba(0, 0, 0, 0.5);
@@ -159,10 +159,12 @@
 
     #zoom-out {
       left: 30px;
+      color: rgb(244, 58, 16);
     }
 
     #zoom-in {
       right: 30px;
+      color: rgb(65, 244, 16);
     }
 
     #arena.zoomed-in {
@@ -285,12 +287,12 @@
     const zoomContainer = document.getElementById('zoom-container');
 
     document.getElementById('zoom-in').addEventListener('click', () => {
-      currentZoom = Math.min(3, currentZoom + 0.25);
+      currentZoom = Math.min(3, currentZoom + 0.75);
       updateZoom();
     });
 
     document.getElementById('zoom-out').addEventListener('click', () => {
-      currentZoom = Math.max(1, currentZoom - 0.25);
+      currentZoom = Math.max(1, currentZoom - 0.75);
       updateZoom();
     });
 
@@ -325,7 +327,7 @@
       startPanY = pt.y;
       initialPanX = panX;
       initialPanY = panY;
-      
+
       zoomContainer.style.transition = 'none';
     }
 
