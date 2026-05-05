@@ -256,11 +256,19 @@
       }
     }
 
-    // ── Place 9 coloured tiles on the first 9 slots ───────────────────────────────
+    // ── Place coloured tiles on random slots ───────────────────────────────
     const tiles = [];
 
+    // Create a shuffled array of available slot indices
+    const availableSlots = slots.map((_, index) => index);
+    for (let i = availableSlots.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [availableSlots[i], availableSlots[j]] = [availableSlots[j], availableSlots[i]];
+    }
+
     COLORS.forEach((color, i) => {
-      const slot = slots[i];
+      const slotIndex = availableSlots[i];
+      const slot = slots[slotIndex];
 
       const el = document.createElement('div');
       el.className = 'hex-tile';
@@ -274,7 +282,7 @@
       el.innerHTML = `<div class="shine"></div><div class="label">${color.name}</div>`;
       tileLayer.appendChild(el);
 
-      const tile = { el, id: i, color, slotIndex: i };
+      const tile = { el, id: i, color, slotIndex: slotIndex };
       slot.tileId = i;
       tiles.push(tile);
       makeDraggable(el, tile);
