@@ -256,18 +256,54 @@
       }
     }
 
-    // ── Place coloured tiles on random slots ───────────────────────────────
+    // ── Place coloured tiles using connected growth ────────────────────────
     const tiles = [];
 
-    // Create a shuffled array of available slot indices
-    const availableSlots = slots.map((_, index) => index);
-    for (let i = availableSlots.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [availableSlots[i], availableSlots[j]] = [availableSlots[j], availableSlots[i]];
+    // Build a lookup map from "col,row" → slot index for fast neighbour lookup
+    const slotMap = new Map();
+    slots.forEach((s, idx) => slotMap.set(`${s.col},${s.row}`, idx));
+
+    // Return the 6 neighbour slot indices for a given slot (staggered pointy-top grid).
+    // Odd rows are shifted right by half a tile, so neighbour offsets depend on parity.
+    function getNeighbourIndices(slot) {
+      const { col, row } = slot;
+      const isOdd = row % 2 === 1;
+      // [colOffset, rowOffset] pairs for the 6 hex directions
+      const offsets = isOdd
+        ? [[-1, 0], [1, 0], [0, -1], [1, -1], [0, 1], [1, 1]]
+        : [[-1, 0], [1, 0], [-1, -1], [0, -1], [-1, 1], [0, 1]];
+      return offsets
+        .map(([dc, dr]) => slotMap.get(`${col + dc},${row + dr}`))
+        .filter(idx => idx !== undefined);
+    }
+
+    // Pick a random starting slot and grow outward, always placing the next
+    // tile on an unoccupied neighbour of the already-occupied cluster.
+    const occupiedIndices = new Set();
+    const frontier = new Set(); // unoccupied slots adjacent to occupied ones
+
+    // Seed: pick any slot at random
+    const firstIdx = Math.floor(Math.random() * slots.length);
+    occupiedIndices.add(firstIdx);
+    getNeighbourIndices(slots[firstIdx]).forEach(n => frontier.add(n));
+
+    // Build the placement order
+    const placementOrder = [firstIdx];
+    while (placementOrder.length < COLORS.length && frontier.size > 0) {
+      // Pick a random slot from the frontier
+      const frontierArr = Array.from(frontier);
+      const chosen = frontierArr[Math.floor(Math.random() * frontierArr.length)];
+      frontier.delete(chosen);
+      occupiedIndices.add(chosen);
+      placementOrder.push(chosen);
+      // Add its unoccupied, not-yet-frontier neighbours to the frontier
+      getNeighbourIndices(slots[chosen]).forEach(n => {
+        if (!occupiedIndices.has(n)) frontier.add(n);
+      });
     }
 
     COLORS.forEach((color, i) => {
-      const slotIndex = availableSlots[i];
+      const slotIndex = placementOrder[i];
       const slot = slots[slotIndex];
 
       const el = document.createElement('div');
