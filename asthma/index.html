@@ -1241,9 +1241,19 @@
                     <label>Other Event / Title (Optional)</label>
                     <input type="text" id="inputOther" placeholder="e.g. Started Nursery, Stomach bug" />
                 </div>
-                <div class="form-group" style="margin-bottom: 0;">
+                <div class="form-group">
                     <label>Notes</label>
                     <textarea id="inputNotes" placeholder="Describe the episode or event…"></textarea>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label style="display:flex; align-items:center; justify-content:space-between;">
+                        <span>Custom Colour <span style="font-weight:400; color:var(--text-muted);">(optional — overrides type colour)</span></span>
+                        <button type="button" id="clearCustomColor" style="display:none; background:none; border:none; font-size:0.78rem; color:var(--text-muted); cursor:pointer; padding:0; text-decoration:underline;">Clear</button>
+                    </label>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <input type="color" id="inputCustomColor" style="width:48px; height:38px; padding:2px 3px; border-radius:8px; border:1px solid #cbd5e1; background:#f1f5f9; cursor:pointer; flex-shrink:0;" />
+                        <span id="customColorLabel" style="font-size:0.85rem; color:var(--text-muted);">No custom colour set</span>
+                    </div>
                 </div>
                 <div class="modal-actions">
                     <button type="button" class="btn btn-cancel" onclick="closeModal()">Cancel</button>
@@ -1499,7 +1509,9 @@
             btnSave.disabled = true;
 
             const eventType = document.getElementById('inputType').value;
-            
+            const customColorInput = document.getElementById('inputCustomColor');
+            const customColorActive = customColorInput.dataset.active === 'true';
+
             const payload = {
                 Date: document.getElementById('inputDate').value,
                 working_to_breath: (eventType === 'wtb' || eventType === 'wtb_hosp' || eventType === 'wtb_hosp_oxy') ? '1' : '0',
@@ -1507,7 +1519,8 @@
                 received_oxygen: (eventType === 'wtb_hosp_oxy') ? '1' : '0',
                 wtb_severity: document.getElementById('inputSeverity').value,
                 other_event: document.getElementById('inputOther').value.trim(),
-                Notes: document.getElementById('inputNotes').value.trim()
+                Notes: document.getElementById('inputNotes').value.trim(),
+                custom_color: customColorActive ? customColorInput.value : ''
             };
 
             try {
@@ -1606,6 +1619,9 @@
                     } else { colorClass = 'timeline-yellow'; categoryName = 'WTB (No Hospital)'; }
                 }
 
+                // Custom colour: overrides display colour but keeps colorClass for filtering
+                const customColor = ev.custom_color || '';
+
                 let title = ev.other_event;
                 if (!title) title = categoryName;
 
@@ -1626,6 +1642,7 @@
 
                 const dot = document.createElement('div');
                 dot.className = `rail-point ${colorClass} clickable`;
+                if (customColor) dot.style.backgroundColor = customColor;
                 dot.style.top = `${finalPct}%`;
                 dot.id = `dot-${i}`;
                 dot.title = 'Hold to show details';
@@ -1660,6 +1677,7 @@
 
                 ev._index = i;
                 ev.colorClass = colorClass;
+                ev._customColor = customColor;
             });
 
             // Today dot
@@ -1691,6 +1709,7 @@
                 if (typeof ev._index === 'undefined') return;
                 const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                 path.setAttribute('class', `connector-path ${ev.colorClass}`);
+                if (ev._customColor) path.style.stroke = ev._customColor;
                 path.setAttribute('id', `path-${ev._index}`);
                 svg.appendChild(path);
             });
@@ -1805,6 +1824,7 @@
                     const dot = document.createElement('div');
                     dot.className = `year-dot ${ev.colorClass || 'timeline-blue'}`;
                     dot.style.left = `${pct * 100}%`;
+                    if (ev._customColor) dot.style.backgroundColor = ev._customColor;
 
                     const isWtb = ev.working_to_breath === '1';
                     let categoryName = 'Event';
@@ -2075,6 +2095,25 @@
             window.addEventListener('resize', drawConnections);
 
             document.getElementById('modalOverlay').addEventListener('click', e => { if (e.target.id === 'modalOverlay') closeModal(); });
+
+            // Custom colour picker interaction
+            const colorPicker = document.getElementById('inputCustomColor');
+            const colorLabel = document.getElementById('customColorLabel');
+            const clearColorBtn = document.getElementById('clearCustomColor');
+            colorPicker.dataset.active = 'false';
+
+            colorPicker.addEventListener('input', () => {
+                colorPicker.dataset.active = 'true';
+                colorLabel.textContent = colorPicker.value;
+                clearColorBtn.style.display = 'inline';
+            });
+
+            clearColorBtn.addEventListener('click', () => {
+                colorPicker.dataset.active = 'false';
+                colorPicker.value = '#000000';
+                colorLabel.textContent = 'No custom colour set';
+                clearColorBtn.style.display = 'none';
+            });
         });
 
         window.openModal = () => {
@@ -2085,6 +2124,11 @@
             editingEventId = null;
             document.getElementById('eventForm').reset();
             document.getElementById('inputDate').valueAsDate = new Date();
+            const colorInput = document.getElementById('inputCustomColor');
+            colorInput.dataset.active = 'false';
+            colorInput.value = '#000000';
+            document.getElementById('customColorLabel').textContent = 'No custom colour set';
+            document.getElementById('clearCustomColor').style.display = 'none';
             document.getElementById('modalOverlay').classList.remove('active');
         };
 
@@ -2093,7 +2137,6 @@
             if (!ev) return;
             editingEventId = id;
             document.getElementById('inputDate').value = ev.Date || '';
-            
             let type = 'other';
             if (ev.working_to_breath === '1') {
                 if (ev.in_hospital === '1') type = ev.received_oxygen === '1' ? 'wtb_hosp_oxy' : 'wtb_hosp';
@@ -2103,6 +2146,18 @@
             document.getElementById('inputSeverity').value = ev.wtb_severity || 'NA';
             document.getElementById('inputOther').value = ev.other_event || '';
             document.getElementById('inputNotes').value = ev.Notes || '';
+            const colorInput2 = document.getElementById('inputCustomColor');
+            if (ev.custom_color) {
+                colorInput2.value = ev.custom_color;
+                colorInput2.dataset.active = 'true';
+                document.getElementById('customColorLabel').textContent = ev.custom_color;
+                document.getElementById('clearCustomColor').style.display = 'inline';
+            } else {
+                colorInput2.value = '#000000';
+                colorInput2.dataset.active = 'false';
+                document.getElementById('customColorLabel').textContent = 'No custom colour set';
+                document.getElementById('clearCustomColor').style.display = 'none';
+            }
             openModal();
         };
 
