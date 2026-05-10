@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="nano.min.css">
     <style>
         :root {
             --bg-body: #f8fafc;
@@ -1247,12 +1248,15 @@
                 </div>
                 <div class="form-group" style="margin-bottom: 0;">
                     <label style="display:flex; align-items:center; justify-content:space-between;">
-                        <span>Custom Colour <span style="font-weight:400; color:var(--text-muted);">(optional — overrides type colour)</span></span>
-                        <button type="button" id="clearCustomColor" style="display:none; background:none; border:none; font-size:0.78rem; color:var(--text-muted); cursor:pointer; padding:0; text-decoration:underline;">Clear</button>
+                        <span>Custom Colour <span style="font-weight:400; color:var(--text-muted);">(optional —
+                                overrides type colour)</span></span>
+                        <button type="button" id="clearCustomColor"
+                            style="display:none; background:none; border:none; font-size:0.78rem; color:var(--text-muted); cursor:pointer; padding:0; text-decoration:underline;">Clear</button>
                     </label>
                     <div style="display:flex; align-items:center; gap:10px;">
-                        <input type="color" id="inputCustomColor" style="width:48px; height:38px; padding:2px 3px; border-radius:8px; border:1px solid #cbd5e1; background:#f1f5f9; cursor:pointer; flex-shrink:0;" />
-                        <span id="customColorLabel" style="font-size:0.85rem; color:var(--text-muted);">No custom colour set</span>
+                        <div id="customColorPickerBtn" style="flex-shrink:0;"></div>
+                        <span id="customColorLabel" style="font-size:0.85rem; color:var(--text-muted);">No custom colour
+                            set</span>
                     </div>
                 </div>
                 <div class="modal-actions">
@@ -1313,6 +1317,7 @@
         </div>
     </div>
 
+    <script src="pickr.min.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -1338,6 +1343,7 @@
         let eventsUnsubscribe = () => { };
         let events = [];
         let editingEventId = null;
+        let activeCustomColor = ''; // tracks the custom colour chosen in the picker
 
         // ── DOM refs ──
         const authBanner = document.getElementById('auth-banner');
@@ -1509,9 +1515,6 @@
             btnSave.disabled = true;
 
             const eventType = document.getElementById('inputType').value;
-            const customColorInput = document.getElementById('inputCustomColor');
-            const customColorActive = customColorInput.dataset.active === 'true';
-
             const payload = {
                 Date: document.getElementById('inputDate').value,
                 working_to_breath: (eventType === 'wtb' || eventType === 'wtb_hosp' || eventType === 'wtb_hosp_oxy') ? '1' : '0',
@@ -1520,7 +1523,7 @@
                 wtb_severity: document.getElementById('inputSeverity').value,
                 other_event: document.getElementById('inputOther').value.trim(),
                 Notes: document.getElementById('inputNotes').value.trim(),
-                custom_color: customColorActive ? customColorInput.value : ''
+                custom_color: activeCustomColor
             };
 
             try {
@@ -2096,23 +2099,35 @@
 
             document.getElementById('modalOverlay').addEventListener('click', e => { if (e.target.id === 'modalOverlay') closeModal(); });
 
-            // Custom colour picker interaction
-            const colorPicker = document.getElementById('inputCustomColor');
+            // Custom colour picker — Pickr library for consistent UI on all platforms
             const colorLabel = document.getElementById('customColorLabel');
             const clearColorBtn = document.getElementById('clearCustomColor');
-            colorPicker.dataset.active = 'false';
 
-            colorPicker.addEventListener('input', () => {
-                colorPicker.dataset.active = 'true';
-                colorLabel.textContent = colorPicker.value;
+            const pickr = Pickr.create({
+                el: '#customColorPickerBtn',
+                theme: 'nano',
+                default: '#74a9ff',
+                position: 'bottom-start',
+                components: {
+                    preview: true,
+                    hue: true,
+                    interaction: { hex: true, input: true, save: true }
+                }
+            });
+
+            pickr.on('save', (color) => {
+                if (!color) return;
+                activeCustomColor = color.toHEXA().toString();
+                colorLabel.textContent = activeCustomColor;
                 clearColorBtn.style.display = 'inline';
+                pickr.hide();
             });
 
             clearColorBtn.addEventListener('click', () => {
-                colorPicker.dataset.active = 'false';
-                colorPicker.value = '#000000';
+                activeCustomColor = '';
                 colorLabel.textContent = 'No custom colour set';
                 clearColorBtn.style.display = 'none';
+                pickr.setColor('#74a9ff', true); // reset without triggering save
             });
         });
 
@@ -2124,11 +2139,10 @@
             editingEventId = null;
             document.getElementById('eventForm').reset();
             document.getElementById('inputDate').valueAsDate = new Date();
-            const colorInput = document.getElementById('inputCustomColor');
-            colorInput.dataset.active = 'false';
-            colorInput.value = '#000000';
+            activeCustomColor = '';
             document.getElementById('customColorLabel').textContent = 'No custom colour set';
             document.getElementById('clearCustomColor').style.display = 'none';
+            if (typeof pickr !== 'undefined') pickr.setColor('#74a9ff', true);
             document.getElementById('modalOverlay').classList.remove('active');
         };
 
@@ -2146,17 +2160,16 @@
             document.getElementById('inputSeverity').value = ev.wtb_severity || 'NA';
             document.getElementById('inputOther').value = ev.other_event || '';
             document.getElementById('inputNotes').value = ev.Notes || '';
-            const colorInput2 = document.getElementById('inputCustomColor');
             if (ev.custom_color) {
-                colorInput2.value = ev.custom_color;
-                colorInput2.dataset.active = 'true';
+                activeCustomColor = ev.custom_color;
                 document.getElementById('customColorLabel').textContent = ev.custom_color;
                 document.getElementById('clearCustomColor').style.display = 'inline';
+                if (typeof pickr !== 'undefined') pickr.setColor(ev.custom_color, true);
             } else {
-                colorInput2.value = '#000000';
-                colorInput2.dataset.active = 'false';
+                activeCustomColor = '';
                 document.getElementById('customColorLabel').textContent = 'No custom colour set';
                 document.getElementById('clearCustomColor').style.display = 'none';
+                if (typeof pickr !== 'undefined') pickr.setColor('#74a9ff', true);
             }
             openModal();
         };
