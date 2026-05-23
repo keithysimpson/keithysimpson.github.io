@@ -624,6 +624,55 @@ Event Cards
       background: rgba(0, 0, 0, 0.05);
       color: rgba(0, 0, 0, 0.65);
     }
+
+    /* --- Event Highlight & Hover Styling --- */
+    .event-item {
+      cursor: pointer;
+      border-radius: 4px;
+      padding: 3px 8px;
+      margin: -3px -8px; /* Pad the container visual without shifting text layout */
+      transition: background 0.3s, box-shadow 0.3s, opacity 0.35s, top 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .event-item:hover {
+      background: rgba(0, 0, 0, 0.03);
+      border: 1px solid rgb(109, 109, 109);
+    }
+
+    /* Highlight States */
+    /*#app.has-highlight .event-item:not(.highlighted),*/
+    #app.has-highlight .rail-dot:not(.highlighted),
+    #app.has-highlight .rail-period:not(.highlighted),
+    #app.has-highlight #connectors-svg path:not(.highlighted) {
+      opacity: 0.25 !important;
+    }
+
+    #app.has-highlight .event-item.highlighted {
+      background: rgba(0, 0, 0, 0.04);
+      box-shadow: inset 4px 0 0 0 var(--event-color, #648cff);
+      opacity: 1 !important;
+    }
+
+    #app.has-highlight .rail-dot.highlighted {
+      transform: translate(-50%, -50%) scale(1.6);
+      z-index: 10;
+      box-shadow: 0 0 10px var(--event-color, #648cff);
+      opacity: 1 !important;
+    }
+
+    #app.has-highlight .rail-period.highlighted {
+      transform: translate(-50%, 0) scaleX(1.6);
+      z-index: 10;
+      /*box-shadow: 0 0 10px var(--event-color, #648cff);*/
+      opacity: 1 !important;
+      border: 1px solid rgb(150, 150, 150);
+    }
+
+    #app.has-highlight #connectors-svg path.highlighted {
+      opacity: 0.95 !important;
+      stroke-width: 2.5px;
+      
+    }
   </style>
 
 </head>
@@ -840,6 +889,115 @@ Event Cards
       return luminance > 0.6;
     }
 
+    // Get the color for an event, cycling through colors for overlapping events if no custom color is defined
+    function getEventColor(e) {
+      if (e.color) return e.color;
+
+      const offset = e.offset || 0;
+
+      if (e.type === 'milestone') {
+        const milestoneColors = [
+          '#ffc86b', // Yellow/Amber (default)
+          '#648cff', // Blue
+          '#5dcaa5', // Teal/Green
+          '#9b5de5', // Purple
+          '#ff6b6b', // Coral/Red
+          '#00f5d4', // Turquoise
+          '#ff54b0'  // Magenta
+        ];
+        return milestoneColors[offset % milestoneColors.length];
+      } else if (e.type === 'epoch') {
+        const epochColors = [
+          '#5dcaa5', // Teal/Green (default)
+          '#ff9f43', // Orange
+          '#9b5de5', // Purple
+          '#ff6b6b', // Coral/Red
+          '#648cff', // Blue
+          '#00f5d4', // Turquoise
+          '#ff54b0'  // Magenta
+        ];
+        return epochColors[offset % epochColors.length];
+      } else {
+        const defaultColors = [
+          '#648cff', // Blue (default)
+          '#5dcaa5', // Teal/Green
+          '#ff9f43', // Orange
+          '#9b5de5', // Purple
+          '#ff6b6b', // Coral/Red
+          '#00f5d4', // Turquoise
+          '#ff54b0'  // Magenta
+        ];
+        return defaultColors[offset % defaultColors.length];
+      }
+    }
+
+    let highlightedEventName = null;
+
+    function toggleHighlight(name) {
+      if (highlightedEventName === name) {
+        highlightedEventName = null;
+      } else {
+        highlightedEventName = name;
+      }
+      updateHighlights();
+    }
+
+    function updateHighlights() {
+      const app = document.getElementById('app');
+      const allCards = document.querySelectorAll('.event-item');
+      const allDots = document.querySelectorAll('.rail-dot, .rail-period');
+      const allPaths = document.querySelectorAll('#connectors-svg path');
+
+      if (!highlightedEventName) {
+        app.classList.remove('has-highlight');
+        allCards.forEach(c => {
+          c.classList.remove('highlighted');
+          c.style.removeProperty('--event-color');
+        });
+        allDots.forEach(d => {
+          d.classList.remove('highlighted');
+          d.style.removeProperty('--event-color');
+        });
+        allPaths.forEach(p => {
+          p.classList.remove('highlighted');
+        });
+        return;
+      }
+
+      app.classList.add('has-highlight');
+
+      const eventObj = ALL_EVENTS.find(e => e.name === highlightedEventName);
+      const color = eventObj ? getEventColor(eventObj) : '#648cff';
+
+      allCards.forEach(c => {
+        if (c.dataset.name === highlightedEventName) {
+          c.classList.add('highlighted');
+          c.style.setProperty('--event-color', color);
+        } else {
+          c.classList.remove('highlighted');
+          c.style.removeProperty('--event-color');
+        }
+      });
+
+      allDots.forEach(d => {
+        if (d.dataset.name === highlightedEventName) {
+          d.classList.add('highlighted');
+          d.style.setProperty('--event-color', color);
+        } else {
+          d.classList.remove('highlighted');
+          d.style.removeProperty('--event-color');
+        }
+      });
+
+      allPaths.forEach(p => {
+        if (p.getAttribute('data-name') === highlightedEventName) {
+          p.classList.add('highlighted');
+        } else {
+          p.classList.remove('highlighted');
+        }
+      });
+    }
+
     // Highlight the active dot and update back/forward button states
     function updateZoomDots() {
       const dots = document.querySelectorAll('.zoom-dot');
@@ -865,6 +1023,53 @@ Event Cards
       return { dots, periods, conns, cards, divs };
     }
 
+    // Calculate dynamic offsets for visible events to prevent horizontal overlapping on the rail
+    function calculateOffsets(visibleEvents, startYa, rH) {
+      // 1. Map each event to its vertical range [start, end]
+      const eventsWithRanges = visibleEvents.map(e => {
+        const y1 = rH - (e.ya / startYa) * rH;
+        let start, end;
+        if (typeof e.end_ya !== 'undefined') {
+          const y2 = rH - (e.end_ya / startYa) * rH;
+          start = Math.min(y1, y2) - 1; // 1px padding
+          end = Math.max(y1, y2) + 1;   // 1px padding
+        } else {
+          start = y1 - 4; // 7px dot + small padding
+          end = y1 + 4;
+        }
+        return { event: e, start, end };
+      });
+
+      // 2. Sort by start coordinate ascending (past to present)
+      eventsWithRanges.sort((a, b) => a.start - b.start);
+
+      // 3. Greedy interval coloring to assign offsets
+      const activeIntervals = []; // Array of {end, offset}
+      eventsWithRanges.forEach(item => {
+        const currentStart = item.start;
+        
+        // Remove active intervals that no longer overlap with currentStart
+        for (let i = activeIntervals.length - 1; i >= 0; i--) {
+          if (activeIntervals[i].end <= currentStart) {
+            activeIntervals.splice(i, 1);
+          }
+        }
+
+        // Find the smallest available offset (non-negative integer)
+        const usedOffsets = new Set(activeIntervals.map(x => x.offset));
+        let offset = 0;
+        while (usedOffsets.has(offset)) {
+          offset++;
+        }
+
+        // Assign the offset to the event object
+        item.event.offset = offset;
+
+        // Add this interval to the active list
+        activeIntervals.push({ end: item.end, offset: offset });
+      });
+    }
+
     // Main UI update function: Calculates positions, renders elements, and triggers transitions
     function render(levelIdx) {
       const startYa = LEVELS[levelIdx].start_ya;
@@ -882,6 +1087,10 @@ Event Cards
         const inTimeRange = e.ya <= startYa || (typeof e.end_ya !== 'undefined' && e.end_ya <= startYa);
         return inTimeRange && startYa <= vFrom && levelIdx <= until;
       });
+
+      // Calculate dynamic offsets for visible events
+      calculateOffsets(visible, startYa, rH);
+
       const visibleNames = new Set(visible.map(e => e.name));
 
       // Update the header title with the current level's name and total time span
@@ -1066,12 +1275,22 @@ Event Cards
           // allowing CSS transitions to slide them into position and fade them in via requestAnimationFrame below.
           const dot = document.createElement('div');
           dot.className = (hasEnd ? 'rail-period ' : 'rail-dot ') + (e.type || 'default');
-          if (e.color) dot.style.background = e.color;
-          if (hasEnd && typeof e.offset !== 'undefined') dot.style.left = `calc(50% + ${2 + e.offset * 6}px)`;
+          dot.style.background = getEventColor(e);
+          if (typeof e.offset !== 'undefined') {
+            if (hasEnd) {
+              dot.style.left = `calc(50% + ${2 + e.offset * 6}px)`;
+            } else {
+              dot.style.left = `calc(50% + ${e.offset * 6}px)`;
+            }
+          }
           dot.style.top = '0px';
           if (hasEnd) dot.style.height = periodH + 'px';
           dot.style.opacity = '0';
           dot.dataset.name = e.name;
+          dot.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            toggleHighlight(e.name);
+          });
           rail.appendChild(dot);
 
           const conn = document.createElement('div');
@@ -1087,6 +1306,10 @@ Event Cards
           card.style.opacity = '0';
           card.dataset.name = e.name;
           card.innerHTML = `<div class="ev-time">${e.time}</div><div class="ev-name">${e.name}</div><div class="ev-desc">${e.desc}</div>`;
+          card.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            toggleHighlight(e.name);
+          });
           inner.appendChild(card);
 
           const div = document.createElement('div');
@@ -1109,14 +1332,22 @@ Event Cards
           // Existing dot/period: just update position
           existingEl.style.top = dy + 'px';
           if (hasEnd) existingEl.style.height = periodH + 'px';
-          if (e.color) existingEl.style.background = e.color;
-          if (hasEnd && typeof e.offset !== 'undefined') existingEl.style.left = `calc(50% + ${2 + e.offset * 6}px)`;
+          existingEl.style.background = getEventColor(e);
+          if (typeof e.offset !== 'undefined') {
+            if (hasEnd) {
+              existingEl.style.left = `calc(50% + ${2 + e.offset * 6}px)`;
+            } else {
+              existingEl.style.left = `calc(50% + ${e.offset * 6}px)`;
+            }
+          }
           existingEl.style.opacity = '1';
           if (conns[e.name]) { conns[e.name].style.top = labelDy + 'px'; conns[e.name].style.opacity = '1'; }
           if (cards[e.name]) { cards[e.name].style.top = iy + 'px'; cards[e.name].style.opacity = '1'; }
           if (divs[e.name]) { divs[e.name].style.top = (iy + ITEM_H - 2) + 'px'; }
         }
       });
+      // Synchronize highlighting on all elements after layout changes
+      updateHighlights();
     }
 
     buildZoomDots();
@@ -1256,21 +1487,13 @@ Event Cards
         if (y1 < -50 || y1 > bodyRect.height + 50) return;
         if (y2 < -50 || y2 > bodyRect.height + 50) return;
 
-        // Determine the line color based on the event's custom color or type
-        let color = 'rgba(0,0,0,0.2)';
-        if (e.color) {
-          color = e.color;
-        } else if (e.type === 'milestone') {
-          color = '#ffc86b';
-        } else if (e.type === 'epoch') {
-          color = '#5dcaa5';
-        } else {
-          color = '#648cff';
-        }
+        // Determine the line color based on the event's custom color or type, including overlapping color cycling
+        const color = getEventColor(e);
 
         // Draw a cubic bezier curve for a smooth, organic connector
         const cpx = x1 + (x2 - x1) * 0.5;
-        paths += `<path d="M${x1},${y1} C${cpx},${y1} ${cpx},${y2} ${x2},${y2}" stroke="${color}" filter="url(#line-glow)" />`;
+        const isHighlighted = (e.name === highlightedEventName);
+        paths += `<path data-name="${e.name}" class="${isHighlighted ? 'highlighted' : ''}" d="M${x1},${y1} C${cpx},${y1} ${cpx},${y2} ${x2},${y2}" stroke="${color}" filter="url(#line-glow)" />`;
       });
 
       svg.innerHTML = paths;
@@ -1385,6 +1608,22 @@ Event Cards
         });
       }
     })();
+
+    // Global click listener to clear active highlight when clicking outside events/controls
+    document.addEventListener('click', (ev) => {
+      if (
+        !ev.target.closest('.event-item') &&
+        !ev.target.closest('.rail-dot') &&
+        !ev.target.closest('.rail-period') &&
+        !ev.target.closest('.settings-btn') &&
+        !ev.target.closest('.settings-panel') &&
+        !ev.target.closest('.zoom-dot') &&
+        !ev.target.closest('.nav-btn')
+      ) {
+        highlightedEventName = null;
+        updateHighlights();
+      }
+    });
 
     setTimeout(() => render(0), 60);
   </script>
