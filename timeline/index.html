@@ -673,6 +673,396 @@ Event Cards
       stroke-width: 2.5px;
       
     }
+
+    /* --- Firebase Auth, Forms & Modals Styling --- */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      z-index: 300;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .custom-modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -45%) scale(0.95);
+      width: 90%;
+      max-width: 440px;
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+      z-index: 301;
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      max-height: 85vh;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+    }
+    .custom-modal.open {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    }
+    .modal-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #222;
+    }
+    .modal-close {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(0, 0, 0, 0.06);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      color: #555;
+      transition: background 0.15s;
+    }
+    .modal-close:hover {
+      background: rgba(0, 0, 0, 0.12);
+    }
+    .modal-body {
+      padding: 20px;
+      overflow-y: auto;
+      color: #333;
+    }
+    .modal-footer {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+      padding: 12px 20px 20px;
+      border-top: 1px solid rgba(0, 0, 0, 0.04);
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-group:last-child {
+      margin-bottom: 0;
+    }
+    .form-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: rgba(0, 0, 0, 0.5);
+      margin-bottom: 6px;
+    }
+    .form-input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1.5px solid rgba(0, 0, 0, 0.12);
+      font-size: 13px;
+      color: #222;
+      font-family: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      background: #fafafa;
+    }
+    .form-input:focus {
+      outline: none;
+      border-color: #648cff;
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(100, 140, 255, 0.15);
+    }
+    .form-row {
+      display: flex;
+      gap: 12px;
+    }
+    .form-row .form-group {
+      flex: 1;
+    }
+    .color-picker-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .color-preview {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      border: 1px solid rgba(0, 0, 0, 0.15);
+      flex-shrink: 0;
+    }
+    .color-input {
+      width: 44px;
+      height: 32px;
+      padding: 0;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      background: transparent;
+    }
+    .modal-btn {
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      font-family: inherit;
+      border: none;
+    }
+    .modal-btn:active {
+      transform: scale(0.97);
+    }
+    .modal-btn-primary {
+      background: #648cff;
+      color: #fff;
+    }
+    .modal-btn-primary:hover {
+      background: #4b74e6;
+    }
+    .modal-btn-secondary {
+      background: rgba(0, 0, 0, 0.06);
+      color: #444;
+    }
+    .modal-btn-secondary:hover {
+      background: rgba(0, 0, 0, 0.1);
+    }
+    .modal-btn-danger {
+      background: #ff5c5c;
+      color: #fff;
+    }
+    .modal-btn-danger:hover {
+      background: #e04646;
+    }
+    .auth-box {
+      background: rgba(0, 0, 0, 0.02);
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .auth-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .auth-status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 3px 8px;
+      border-radius: 20px;
+      background: rgba(0, 0, 0, 0.05);
+    }
+    .auth-status-badge.google {
+      background: rgba(46, 204, 113, 0.15);
+      color: #27ae60;
+    }
+    .auth-status-badge.anon {
+      background: rgba(241, 196, 15, 0.15);
+      color: #d35400;
+    }
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #7f8c8d;
+    }
+    .auth-status-badge.google .status-dot {
+      background: #2ecc71;
+      box-shadow: 0 0 6px rgba(46, 204, 113, 0.6);
+    }
+    .auth-status-badge.anon .status-dot {
+      background: #e67e22;
+      box-shadow: 0 0 6px rgba(230, 126, 34, 0.6);
+    }
+    .auth-user-info {
+      font-size: 12px;
+      color: #555;
+      line-height: 1.4;
+    }
+    .auth-user-email {
+      font-weight: 500;
+      color: #222;
+    }
+    .google-signin-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: #ffffff;
+      color: #444;
+      border: 1.5px solid rgba(0, 0, 0, 0.12);
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s, box-shadow 0.2s;
+      width: 100%;
+    }
+    .google-signin-btn:hover {
+      background: #fafafa;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    }
+    .google-signin-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+    .signout-link {
+      font-size: 11px;
+      color: #888;
+      cursor: pointer;
+      text-decoration: underline;
+      background: none;
+      border: none;
+      padding: 0;
+      align-self: flex-end;
+    }
+    .signout-link:hover {
+      color: #555;
+    }
+    .cat-name-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .cat-badge {
+      font-size: 8px;
+      font-weight: 700;
+      text-transform: uppercase;
+      background: rgba(100, 140, 255, 0.12);
+      color: #648cff;
+      padding: 1.5px 5px;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
+    }
+    .cat-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .cat-action-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 6px;
+      border-radius: 4px;
+      transition: background 0.15s;
+      color: rgba(0, 0, 0, 0.45);
+    }
+    .cat-action-btn:hover {
+      background: rgba(0, 0, 0, 0.06);
+      color: rgba(0, 0, 0, 0.8);
+    }
+    .cat-action-btn svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+    }
+    .add-evt-btn {
+      font-size: 10px;
+      font-weight: 600;
+      color: #648cff;
+      border: 1px solid rgba(100, 140, 255, 0.25);
+      padding: 2.5px 8px;
+      border-radius: 6px;
+      font-family: inherit;
+    }
+    .add-evt-btn:hover {
+      background: rgba(100, 140, 255, 0.06);
+      color: #4b74e6;
+    }
+    .create-cat-trigger-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1.5px dashed rgba(0, 0, 0, 0.15);
+      background: none;
+      font-size: 13px;
+      font-weight: 500;
+      color: #555;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s, color 0.2s;
+      margin-bottom: 12px;
+    }
+    .create-cat-trigger-btn:hover {
+      border-color: #648cff;
+      background: rgba(100, 140, 255, 0.02);
+      color: #648cff;
+    }
+    .ev-actions {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      display: flex;
+      gap: 4px;
+      opacity: 0;
+      transition: opacity 0.2s;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 2px 4px;
+      border-radius: 4px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      z-index: 5;
+    }
+    .event-item:hover .ev-actions {
+      opacity: 1;
+    }
+    .event-item.highlighted .ev-actions {
+      opacity: 1;
+    }
+    .ev-action-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3px;
+      border-radius: 4px;
+      color: rgba(0, 0, 0, 0.4);
+      transition: background 0.15s, color 0.15s;
+    }
+    .ev-action-btn:hover {
+      background: rgba(0, 0, 0, 0.06);
+      color: rgba(0, 0, 0, 0.8);
+    }
+    .ev-action-btn svg {
+      width: 12px;
+      height: 12px;
+      fill: currentColor;
+    }
   </style>
 
 </head>
@@ -724,6 +1114,20 @@ Event Cards
     <div class="settings-body" id="settings-body"></div>
   </div>
 
+  <!-- Custom Modal for Category/Event Form -->
+  <div class="modal-overlay" id="custom-modal-overlay"></div>
+  <div class="custom-modal" id="custom-modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title">New Category</span>
+      <button class="modal-close" id="modal-close-btn">&times;</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script src="firebase-app.js"></script>
   <script src="events.js"></script>
   <script>
     // Definitions for each zoom level: name, time span, starting "years ago" (start_ya), and background color
@@ -773,6 +1177,13 @@ Event Cards
           ALL_EVENTS.push(...cat.events);
         }
       });
+      if (typeof userCategories !== 'undefined') {
+        userCategories.forEach(cat => {
+          if (activeCategories.has(cat.id)) {
+            ALL_EVENTS.push(...cat.events);
+          }
+        });
+      }
     }
     rebuildEvents();
 
@@ -794,6 +1205,7 @@ Event Cards
     prepareEvents();
 
     let currentLevel = 0;
+    let buildSettingsUI;
 
     // Dynamically calculate what increment of years each tick mark should represent
     // based on the total time span (spanYa) currently visible
@@ -893,41 +1305,65 @@ Event Cards
     function getEventColor(e) {
       if (e.color) return e.color;
 
+      // Find the category for this event to check if it has a custom color
+      let catColor = null;
+      if (e._categoryId && typeof userCategories !== 'undefined') {
+        const cat = userCategories.find(c => c._firestoreId === e._categoryId);
+        if (cat && cat.color) {
+          catColor = cat.color;
+        }
+      }
+
       const offset = e.offset || 0;
 
+      // If there is an offset (i.e. it overlaps with another event), cycle colors so they are distinguishable!
+      // If there is no offset (offset === 0), we can use the category's custom color if it exists, or fall back to the default color.
+      if (offset > 0) {
+        if (e.type === 'milestone') {
+          const milestoneColors = [
+            '#ffc86b', // Yellow/Amber (default)
+            '#648cff', // Blue
+            '#5dcaa5', // Teal/Green
+            '#9b5de5', // Purple
+            '#ff6b6b', // Coral/Red
+            '#00f5d4', // Turquoise
+            '#ff54b0'  // Magenta
+          ];
+          return milestoneColors[offset % milestoneColors.length];
+        } else if (e.type === 'epoch') {
+          const epochColors = [
+            '#5dcaa5', // Teal/Green (default)
+            '#ff9f43', // Orange
+            '#9b5de5', // Purple
+            '#ff6b6b', // Coral/Red
+            '#648cff', // Blue
+            '#00f5d4', // Turquoise
+            '#ff54b0'  // Magenta
+          ];
+          return epochColors[offset % epochColors.length];
+        } else {
+          const defaultColors = [
+            '#648cff', // Blue (default)
+            '#5dcaa5', // Teal/Green
+            '#ff9f43', // Orange
+            '#9b5de5', // Purple
+            '#ff6b6b', // Coral/Red
+            '#00f5d4', // Turquoise
+            '#ff54b0'  // Magenta
+          ];
+          return defaultColors[offset % defaultColors.length];
+        }
+      }
+
+      // Offset is 0 (no overlap) — use category color, or default
+      if (catColor) return catColor;
+
       if (e.type === 'milestone') {
-        const milestoneColors = [
-          '#ffc86b', // Yellow/Amber (default)
-          '#648cff', // Blue
-          '#5dcaa5', // Teal/Green
-          '#9b5de5', // Purple
-          '#ff6b6b', // Coral/Red
-          '#00f5d4', // Turquoise
-          '#ff54b0'  // Magenta
-        ];
-        return milestoneColors[offset % milestoneColors.length];
+        return '#ffc86b';
       } else if (e.type === 'epoch') {
-        const epochColors = [
-          '#5dcaa5', // Teal/Green (default)
-          '#ff9f43', // Orange
-          '#9b5de5', // Purple
-          '#ff6b6b', // Coral/Red
-          '#648cff', // Blue
-          '#00f5d4', // Turquoise
-          '#ff54b0'  // Magenta
-        ];
-        return epochColors[offset % epochColors.length];
+        return '#5dcaa5';
       } else {
-        const defaultColors = [
-          '#648cff', // Blue (default)
-          '#5dcaa5', // Teal/Green
-          '#ff9f43', // Orange
-          '#9b5de5', // Purple
-          '#ff6b6b', // Coral/Red
-          '#00f5d4', // Turquoise
-          '#ff54b0'  // Magenta
-        ];
-        return defaultColors[offset % defaultColors.length];
+        return '#648cff';
       }
     }
 
@@ -1305,7 +1741,21 @@ Event Cards
           card.style.top = iy + 'px';
           card.style.opacity = '0';
           card.dataset.name = e.name;
-          card.innerHTML = `<div class="ev-time">${e.time}</div><div class="ev-name">${e.name}</div><div class="ev-desc">${e.desc}</div>`;
+          let actionsHtml = '';
+          if (e._userEvent) {
+            card.classList.add('user-event');
+            actionsHtml = `
+              <div class="ev-actions" onclick="event.stopPropagation()">
+                <button class="ev-action-btn edit-evt-btn" title="Edit Event" onclick="openEditEventModal('${e._categoryId}', ${e._eventIndex})">
+                  <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a.996.996 0 0 0 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                </button>
+                <button class="ev-action-btn delete-evt-btn" title="Delete Event" onclick="handleDeleteEvent('${e._categoryId}', ${e._eventIndex}, '${escapeHtml(e.name)}')">
+                  <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                </button>
+              </div>
+            `;
+          }
+          card.innerHTML = `<div class="ev-time">${e.time}</div><div class="ev-name">${e.name}</div><div class="ev-desc">${e.desc}</div>${actionsHtml}`;
           card.addEventListener('click', (ev) => {
             ev.stopPropagation();
             toggleHighlight(e.name);
@@ -1525,6 +1975,692 @@ Event Cards
       }, 560);
     };
 
+    // ─── FIREBASE / UI SYNC HELPERS ──────────────────────────────────────────
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+    }
+
+    function getAuthBoxHTML() {
+      if (typeof currentFirebaseUser === 'undefined' || !currentFirebaseUser) {
+        return `
+          <div class="auth-box">
+            <div class="auth-header">
+              <span class="auth-status-badge">
+                <span class="status-dot"></span> Checking connection...
+              </span>
+            </div>
+          </div>
+        `;
+      }
+
+      if (currentFirebaseUser.isAnonymous) {
+        return `
+          <div class="auth-box">
+            <div class="auth-header">
+              <span class="auth-status-badge anon">
+                <span class="status-dot"></span> Guest Account
+              </span>
+            </div>
+            <div class="auth-user-info">
+              Your custom categories are saved on this device. Sign in with Google to sync them across your devices.
+            </div>
+            <button class="google-signin-btn" id="google-signin-btn">
+              <svg viewBox="0 0 24 24"><path fill="#EA4335" d="M12 5.04c1.66 0 3.2.57 4.38 1.69l3.27-3.27C17.68 1.54 14.98 1 12 1 7.35 1 3.37 3.67 1.39 7.56l3.89 3.02c.92-2.78 3.53-4.54 6.72-4.54z"/><path fill="#4285F4" d="M23.49 12.27c0-.81-.07-1.59-.2-2.36H12v4.51h6.43c-.28 1.44-1.09 2.67-2.3 3.49l3.57 2.77c2.09-1.93 3.79-4.77 3.79-8.41z"/><path fill="#FBBC05" d="M5.28 14.54c-.24-.72-.37-1.49-.37-2.27s.13-1.55.37-2.27L1.39 7.56C.5 9.34 0 11.3 0 12.27s.5 2.93 1.39 4.71l3.89-3.02z"/><path fill="#34A853" d="M12 23c3.24 0 5.97-1.07 7.96-2.91l-3.57-2.77c-.99.66-2.26 1.06-4.39 1.06-3.19 0-5.8-1.76-6.72-4.54L1.39 16.86C3.37 20.75 7.35 23 12 23z"/></svg> Sign in with Google
+            </button>
+          </div>
+        `;
+      } else {
+        const email = currentFirebaseUser.email || 'Google User';
+        return `
+          <div class="auth-box">
+            <div class="auth-header">
+              <span class="auth-status-badge google">
+                <span class="status-dot"></span> Synced
+              </span>
+              <button class="signout-link" id="signout-btn">Sign out</button>
+            </div>
+            <div class="auth-user-info">
+              Signed in as <span class="auth-user-email">${escapeHtml(email)}</span>. Your custom categories are backed up and synced.
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    async function handleGoogleSignIn() {
+      try {
+        const btn = document.getElementById('google-signin-btn');
+        if (btn) {
+          btn.disabled = true;
+          btn.innerHTML = 'Connecting...';
+        }
+        await signInWithGoogle();
+      } catch (err) {
+        console.error('Google Sign-In failed', err);
+        alert('Failed to sign in with Google: ' + err.message);
+      } finally {
+        const btn = document.getElementById('google-signin-btn');
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `<svg viewBox="0 0 24 24"><path fill="#EA4335" d="M12 5.04c1.66 0 3.2.57 4.38 1.69l3.27-3.27C17.68 1.54 14.98 1 12 1 7.35 1 3.37 3.67 1.39 7.56l3.89 3.02c.92-2.78 3.53-4.54 6.72-4.54z"/><path fill="#4285F4" d="M23.49 12.27c0-.81-.07-1.59-.2-2.36H12v4.51h6.43c-.28 1.44-1.09 2.67-2.3 3.49l3.57 2.77c2.09-1.93 3.79-4.77 3.79-8.41z"/><path fill="#FBBC05" d="M5.28 14.54c-.24-.72-.37-1.49-.37-2.27s.13-1.55.37-2.27L1.39 7.56C.5 9.34 0 11.3 0 12.27s.5 2.93 1.39 4.71l3.89-3.02z"/><path fill="#34A853" d="M12 23c3.24 0 5.97-1.07 7.96-2.91l-3.57-2.77c-.99.66-2.26 1.06-4.39 1.06-3.19 0-5.8-1.76-6.72-4.54L1.39 16.86C3.37 20.75 7.35 23 12 23z"/></svg> Sign in with Google`;
+        }
+      }
+    }
+
+    async function handleSignOut() {
+      if (confirm('Are you sure you want to sign out? Your custom categories will be loaded from a new temporary session.')) {
+        try {
+          await firebaseSignOut();
+        } catch (err) {
+          console.error('Sign-Out failed', err);
+        }
+      }
+    }
+
+    function closeCustomModal() {
+      document.getElementById('custom-modal').classList.remove('open');
+      document.getElementById('custom-modal-overlay').classList.remove('open');
+      document.getElementById('modal-body').innerHTML = '';
+    }
+
+    async function reloadAndRefresh() {
+      if (typeof loadUserCategories === 'function') {
+        await loadUserCategories();
+      }
+      await refreshAfterFirestoreChange();
+    }
+
+    async function refreshAfterFirestoreChange() {
+      const rail = document.getElementById('rail-col');
+      const inner = document.getElementById('events-inner');
+      rail.querySelectorAll('.rail-dot, .rail-period, .conn-line').forEach(el => el.remove());
+      inner.querySelectorAll('.event-item, .ev-divider').forEach(el => el.remove());
+      rebuildEvents();
+      prepareEvents();
+      render(currentLevel);
+    }
+
+    function syncUserCategoryPreferences() {
+      const savedStr = localStorage.getItem('timeline_active_categories');
+      if (savedStr) {
+        try {
+          const saved = JSON.parse(savedStr);
+          if (Array.isArray(saved)) {
+            if (typeof userCategories !== 'undefined') {
+              userCategories.forEach(cat => {
+                if (saved.includes(cat.id)) {
+                  activeCategories.add(cat.id);
+                }
+              });
+            }
+          }
+        } catch (e) {
+          if (typeof userCategories !== 'undefined') {
+            userCategories.forEach(cat => activeCategories.add(cat.id));
+          }
+        }
+      } else {
+        activeCategories.add('key_events');
+        if (typeof userCategories !== 'undefined') {
+          userCategories.forEach(cat => activeCategories.add(cat.id));
+        }
+      }
+      localStorage.setItem('timeline_active_categories', JSON.stringify([...activeCategories]));
+    }
+
+    function openCreateCategoryModal() {
+      const modal = document.getElementById('custom-modal');
+      const overlay = document.getElementById('custom-modal-overlay');
+      document.getElementById('modal-title').textContent = 'New Category';
+      
+      document.getElementById('modal-body').innerHTML = `
+        <form id="category-form" onsubmit="event.preventDefault()">
+          <div class="form-group">
+            <label class="form-label" for="cat-name">Category Name</label>
+            <input type="text" class="form-input" id="cat-name" required placeholder="e.g. My Travel History">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="cat-desc">Description</label>
+            <input type="text" class="form-input" id="cat-desc" placeholder="e.g. Trips and vacations">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Category Theme Color</label>
+            <div class="color-picker-wrapper">
+              <div class="color-preview" id="cat-color-preview" style="background: #648cff;"></div>
+              <input type="color" class="color-input" id="cat-color" value="#648cff">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="modal-btn modal-btn-secondary" id="modal-cancel-btn">Cancel</button>
+            <button type="submit" class="modal-btn modal-btn-primary" id="modal-submit-btn">Create</button>
+          </div>
+        </form>
+      `;
+      
+      const colorInput = document.getElementById('cat-color');
+      const colorPreview = document.getElementById('cat-color-preview');
+      colorInput.addEventListener('input', () => {
+        colorPreview.style.background = colorInput.value;
+      });
+      
+      modal.classList.add('open');
+      overlay.classList.add('open');
+      
+      document.getElementById('category-form').addEventListener('submit', async () => {
+        const name = document.getElementById('cat-name').value.trim();
+        const desc = document.getElementById('cat-desc').value.trim();
+        const color = colorInput.value;
+        
+        if (!name) return;
+        
+        const submitBtn = document.getElementById('modal-submit-btn');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Saving...';
+        
+        try {
+          const newCatId = await fbCreateCategory(name, desc, color);
+          activeCategories.add('user_' + newCatId);
+          localStorage.setItem('timeline_active_categories', JSON.stringify([...activeCategories]));
+          
+          closeCustomModal();
+          await reloadAndRefresh();
+          if (document.getElementById('settings-panel').classList.contains('open')) {
+            buildSettingsUI();
+          }
+        } catch (err) {
+          console.error('Create category failed', err);
+          alert('Failed to create category: ' + err.message);
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Create';
+        }
+      });
+      
+      document.getElementById('modal-cancel-btn').addEventListener('click', closeCustomModal);
+    }
+
+    function openEditCategoryModal(catId) {
+      const cat = userCategories.find(c => c._firestoreId === catId);
+      if (!cat) return;
+      
+      const modal = document.getElementById('custom-modal');
+      const overlay = document.getElementById('custom-modal-overlay');
+      document.getElementById('modal-title').textContent = 'Edit Category';
+      
+      document.getElementById('modal-body').innerHTML = `
+        <form id="category-form" onsubmit="event.preventDefault()">
+          <div class="form-group">
+            <label class="form-label" for="cat-name">Category Name</label>
+            <input type="text" class="form-input" id="cat-name" required value="${escapeHtml(cat.name)}">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="cat-desc">Description</label>
+            <input type="text" class="form-input" id="cat-desc" value="${escapeHtml(cat.desc)}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Category Theme Color</label>
+            <div class="color-picker-wrapper">
+              <div class="color-preview" id="cat-color-preview" style="background: ${cat.color};"></div>
+              <input type="color" class="color-input" id="cat-color" value="${cat.color}">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="modal-btn modal-btn-secondary" id="modal-cancel-btn">Cancel</button>
+            <button type="submit" class="modal-btn modal-btn-primary" id="modal-submit-btn">Save</button>
+          </div>
+        </form>
+      `;
+      
+      const colorInput = document.getElementById('cat-color');
+      const colorPreview = document.getElementById('cat-color-preview');
+      colorInput.addEventListener('input', () => {
+        colorPreview.style.background = colorInput.value;
+      });
+      
+      modal.classList.add('open');
+      overlay.classList.add('open');
+      
+      document.getElementById('category-form').addEventListener('submit', async () => {
+        const name = document.getElementById('cat-name').value.trim();
+        const desc = document.getElementById('cat-desc').value.trim();
+        const color = colorInput.value;
+        
+        if (!name) return;
+        
+        const submitBtn = document.getElementById('modal-submit-btn');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Saving...';
+        
+        try {
+          await fbUpdateCategory(catId, { name, desc, color });
+          closeCustomModal();
+          await reloadAndRefresh();
+          if (document.getElementById('settings-panel').classList.contains('open')) {
+            buildSettingsUI();
+          }
+        } catch (err) {
+          console.error('Update category failed', err);
+          alert('Failed to update category: ' + err.message);
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Save';
+        }
+      });
+      
+      document.getElementById('modal-cancel-btn').addEventListener('click', closeCustomModal);
+    }
+
+    async function handleDeleteCategory(catId) {
+      const cat = userCategories.find(c => c._firestoreId === catId);
+      if (!cat) return;
+      
+      if (confirm(`Are you sure you want to delete the category "${cat.name}" and all its events? This cannot be undone.`)) {
+        try {
+          await fbDeleteCategory(catId);
+          activeCategories.delete('user_' + catId);
+          localStorage.setItem('timeline_active_categories', JSON.stringify([...activeCategories]));
+          await reloadAndRefresh();
+          if (document.getElementById('settings-panel').classList.contains('open')) {
+            buildSettingsUI();
+          }
+        } catch (err) {
+          console.error('Delete category failed', err);
+          alert('Failed to delete category: ' + err.message);
+        }
+      }
+    }
+
+    function openCreateEventModal(catId) {
+      const modal = document.getElementById('custom-modal');
+      const overlay = document.getElementById('custom-modal-overlay');
+      document.getElementById('modal-title').textContent = 'Add Event';
+      
+      document.getElementById('modal-body').innerHTML = `
+        <form id="event-form" onsubmit="event.preventDefault()">
+          <div class="form-group">
+            <label class="form-label" for="evt-name">Event Name</label>
+            <input type="text" class="form-input" id="evt-name" required placeholder="e.g. Invention of printing press">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="evt-desc">Description</label>
+            <input type="text" class="form-input" id="evt-desc" placeholder="e.g. Gutenberg starts publishing">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Date Mode</label>
+            <div style="display: flex; gap: 16px; margin-bottom: 8px;">
+              <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer;">
+                <input type="radio" name="evt-date-type" value="cal" checked> Calendar Year (BCE/CE)
+              </label>
+              <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer;">
+                <input type="radio" name="evt-date-type" value="ya"> Years Ago (deep history)
+              </label>
+            </div>
+          </div>
+          
+          <div id="cal-date-inputs">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="evt-cal-year">Start Year (negative for BCE)</label>
+                <input type="number" class="form-input" id="evt-cal-year" placeholder="e.g. 1440 or -500">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="evt-end-cal-year">End Year (optional)</label>
+                <input type="number" class="form-input" id="evt-end-cal-year" placeholder="e.g. 1450">
+              </div>
+            </div>
+          </div>
+          
+          <div id="ya-date-inputs" style="display: none;">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="evt-ya">Start Years Ago</label>
+                <input type="number" class="form-input" id="evt-ya" placeholder="e.g. 150000">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="evt-end-ya">End Years Ago (optional)</label>
+                <input type="number" class="form-input" id="evt-end-ya" placeholder="e.g. 100000">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Custom Event Color (Optional)</label>
+            <div class="color-picker-wrapper">
+              <div class="color-preview" id="evt-color-preview" style="background: transparent; border: 1.5px dashed rgba(0, 0, 0, 0.25);"></div>
+              <input type="color" class="color-input" id="evt-color" value="#ffffff">
+              <label style="font-size: 12px; color: #666; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                <input type="checkbox" id="evt-use-color"> Use custom color
+              </label>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="modal-btn modal-btn-secondary" id="modal-cancel-btn">Cancel</button>
+            <button type="submit" class="modal-btn modal-btn-primary" id="modal-submit-btn">Add Event</button>
+          </div>
+        </form>
+      `;
+      
+      const dateRadios = document.getElementsByName('evt-date-type');
+      const calInputs = document.getElementById('cal-date-inputs');
+      const yaInputs = document.getElementById('ya-date-inputs');
+      
+      const toggleDateInputs = () => {
+        const selected = Array.from(dateRadios).find(r => r.checked).value;
+        if (selected === 'cal') {
+          calInputs.style.display = 'block';
+          yaInputs.style.display = 'none';
+        } else {
+          calInputs.style.display = 'none';
+          yaInputs.style.display = 'block';
+        }
+      };
+      
+      dateRadios.forEach(r => r.addEventListener('change', toggleDateInputs));
+      
+      const colorInput = document.getElementById('evt-color');
+      const colorPreview = document.getElementById('evt-color-preview');
+      const useColorCheck = document.getElementById('evt-use-color');
+      
+      colorInput.addEventListener('input', () => {
+        useColorCheck.checked = true;
+        colorPreview.style.background = colorInput.value;
+        colorPreview.style.borderStyle = 'solid';
+      });
+      
+      useColorCheck.addEventListener('change', () => {
+        if (useColorCheck.checked) {
+          colorPreview.style.background = colorInput.value;
+          colorPreview.style.borderStyle = 'solid';
+        } else {
+          colorPreview.style.background = 'transparent';
+          colorPreview.style.borderStyle = 'dashed';
+        }
+      });
+      
+      modal.classList.add('open');
+      overlay.classList.add('open');
+      
+      document.getElementById('event-form').addEventListener('submit', async () => {
+        const name = document.getElementById('evt-name').value.trim();
+        const desc = document.getElementById('evt-desc').value.trim();
+        const dateType = Array.from(dateRadios).find(r => r.checked).value;
+        
+        if (!name) return;
+        
+        const evt = { name, desc };
+        
+        if (dateType === 'cal') {
+          const startStr = document.getElementById('evt-cal-year').value;
+          const endStr = document.getElementById('evt-end-cal-year').value;
+          if (!startStr) {
+            alert('Please specify a start year.');
+            return;
+          }
+          evt.cal_year = parseInt(startStr, 10);
+          if (endStr) {
+            evt.end_cal_year = parseInt(endStr, 10);
+          }
+        } else {
+          const startStr = document.getElementById('evt-ya').value;
+          const endStr = document.getElementById('evt-end-ya').value;
+          if (!startStr) {
+            alert('Please specify start years ago.');
+            return;
+          }
+          evt.ya = parseFloat(startStr);
+          if (endStr) {
+            evt.end_ya = parseFloat(endStr);
+          }
+        }
+        
+        const isEpoch = (dateType === 'cal' && evt.end_cal_year !== undefined) || (dateType === 'ya' && evt.end_ya !== undefined);
+        evt.type = isEpoch ? 'epoch' : 'milestone';
+        
+        if (useColorCheck.checked) {
+          evt.color = colorInput.value;
+        }
+        
+        const submitBtn = document.getElementById('modal-submit-btn');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Saving...';
+        
+        try {
+          await fbAddEvent(catId, evt);
+          closeCustomModal();
+          await reloadAndRefresh();
+          if (document.getElementById('settings-panel').classList.contains('open')) {
+            buildSettingsUI();
+          }
+        } catch (err) {
+          console.error('Add event failed', err);
+          alert('Failed to add event: ' + err.message);
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Add Event';
+        }
+      });
+      
+      document.getElementById('modal-cancel-btn').addEventListener('click', closeCustomModal);
+    }
+
+    function openEditEventModal(catId, eventIndex) {
+      const cat = userCategories.find(c => c._firestoreId === catId);
+      if (!cat) return;
+      const evt = cat.events[eventIndex];
+      if (!evt) return;
+      
+      const modal = document.getElementById('custom-modal');
+      const overlay = document.getElementById('custom-modal-overlay');
+      document.getElementById('modal-title').textContent = 'Edit Event';
+      
+      const isCalMode = evt.cal_year !== undefined;
+      
+      document.getElementById('modal-body').innerHTML = `
+        <form id="event-form" onsubmit="event.preventDefault()">
+          <div class="form-group">
+            <label class="form-label" for="evt-name">Event Name</label>
+            <input type="text" class="form-input" id="evt-name" required value="${escapeHtml(evt.name)}">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="evt-desc">Description</label>
+            <input type="text" class="form-input" id="evt-desc" value="${escapeHtml(evt.desc || '')}">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Date Mode</label>
+            <div style="display: flex; gap: 16px; margin-bottom: 8px;">
+              <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer;">
+                <input type="radio" name="evt-date-type" value="cal" ${isCalMode ? 'checked' : ''}> Calendar Year (BCE/CE)
+              </label>
+              <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer;">
+                <input type="radio" name="evt-date-type" value="ya" ${!isCalMode ? 'checked' : ''}> Years Ago (deep history)
+              </label>
+            </div>
+          </div>
+          
+          <div id="cal-date-inputs" style="display: ${isCalMode ? 'block' : 'none'};">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="evt-cal-year">Start Year (negative for BCE)</label>
+                <input type="number" class="form-input" id="evt-cal-year" value="${evt.cal_year !== undefined ? evt.cal_year : ''}" placeholder="e.g. 1969 or -500">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="evt-end-cal-year">End Year (optional)</label>
+                <input type="number" class="form-input" id="evt-end-cal-year" value="${evt.end_cal_year !== undefined ? evt.end_cal_year : ''}" placeholder="e.g. 1972">
+              </div>
+            </div>
+          </div>
+          
+          <div id="ya-date-inputs" style="display: ${!isCalMode ? 'block' : 'none'};">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="evt-ya">Start Years Ago</label>
+                <input type="number" class="form-input" id="evt-ya" value="${evt.ya !== undefined ? evt.ya : ''}" placeholder="e.g. 150000">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="evt-end-ya">End Years Ago (optional)</label>
+                <input type="number" class="form-input" id="evt-end-ya" value="${evt.end_ya !== undefined ? evt.end_ya : ''}" placeholder="e.g. 100000">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Custom Event Color (Optional)</label>
+            <div class="color-picker-wrapper">
+              <div class="color-preview" id="evt-color-preview" style="background: ${evt.color || 'transparent'}; border: ${evt.color ? '1.5px solid rgba(0,0,0,0.15)' : '1.5px dashed rgba(0, 0, 0, 0.25)'};"></div>
+              <input type="color" class="color-input" id="evt-color" value="${evt.color || '#ffffff'}">
+              <label style="font-size: 12px; color: #666; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                <input type="checkbox" id="evt-use-color" ${evt.color ? 'checked' : ''}> Use custom color
+              </label>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="modal-btn modal-btn-secondary" id="modal-cancel-btn">Cancel</button>
+            <button type="submit" class="modal-btn modal-btn-primary" id="modal-submit-btn">Save</button>
+          </div>
+        </form>
+      `;
+      
+      const dateRadios = document.getElementsByName('evt-date-type');
+      const calInputs = document.getElementById('cal-date-inputs');
+      const yaInputs = document.getElementById('ya-date-inputs');
+      
+      const toggleDateInputs = () => {
+        const selected = Array.from(dateRadios).find(r => r.checked).value;
+        if (selected === 'cal') {
+          calInputs.style.display = 'block';
+          yaInputs.style.display = 'none';
+        } else {
+          calInputs.style.display = 'none';
+          yaInputs.style.display = 'block';
+        }
+      };
+      
+      dateRadios.forEach(r => r.addEventListener('change', toggleDateInputs));
+      
+      const colorInput = document.getElementById('evt-color');
+      const colorPreview = document.getElementById('evt-color-preview');
+      const useColorCheck = document.getElementById('evt-use-color');
+      
+      colorInput.addEventListener('input', () => {
+        useColorCheck.checked = true;
+        colorPreview.style.background = colorInput.value;
+        colorPreview.style.borderStyle = 'solid';
+      });
+      
+      useColorCheck.addEventListener('change', () => {
+        if (useColorCheck.checked) {
+          colorPreview.style.background = colorInput.value;
+          colorPreview.style.borderStyle = 'solid';
+        } else {
+          colorPreview.style.background = 'transparent';
+          colorPreview.style.borderStyle = 'dashed';
+        }
+      });
+      
+      modal.classList.add('open');
+      overlay.classList.add('open');
+      
+      document.getElementById('event-form').addEventListener('submit', async () => {
+        const name = document.getElementById('evt-name').value.trim();
+        const desc = document.getElementById('evt-desc').value.trim();
+        const dateType = Array.from(dateRadios).find(r => r.checked).value;
+        
+        if (!name) return;
+        
+        const newEvt = { name, desc };
+        
+        if (dateType === 'cal') {
+          const startStr = document.getElementById('evt-cal-year').value;
+          const endStr = document.getElementById('evt-end-cal-year').value;
+          if (!startStr) {
+            alert('Please specify a start year.');
+            return;
+          }
+          newEvt.cal_year = parseInt(startStr, 10);
+          if (endStr) {
+            newEvt.end_cal_year = parseInt(endStr, 10);
+          }
+        } else {
+          const startStr = document.getElementById('evt-ya').value;
+          const endStr = document.getElementById('evt-end-ya').value;
+          if (!startStr) {
+            alert('Please specify start years ago.');
+            return;
+          }
+          newEvt.ya = parseFloat(startStr);
+          if (endStr) {
+            newEvt.end_ya = parseFloat(endStr);
+          }
+        }
+        
+        const isEpoch = (dateType === 'cal' && newEvt.end_cal_year !== undefined) || (dateType === 'ya' && newEvt.end_ya !== undefined);
+        newEvt.type = isEpoch ? 'epoch' : 'milestone';
+        
+        if (useColorCheck.checked) {
+          newEvt.color = colorInput.value;
+        }
+        
+        const submitBtn = document.getElementById('modal-submit-btn');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Saving...';
+        
+        try {
+          await fbUpdateEvent(catId, eventIndex, newEvt);
+          closeCustomModal();
+          await reloadAndRefresh();
+          if (document.getElementById('settings-panel').classList.contains('open')) {
+            buildSettingsUI();
+          }
+        } catch (err) {
+          console.error('Update event failed', err);
+          alert('Failed to update event: ' + err.message);
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Save';
+        }
+      });
+      
+      document.getElementById('modal-cancel-btn').addEventListener('click', closeCustomModal);
+    }
+
+    async function handleDeleteEvent(catId, eventIndex, eventName) {
+      if (confirm(`Are you sure you want to delete the event "${eventName}"? This cannot be undone.`)) {
+        try {
+          await fbDeleteEvent(catId, eventIndex);
+          await reloadAndRefresh();
+          if (document.getElementById('settings-panel').classList.contains('open')) {
+            buildSettingsUI();
+          }
+        } catch (err) {
+          console.error('Delete event failed', err);
+          alert('Failed to delete event: ' + err.message);
+        }
+      }
+    }
+
+    // Attach custom modal closers on background overlay/close button
+    document.addEventListener('DOMContentLoaded', () => {
+      const modalOverlay = document.getElementById('custom-modal-overlay');
+      const closeBtn = document.getElementById('modal-close-btn');
+      if (modalOverlay) modalOverlay.addEventListener('click', closeCustomModal);
+      if (closeBtn) closeBtn.addEventListener('click', closeCustomModal);
+    });
+
+    // Expose functions globally for HTML inline handlers (on event cards / click triggers)
+    window.openEditEventModal = openEditEventModal;
+    window.handleDeleteEvent = handleDeleteEvent;
+    window.openCreateEventModal = openCreateEventModal;
+    window.openEditCategoryModal = openEditCategoryModal;
+    window.handleDeleteCategory = handleDeleteCategory;
+    window.handleGoogleSignIn = handleGoogleSignIn;
+    window.handleSignOut = handleSignOut;
+
     // --- SETTINGS PANEL LOGIC ---
     (function setupSettings() {
       const btn = document.getElementById('settings-btn');
@@ -1561,30 +2697,84 @@ Event Cards
         render(currentLevel);
       }
 
-      function buildSettingsUI() {
-        let html = '<div class="settings-section-label">Show on timeline</div>';
+      buildSettingsUI = function() {
+        let html = '';
 
+        // Add Account Section
+        html += getAuthBoxHTML();
+
+        html += '<div class="settings-section-label">Show on timeline</div>';
+
+        // 1. Hardcoded Categories
         EVENT_CATEGORIES.forEach(cat => {
           const checked = activeCategories.has(cat.id);
           html += `
-            <div class="category-row" data-cat-id="${cat.id}">
+            <div class="category-row public-category" data-cat-id="${cat.id}">
               <div class="cat-check ${checked ? 'checked' : ''}">
                 <svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg>
               </div>
               <div class="cat-info">
-                <div class="cat-name">${cat.name}</div>
-                <div class="cat-desc">${cat.desc}</div>
+                <div class="cat-name">${escapeHtml(cat.name)}</div>
+                <div class="cat-desc">${escapeHtml(cat.desc)}</div>
               </div>
               <div class="cat-count">${cat.events.length} events</div>
             </div>`;
         });
 
+        // 2. User-created Custom Categories
+        if (typeof userCategories !== 'undefined' && userCategories.length > 0) {
+          html += '<div class="settings-divider"></div>';
+          html += '<div class="settings-section-label">Your Custom Categories</div>';
+          
+          userCategories.forEach(cat => {
+            const checked = activeCategories.has(cat.id);
+            html += `
+              <div class="category-row user-category" data-cat-id="${cat.id}">
+                <div class="cat-check ${checked ? 'checked' : ''}">
+                  <svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg>
+                </div>
+                <div class="cat-info">
+                  <div class="cat-name-row">
+                    <span class="cat-name" style="color: ${cat.color};">${escapeHtml(cat.name)}</span>
+                    <span class="cat-badge" style="background: ${cat.color}1e; color: ${cat.color};">Custom</span>
+                  </div>
+                  <div class="cat-desc">${escapeHtml(cat.desc)}</div>
+                  <div class="cat-actions" onclick="event.stopPropagation()">
+                    <button class="cat-action-btn add-evt-btn" data-action="add-event" data-firestore-id="${cat._firestoreId}">+ Add event</button>
+                    <button class="cat-action-btn edit-cat-btn" data-action="edit-category" data-firestore-id="${cat._firestoreId}" title="Edit Category">
+                      <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a.996.996 0 0 0 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                    </button>
+                    <button class="cat-action-btn delete-cat-btn" data-action="delete-category" data-firestore-id="${cat._firestoreId}" title="Delete Category">
+                      <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                    </button>
+                  </div>
+                </div>
+                <div class="cat-count">${cat.events.length} events</div>
+              </div>`;
+          });
+        }
+
         html += '<div class="settings-divider"></div>';
+        
+        // Add "+ New category" button
+        html += `
+          <button class="create-cat-trigger-btn" id="create-cat-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            New Category
+          </button>
+        `;
+        
         html += '<button class="none-btn" id="cat-none-btn">None</button>';
 
         body.innerHTML = html;
 
-        // Attach click handlers to category rows
+        // Attach listeners for Google sign in / out
+        const googleBtn = document.getElementById('google-signin-btn');
+        if (googleBtn) googleBtn.addEventListener('click', handleGoogleSignIn);
+        const signoutBtn = document.getElementById('signout-btn');
+        if (signoutBtn) signoutBtn.addEventListener('click', handleSignOut);
+
+        // Attach click handlers to category rows for selection (toggle checkboxes)
         body.querySelectorAll('.category-row').forEach(row => {
           row.addEventListener('click', () => {
             const id = row.dataset.catId;
@@ -1600,6 +2790,26 @@ Event Cards
           });
         });
 
+        // Attach click handlers to custom category actions
+        body.querySelectorAll('[data-action="add-event"]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            openCreateEventModal(btn.dataset.firestoreId);
+          });
+        });
+        body.querySelectorAll('[data-action="edit-category"]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            openEditCategoryModal(btn.dataset.firestoreId);
+          });
+        });
+        body.querySelectorAll('[data-action="delete-category"]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            handleDeleteCategory(btn.dataset.firestoreId);
+          });
+        });
+
+        // "+ New Category" button
+        document.getElementById('create-cat-btn').addEventListener('click', openCreateCategoryModal);
+
         // "None" button clears all categories
         document.getElementById('cat-none-btn').addEventListener('click', () => {
           activeCategories.clear();
@@ -1607,6 +2817,7 @@ Event Cards
           saveAndRefresh();
         });
       }
+      window.buildSettingsUI = buildSettingsUI;
     })();
 
     // Global click listener to clear active highlight when clicking outside events/controls
@@ -1626,6 +2837,16 @@ Event Cards
     });
 
     setTimeout(() => render(0), 60);
+
+    // Initialize Firebase authentication flow
+    if (typeof initAuth === 'function') {
+      initAuth(() => {
+        // First successful auth state changed: rebuild, prepare, and re-render
+        rebuildEvents();
+        prepareEvents();
+        render(currentLevel);
+      });
+    }
   </script>
 
 </body>
