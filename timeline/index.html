@@ -38,6 +38,7 @@ Event Cards
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Timeline</title>
+  <link rel="stylesheet" href="nano.min.css">
 
 
 
@@ -796,6 +797,7 @@ Event Cards
       flex: 1;
     }
     .color-picker-wrapper {
+      position: relative;
       display: flex;
       align-items: center;
       gap: 10px;
@@ -806,15 +808,26 @@ Event Cards
       border-radius: 6px;
       border: 1px solid rgba(0, 0, 0, 0.15);
       flex-shrink: 0;
+      transition: background 0.15s, border-style 0.15s;
     }
-    .color-input {
-      width: 44px;
+    .color-picker-wrapper .pickr {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 32px;
       height: 32px;
-      padding: 0;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      background: transparent;
+    }
+    .color-picker-wrapper .pcr-button {
+      width: 32px !important;
+      height: 32px !important;
+      padding: 0 !important;
+      border: none !important;
+      background: transparent !important;
+      opacity: 0 !important;
+      cursor: pointer !important;
+    }
+    .pcr-app {
+      z-index: 400 !important;
     }
     .modal-btn {
       padding: 8px 16px;
@@ -1129,6 +1142,7 @@ Event Cards
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   <script src="firebase-app.js"></script>
   <script src="events.js"></script>
+  <script src="pickr.min.js"></script>
   <script>
     // Definitions for each zoom level: name, time span, starting "years ago" (start_ya), and background color
     const LEVELS = [
@@ -2063,10 +2077,16 @@ Event Cards
       }
     }
 
+    let activePickrInstance = null;
+
     function closeCustomModal() {
       document.getElementById('custom-modal').classList.remove('open');
       document.getElementById('custom-modal-overlay').classList.remove('open');
       document.getElementById('modal-body').innerHTML = '';
+      if (activePickrInstance) {
+        activePickrInstance.destroyAndRemove();
+        activePickrInstance = null;
+      }
     }
 
     async function reloadAndRefresh() {
@@ -2115,6 +2135,11 @@ Event Cards
     }
 
     function openCreateCategoryModal() {
+      if (activePickrInstance) {
+        activePickrInstance.destroyAndRemove();
+        activePickrInstance = null;
+      }
+
       const modal = document.getElementById('custom-modal');
       const overlay = document.getElementById('custom-modal-overlay');
       document.getElementById('modal-title').textContent = 'New Category';
@@ -2133,7 +2158,7 @@ Event Cards
             <label class="form-label">Category Theme Color</label>
             <div class="color-picker-wrapper">
               <div class="color-preview" id="cat-color-preview" style="background: #648cff;"></div>
-              <input type="color" class="color-input" id="cat-color" value="#648cff">
+              <div id="cat-color-picker"></div>
             </div>
           </div>
           <div class="modal-footer">
@@ -2143,10 +2168,35 @@ Event Cards
         </form>
       `;
       
-      const colorInput = document.getElementById('cat-color');
       const colorPreview = document.getElementById('cat-color-preview');
-      colorInput.addEventListener('input', () => {
-        colorPreview.style.background = colorInput.value;
+      activePickrInstance = Pickr.create({
+        el: '#cat-color-picker',
+        theme: 'nano',
+        default: '#648cff',
+        swatches: [
+          '#648cff',
+          '#ff6b6b',
+          '#4ecdc4',
+          '#a66cff',
+          '#ff9f43',
+          '#2ecc71',
+          '#f1c40f',
+          '#e74c3c'
+        ],
+        components: {
+          preview: true,
+          opacity: false,
+          hue: true,
+          interaction: {
+            input: true,
+            clear: false,
+            save: false
+          }
+        }
+      });
+      
+      activePickrInstance.on('change', (color) => {
+        colorPreview.style.background = color.toHEXA().toString();
       });
       
       modal.classList.add('open');
@@ -2155,7 +2205,7 @@ Event Cards
       document.getElementById('category-form').addEventListener('submit', async () => {
         const name = document.getElementById('cat-name').value.trim();
         const desc = document.getElementById('cat-desc').value.trim();
-        const color = colorInput.value;
+        const color = activePickrInstance.getColor().toHEXA().toString();
         
         if (!name) return;
         
@@ -2188,6 +2238,11 @@ Event Cards
       const cat = userCategories.find(c => c._firestoreId === catId);
       if (!cat) return;
       
+      if (activePickrInstance) {
+        activePickrInstance.destroyAndRemove();
+        activePickrInstance = null;
+      }
+
       const modal = document.getElementById('custom-modal');
       const overlay = document.getElementById('custom-modal-overlay');
       document.getElementById('modal-title').textContent = 'Edit Category';
@@ -2206,7 +2261,7 @@ Event Cards
             <label class="form-label">Category Theme Color</label>
             <div class="color-picker-wrapper">
               <div class="color-preview" id="cat-color-preview" style="background: ${cat.color};"></div>
-              <input type="color" class="color-input" id="cat-color" value="${cat.color}">
+              <div id="cat-color-picker"></div>
             </div>
           </div>
           <div class="modal-footer">
@@ -2216,10 +2271,35 @@ Event Cards
         </form>
       `;
       
-      const colorInput = document.getElementById('cat-color');
       const colorPreview = document.getElementById('cat-color-preview');
-      colorInput.addEventListener('input', () => {
-        colorPreview.style.background = colorInput.value;
+      activePickrInstance = Pickr.create({
+        el: '#cat-color-picker',
+        theme: 'nano',
+        default: cat.color || '#648cff',
+        swatches: [
+          '#648cff',
+          '#ff6b6b',
+          '#4ecdc4',
+          '#a66cff',
+          '#ff9f43',
+          '#2ecc71',
+          '#f1c40f',
+          '#e74c3c'
+        ],
+        components: {
+          preview: true,
+          opacity: false,
+          hue: true,
+          interaction: {
+            input: true,
+            clear: false,
+            save: false
+          }
+        }
+      });
+      
+      activePickrInstance.on('change', (color) => {
+        colorPreview.style.background = color.toHEXA().toString();
       });
       
       modal.classList.add('open');
@@ -2228,7 +2308,7 @@ Event Cards
       document.getElementById('category-form').addEventListener('submit', async () => {
         const name = document.getElementById('cat-name').value.trim();
         const desc = document.getElementById('cat-desc').value.trim();
-        const color = colorInput.value;
+        const color = activePickrInstance.getColor().toHEXA().toString();
         
         if (!name) return;
         
@@ -2275,6 +2355,11 @@ Event Cards
     }
 
     function openCreateEventModal(catId) {
+      if (activePickrInstance) {
+        activePickrInstance.destroyAndRemove();
+        activePickrInstance = null;
+      }
+
       const modal = document.getElementById('custom-modal');
       const overlay = document.getElementById('custom-modal-overlay');
       document.getElementById('modal-title').textContent = 'Add Event';
@@ -2332,7 +2417,7 @@ Event Cards
             <label class="form-label">Custom Event Color (Optional)</label>
             <div class="color-picker-wrapper">
               <div class="color-preview" id="evt-color-preview" style="background: transparent; border: 1.5px dashed rgba(0, 0, 0, 0.25);"></div>
-              <input type="color" class="color-input" id="evt-color" value="#ffffff">
+              <div id="evt-color-picker"></div>
               <label style="font-size: 12px; color: #666; cursor: pointer; display: flex; align-items: center; gap: 4px;">
                 <input type="checkbox" id="evt-use-color"> Use custom color
               </label>
@@ -2363,19 +2448,45 @@ Event Cards
       
       dateRadios.forEach(r => r.addEventListener('change', toggleDateInputs));
       
-      const colorInput = document.getElementById('evt-color');
       const colorPreview = document.getElementById('evt-color-preview');
       const useColorCheck = document.getElementById('evt-use-color');
       
-      colorInput.addEventListener('input', () => {
+      activePickrInstance = Pickr.create({
+        el: '#evt-color-picker',
+        theme: 'nano',
+        default: '#ffffff',
+        swatches: [
+          '#ffffff',
+          '#648cff',
+          '#ff6b6b',
+          '#4ecdc4',
+          '#a66cff',
+          '#ff9f43',
+          '#2ecc71',
+          '#f1c40f',
+          '#e74c3c'
+        ],
+        components: {
+          preview: true,
+          opacity: false,
+          hue: true,
+          interaction: {
+            input: true,
+            clear: false,
+            save: false
+          }
+        }
+      });
+      
+      activePickrInstance.on('change', (color) => {
         useColorCheck.checked = true;
-        colorPreview.style.background = colorInput.value;
+        colorPreview.style.background = color.toHEXA().toString();
         colorPreview.style.borderStyle = 'solid';
       });
       
       useColorCheck.addEventListener('change', () => {
         if (useColorCheck.checked) {
-          colorPreview.style.background = colorInput.value;
+          colorPreview.style.background = activePickrInstance.getColor().toHEXA().toString();
           colorPreview.style.borderStyle = 'solid';
         } else {
           colorPreview.style.background = 'transparent';
@@ -2423,7 +2534,7 @@ Event Cards
         evt.type = isEpoch ? 'epoch' : 'milestone';
         
         if (useColorCheck.checked) {
-          evt.color = colorInput.value;
+          evt.color = activePickrInstance.getColor().toHEXA().toString();
         }
         
         const submitBtn = document.getElementById('modal-submit-btn');
@@ -2454,6 +2565,11 @@ Event Cards
       const evt = cat.events[eventIndex];
       if (!evt) return;
       
+      if (activePickrInstance) {
+        activePickrInstance.destroyAndRemove();
+        activePickrInstance = null;
+      }
+
       const modal = document.getElementById('custom-modal');
       const overlay = document.getElementById('custom-modal-overlay');
       document.getElementById('modal-title').textContent = 'Edit Event';
@@ -2513,7 +2629,7 @@ Event Cards
             <label class="form-label">Custom Event Color (Optional)</label>
             <div class="color-picker-wrapper">
               <div class="color-preview" id="evt-color-preview" style="background: ${evt.color || 'transparent'}; border: ${evt.color ? '1.5px solid rgba(0,0,0,0.15)' : '1.5px dashed rgba(0, 0, 0, 0.25)'};"></div>
-              <input type="color" class="color-input" id="evt-color" value="${evt.color || '#ffffff'}">
+              <div id="evt-color-picker"></div>
               <label style="font-size: 12px; color: #666; cursor: pointer; display: flex; align-items: center; gap: 4px;">
                 <input type="checkbox" id="evt-use-color" ${evt.color ? 'checked' : ''}> Use custom color
               </label>
@@ -2544,19 +2660,45 @@ Event Cards
       
       dateRadios.forEach(r => r.addEventListener('change', toggleDateInputs));
       
-      const colorInput = document.getElementById('evt-color');
       const colorPreview = document.getElementById('evt-color-preview');
       const useColorCheck = document.getElementById('evt-use-color');
       
-      colorInput.addEventListener('input', () => {
+      activePickrInstance = Pickr.create({
+        el: '#evt-color-picker',
+        theme: 'nano',
+        default: evt.color || '#ffffff',
+        swatches: [
+          '#ffffff',
+          '#648cff',
+          '#ff6b6b',
+          '#4ecdc4',
+          '#a66cff',
+          '#ff9f43',
+          '#2ecc71',
+          '#f1c40f',
+          '#e74c3c'
+        ],
+        components: {
+          preview: true,
+          opacity: false,
+          hue: true,
+          interaction: {
+            input: true,
+            clear: false,
+            save: false
+          }
+        }
+      });
+      
+      activePickrInstance.on('change', (color) => {
         useColorCheck.checked = true;
-        colorPreview.style.background = colorInput.value;
+        colorPreview.style.background = color.toHEXA().toString();
         colorPreview.style.borderStyle = 'solid';
       });
       
       useColorCheck.addEventListener('change', () => {
         if (useColorCheck.checked) {
-          colorPreview.style.background = colorInput.value;
+          colorPreview.style.background = activePickrInstance.getColor().toHEXA().toString();
           colorPreview.style.borderStyle = 'solid';
         } else {
           colorPreview.style.background = 'transparent';
@@ -2604,7 +2746,7 @@ Event Cards
         newEvt.type = isEpoch ? 'epoch' : 'milestone';
         
         if (useColorCheck.checked) {
-          newEvt.color = colorInput.value;
+          newEvt.color = activePickrInstance.getColor().toHEXA().toString();
         }
         
         const submitBtn = document.getElementById('modal-submit-btn');

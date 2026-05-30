@@ -79,21 +79,16 @@ const EVENT_CATEGORIES = [
             { cal_year: 1473, end_cal_year: 1543, name: "Copernicus", time: "1473–1543", desc: "Proposed the heliocentric model of the solar system", type: "epoch"},
             { cal_year: 1564, end_cal_year: 1642, name: "Galileo Galilei", time: "1564–1642", desc: "Father of observational astronomy and modern physics", type: "epoch"},
             { cal_year: 1643, end_cal_year: 1727, name: "Isaac Newton", time: "1643–1727", desc: "Laws of motion, gravity, and calculus", type: "epoch"},
-            { cal_year: 1706, end_cal_year: 1790, name: "Benjamin Franklin", time: "1706–1790", desc: "Electricity experiments; lightning rod inventor", type: "epoch"},
             { cal_year: 1791, end_cal_year: 1867, name: "Michael Faraday", time: "1791–1867", desc: "Electromagnetic induction; electric motor foundations", type: "epoch"},
             { cal_year: 1809, end_cal_year: 1882, name: "Charles Darwin", time: "1809–1882", desc: "Theory of evolution by natural selection", type: "epoch"},
             { cal_year: 1822, end_cal_year: 1895, name: "Louis Pasteur", time: "1822–1895", desc: "Germ theory, pasteurisation, and vaccines", type: "epoch"},
             { cal_year: 1831, end_cal_year: 1879, name: "James Clerk Maxwell", time: "1831–1879", desc: "Unified electricity, magnetism, and light", type: "epoch"},
-            { cal_year: 1856, end_cal_year: 1943, name: "Nikola Tesla", time: "1856–1943", desc: "Alternating current, radio, and wireless power", type: "epoch"},
             { cal_year: 1867, end_cal_year: 1934, name: "Marie Curie", time: "1867–1934", desc: "Pioneered radioactivity research; two Nobel Prizes", type: "epoch"},
             { cal_year: 1879, end_cal_year: 1955, name: "Albert Einstein", time: "1879–1955", desc: "Relativity, E=mc², and the photoelectric effect", type: "epoch"},
             { cal_year: 1885, end_cal_year: 1962, name: "Niels Bohr", time: "1885–1962", desc: "Atomic model and quantum mechanics pioneer", type: "epoch" },
-            { cal_year: 1901, end_cal_year: 1954, name: "Enrico Fermi", time: "1901–1954", desc: "Nuclear reactor and quantum theory contributions", type: "epoch" },
             { cal_year: 1912, end_cal_year: 1954, name: "Alan Turing", time: "1912–1954", desc: "Father of computer science and artificial intelligence", type: "epoch" },
             { cal_year: 1918, end_cal_year: 1988, name: "Richard Feynman", time: "1918–1988", desc: "Quantum electrodynamics; iconic science communicator", type: "epoch" },
             { cal_year: 1920, end_cal_year: 1958, name: "Rosalind Franklin", time: "1920–1958", desc: "X-ray crystallography of DNA structure", type: "epoch" },
-            { cal_year: 1928, end_cal_year: 2025, name: "James Watson", time: "1928–2025", desc: "Co-discoverer of DNA structure", type: "epoch" },
-            { cal_year: 1940, end_cal_year: 2026, name: "Kip Thorne", time: "1940–", desc: "Gravitational wave physics and black holes", type: "epoch" },
             { cal_year: 1942, end_cal_year: 2018, name: "Stephen Hawking", time: "1942–2018", desc: "Black holes, cosmology, and A Brief History of Time", type: "epoch"},
             { cal_year: 1964, end_cal_year: 2026, name: "Jennifer Doudna", time: "1964–", desc: "Co-discoverer of CRISPR gene editing", type: "epoch" },
             { cal_year: 1976, end_cal_year: 2026, name: "Demis Hassabis", time: "1976–", desc: "Co-founder of DeepMind; AI research", type: "epoch" },
@@ -104,10 +99,12 @@ const EVENT_CATEGORIES = [
         name: 'Communication technology',
         desc: 'Key inventions in how humans share information',
         events: [
+		/*
             { ya: 40000, name: "Cave paintings", time: "40,000 ya", desc: "Earliest known visual communication", type: "milestone", color: "#ff6b6b" },
             { ya: 5000, name: "Cuneiform writing", time: "~3,000 BCE", desc: "First writing system in Mesopotamia", type: "milestone", color: "#ff6b6b" },
             { ya: 3200, name: "Phoenician alphabet", time: "~1,200 BCE", desc: "First widely-used phonetic alphabet", type: "milestone", color: "#ff6b6b" },
             { cal_year: 105, name: "Paper (China)", time: "105 CE", desc: "Cai Lun standardises papermaking", type: "milestone", color: "#ff6b6b" },
+			{ cal_year: 200, name: "First Books", time: "~2nd century CE", desc: "Bound pages replace scrolls as dominant format for written knowledge", type: "milestone", color: "#ff6b6b" },
             { cal_year: 1440, name: "Printing press (Gutenberg)", time: "1440 CE", desc: "Movable type revolutionises information spread", type: "milestone", color: "#ff6b6b" },
             { cal_year: 1826, name: "Photographic camera", time: "1826 CE", desc: "First permanent photograph", type: "milestone", color: "#ff6b6b" },
             { cal_year: 1837, name: "Telegraph", time: "1837 CE", desc: "Morse code enables instant long-distance messaging", type: "milestone", color: "#ff6b6b" },
@@ -119,13 +116,348 @@ const EVENT_CATEGORIES = [
             { cal_year: 1962, name: "Telstar satellite", time: "1962 CE", desc: "First active communications satellite", type: "milestone", color: "#ff6b6b" },
             { cal_year: 1969, name: "ARPANET", time: "1969 CE", desc: "Precursor to the internet goes live", type: "milestone", color: "#ff6b6b" },
             { cal_year: 1971, name: "Email", time: "1971 CE", desc: "First networked email sent by Ray Tomlinson", type: "milestone", color: "#ff6b6b" },
-            { cal_year: 1983, name: "Mobile phone", time: "1983 CE", desc: "Motorola DynaTAC: first commercial mobile phone", type: "milestone", color: "#ff6b6b" },
+            { cal_year: 1983, name: "Early Mobile phones", time: "1983 CE", desc: "Motorola DynaTAC: first commercial mobile phone", type: "milestone", color: "#ff6b6b" },
             { cal_year: 1991, name: "World Wide Web (public)", time: "1991 CE", desc: "Berners-Lee opens the web to the public", type: "milestone", color: "#ff6b6b" },
             { cal_year: 1992, name: "SMS text messaging", time: "1992 CE", desc: "First text message sent over GSM", type: "milestone", color: "#ff6b6b" },
+			{ cal_year: 1998, name: "Mobile phones widespread", time: "1998 CE", desc: "Most people have one, and landline usage declines", type: "milestone", color: "#ff6b6b" },
             { cal_year: 2004, name: "Facebook", time: "2004 CE", desc: "Social networking goes mainstream", type: "milestone", color: "#ff6b6b" },
             { cal_year: 2007, name: "iPhone", time: "2007 CE", desc: "Touchscreen smartphone redefines communication", type: "milestone", color: "#ff6b6b" },
             { cal_year: 2010, name: "Instagram", time: "2010 CE", desc: "Visual social media takes off", type: "milestone", color: "#ff6b6b" },
             { cal_year: 2022, name: "ChatGPT", time: "2022 CE", desc: "Conversational AI reaches the mainstream", type: "milestone", color: "#ff6b6b" },
+			
+			*/
+	
+			// ===== proto language ==========
+			{
+				ya: 530e3,
+				name: "Vocal 'hardware' develops",
+				time: "~530,000 ya",
+				desc: "Fossils shows modern-looking hyoid bone and a descended larynx, required for complex articulation",
+				category: "platform",
+				color: "#a66cff"
+			},
+	
+	
+			// ===== EARLY SYMBOLIC COMMUNICATION =====
+
+			{
+				ya: 75000,
+				visibleFrom: 6e6,
+				name: "Symbolic engraving & ochre patterns",
+				time: "~75,000 ya",
+				desc: "Early abstract symbols on ochre and bone; possible proto-symbolic communication",
+				category: "invention",
+				color: "#ff6b6b"
+			},
+			
+			{
+				ya: 40000,
+				visibleFrom: 6e6,
+				name: "Cave paintings",
+				time: "40,000 ya",
+				desc: "Earliest known visual communication",
+				category: "invention",
+				color: "#ff6b6b"
+			},
+
+
+
+
+			{
+				ya: 5000,
+				name: "Cuneiform writing",
+				time: "~3,000 BCE",
+				desc: "First writing system in Mesopotamia",
+				category: "invention",
+				color: "#ff6b6b"
+			},
+
+			{
+				ya: 3200,
+				name: "Phoenician alphabet",
+				time: "~1,200 BCE",
+				desc: "First widely-used phonetic alphabet",
+				category: "invention",
+				color: "#ff6b6b"
+			},
+			
+
+			// ===== KNOWLEDGE STORAGE =====
+			
+			{
+				ya: 6000,
+				name: "Clay tokens (proto-record keeping)",
+				time: "~8000–3000 BCE",
+				desc: "Small clay objects used for accounting and record keeping in early farming societies",
+				category: "infrastructure",
+				color: "#4ecdc4"
+			},
+
+			{
+				cal_year: 105,
+				name: "Paper (China)",
+				time: "105 CE",
+				desc: "Cai Lun standardises papermaking",
+				category: "infrastructure",
+				color: "#4ecdc4"
+			},
+
+			{
+				cal_year: 200,
+				name: "Codex books",
+				time: "~2nd century CE",
+				desc: "Bound books replace scrolls",
+				category: "infrastructure",
+				color: "#4ecdc4"
+			},
+
+			// ===== MASS REPRODUCTION OF INFORMATION =====
+
+			{
+				cal_year: 700,
+				name: "Woodblock printing",
+				time: "~700 CE",
+				desc: "Texts and images reproduced at scale in China",
+				category: "invention",
+				color: "#ff6b6b"
+			},
+
+			{
+				cal_year: 1040,
+				name: "Movable type printing",
+				time: "~1040 CE",
+				desc: "Bi Sheng develops movable type in China",
+				category: "invention",
+				color: "#ff6b6b"
+			},
+
+			{
+				cal_year: 1440,
+				name: "Printing press (Gutenberg)",
+				time: "1440 CE",
+				desc: "Movable type revolutionises information spread in Europe",
+				category: "mass_adoption",
+				color: "#45b7d1"
+			},
+
+			// ===== MASS MEDIA =====
+
+			{
+				cal_year: 1516,
+				name: "Modern postal systems",
+				time: "1516 CE",
+				desc: "Organised state postal networks expand",
+				category: "infrastructure",
+				color: "#4ecdc4"
+			},
+
+			{
+				cal_year: 1605,
+				name: "Newspapers",
+				time: "1605 CE",
+				desc: "Regular printed news publications emerge",
+				category: "mass_adoption",
+				color: "#45b7d1"
+			},
+
+			{
+				cal_year: 1794,
+				name: "Optical telegraph",
+				time: "1794 CE",
+				desc: "Semaphore towers enable rapid long-distance messaging",
+				category: "infrastructure",
+				color: "#4ecdc4"
+			},
+
+			// ===== ELECTRONIC COMMUNICATION =====
+
+			{
+				cal_year: 1826,
+				name: "Photographic camera",
+				time: "1826 CE",
+				desc: "First permanent photograph",
+				category: "invention",
+				color: "#ff6b6b"
+			},
+
+			{
+				cal_year: 1837,
+				name: "Telegraph",
+				time: "1837 CE",
+				desc: "Morse code enables instant long-distance messaging",
+				category: "invention",
+				color: "#ff6b6b"
+			},
+
+			{
+				cal_year: 1868,
+				name: "Typewriter",
+				time: "1868 CE",
+				desc: "Mechanical typing standardises written communication",
+				category: "mass_adoption",
+				color: "#45b7d1"
+			},
+
+			{
+				cal_year: 1876,
+				name: "Telephone",
+				time: "1876 CE",
+				desc: "Bell patents voice transmission over wire",
+				category: "invention",
+				color: "#ff6b6b"
+			},
+
+			{
+				cal_year: 1888,
+				name: "Moving image camera",
+				time: "1888 CE",
+				desc: "First practical moving image camera",
+				category: "invention",
+				color: "#ff6b6b"
+			},
+
+			{
+				cal_year: 1895,
+				name: "Radio",
+				time: "1895 CE",
+				desc: "Marconi demonstrates wireless telegraphy",
+				category: "infrastructure",
+				color: "#4ecdc4"
+			},
+
+			{
+				cal_year: 1895,
+				name: "Cinema",
+				time: "1895 CE",
+				desc: "First public film screening",
+				category: "mass_adoption",
+				color: "#45b7d1"
+			},
+
+			{
+				cal_year: 1927,
+				name: "Television",
+				time: "1927 CE",
+				desc: "Farnsworth demonstrates electronic TV",
+				category: "mass_adoption",
+				color: "#45b7d1"
+			},
+
+			// ===== DIGITAL NETWORKS =====
+
+			{
+				cal_year: 1962,
+				name: "Telstar satellite",
+				time: "1962 CE",
+				desc: "First active communications satellite",
+				category: "infrastructure",
+				color: "#4ecdc4"
+			},
+
+			{
+				cal_year: 1969,
+				name: "ARPANET",
+				time: "1969 CE",
+				desc: "Precursor to the internet goes live",
+				category: "infrastructure",
+				color: "#4ecdc4"
+			},
+
+			{
+				cal_year: 1971,
+				name: "Email",
+				time: "1971 CE",
+				desc: "First networked email sent by Ray Tomlinson",
+				category: "invention",
+				color: "#ff6b6b"
+			},
+
+			{
+				cal_year: 1977,
+				name: "Personal computers",
+				time: "1977 CE",
+				desc: "Home computing becomes commercially viable",
+				category: "mass_adoption",
+				color: "#45b7d1"
+			},
+
+			{
+				cal_year: 1983,
+				name: "Early mobile phones",
+				time: "1983 CE",
+				desc: "Motorola DynaTAC becomes first commercial mobile phone",
+				category: "invention",
+				color: "#ff6b6b"
+			},
+
+			{
+				cal_year: 1991,
+				name: "World Wide Web (public)",
+				time: "1991 CE",
+				desc: "Berners-Lee opens the web to the public",
+				category: "mass_adoption",
+				color: "#45b7d1"
+			},
+
+			{
+				cal_year: 1992,
+				name: "SMS text messaging",
+				time: "1992 CE",
+				desc: "First text message sent over GSM",
+				category: "invention",
+				color: "#ff6b6b"
+			},
+
+			{
+				cal_year: 1998,
+				name: "Mobile phones widespread",
+				time: "1998 CE",
+				desc: "Mobile phones become common consumer technology",
+				category: "mass_adoption",
+				color: "#45b7d1"
+			},
+
+			// ===== SOCIAL / MOBILE INTERNET =====
+
+			{
+				cal_year: 2004,
+				name: "Facebook",
+				time: "2004 CE",
+				desc: "Social networking goes mainstream",
+				category: "platform",
+				color: "#a66cff"
+			},
+
+			{
+				cal_year: 2007,
+				name: "iPhone",
+				time: "2007 CE",
+				desc: "Touchscreen smartphones redefine communication",
+				category: "mass_adoption",
+				color: "#45b7d1"
+			},
+
+			{
+				cal_year: 2010,
+				name: "Instagram",
+				time: "2010 CE",
+				desc: "Visual social media takes off",
+				category: "platform",
+				color: "#a66cff"
+			},
+
+			// ===== AI COMMUNICATION =====
+
+			{
+				cal_year: 2022,
+				name: "ChatGPT",
+				time: "2022 CE",
+				desc: "Conversational AI reaches the mainstream",
+				category: "platform",
+				color: "#a66cff"
+			}
+
+
         ]
     }
 ];
