@@ -798,7 +798,9 @@
         // ── Auto-scroll to today ───────────────────────────────────────────────
         if (todayElement) {
             setTimeout(() => {
-                todayElement.scrollIntoView({ behavior: 'auto', block: 'center' });
+                scrollArea.style.scrollBehavior = 'auto';          // override CSS
+                todayElement.scrollIntoView({ block: 'center' });
+                scrollArea.style.scrollBehavior = '';              // restore smooth
                 yearIndicator.textContent = today.getFullYear();
             }, 50);
         }
