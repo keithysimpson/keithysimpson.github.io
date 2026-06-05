@@ -1,6 +1,50 @@
 // --- EVENT CATEGORY DEFINITIONS ---
-// Each category is a named group of events. Users can toggle categories on/off
-// via the settings panel. Multiple categories can be active simultaneously.
+
+/**
+ * TIMELINE EVENT SCHEMA
+ * =====================
+ * An event object placed inside an EVENT_CATEGORIES[].events array.
+ *
+ * TIMING — use ONE of the following two approaches:
+ *
+ *   ya         {number}  Years ago (e.g. 13.8e9, 66e6, 300e3).
+ *                        Use scientific notation for large values.
+ *                        For recent/historical dates, prefer cal_year instead.
+ *   end_ya     {number}  [optional] End of a span, in years ago. Only used with ya.
+ *
+ *   cal_year   {number}  Calendar year. Negative = BCE (e.g. -27 = 27 BCE),
+ *                        positive = CE (e.g. 1969 = 1969 CE).
+ *   end_cal_year {number} [optional] End year of a span. Only used with cal_year.
+ *
+ *   Crossover guide:
+ *     - Pre-history / geological / cosmic events  → use ya
+ *     - Anything with a recognisable BCE/CE year  → use cal_year
+ *     - ya and cal_year should NOT both be set on the same event.
+ *
+ * DISPLAY
+ *   name       {string}  Short label shown on the timeline (keep under ~30 chars).
+ *   time       {string}  Human-readable date string shown in the UI,
+ *                        e.g. "13.8 bya", "66 mya", "1440 CE", "27 BCE – 476 CE".
+ *   desc       {string}  One-sentence description. Can be empty string "".
+ *
+ * CLASSIFICATION
+ *   type       {string}  [optional] semantic type that may be used for visual or organizational purposes. 
+ *                        Common ones may include:
+ *                          "milestone" – a discrete, important moment in time
+ *                          "epoch"     – a period or era (usually has an end_ya / end_cal_year)
+ *                          "invention"    – a new technology or discovery
+ *                          "mass_adoption"– widespread societal uptake
+ *
+ * APPEARANCE
+ *   color      {string}  [optional] Hex color string, e.g. "#ff6b6b".
+ *                        If omitted, the category default color is used.
+ *
+ *   visibleFrom {number} [optional] The ya zoom level at which this event becomes
+ *                        visible. Used to hide fine-grained sub-events until the
+ *                        user has zoomed in to a relevant timescale.
+ *                        e.g. visibleFrom: 230e6 means only show when viewing
+ *                        within the last 230 million years.
+ */
 
 const EVENT_CATEGORIES = [
     {
@@ -8,13 +52,14 @@ const EVENT_CATEGORIES = [
         name: 'Key events',
         desc: 'Major milestones in the history of the universe, Earth, and civilisation',
         events: [
-            { ya: 13.8e9, name: "Big Bang", time: "13.8 bya", desc: "Origin of space, time and matter", type: "milestone" },
+            { ya: 13.8e9, name: "Big Bang", time: "13.8 bya", desc: "Origin of space, time and matter", anti: "milestone" },
             { ya: 13.6e9, name: "First stars", time: "13.6 bya", desc: "Hydrogen ignites across the universe", type: "epoch" },
             { ya: 13.6e9, name: "Milky Way begins forming", time: "13.6 bya", desc: "Earliest stars and globular clusters assemble", type: "epoch" },
             { ya: 11e9, name: "Milky Way merger", time: "11 bya", desc: "Collision with the Gaia-Enceladus dwarf galaxy shapes the galactic halo", type: "epoch" },
             { ya: 8e9, name: "Milky Way thin disk forms", time: "8 bya", desc: "The galaxy settles into its current spiral shape", type: "epoch" },
-            { ya: 4.6e9, name: "Earth forms", time: "4.6 bya", desc: "Solar system dust gathers into a planet", type: "milestone" },
-            { ya: 4.5e9, name: "Moon forms", time: "4.5 bya", desc: "Giant impact sends debris into orbit", type: "epoch" },
+            { ya: 4.6e9, name: "Sun forms", time: "4.6 bya", desc: "Cloud of gas and dust collapses to form the Sun", type: "milestone" },
+			{ ya: 4.54e9, name: "Earth forms", time: "4.54 bya", desc: "Solar system dust gathers into a planet", type: "milestone" },
+            { ya: 4.5e9, name: "Moon forms", time: "4.5 bya", desc: "Giant impact sends debris into orbit", type: "epoch", visibleFrom: 4.6e9 },
             { ya: 3.8e9, name: "First life", time: "3.8 bya", desc: "Single-celled organisms in the oceans", type: "milestone" },
             { ya: 2.4e9, name: "Great Oxygenation", time: "2.4 bya", desc: "Photosynthesis transforms the atmosphere", type: "milestone" },
             { ya: 2e9, name: "Eukaryotes", time: "2 bya", desc: "Cells with a nucleus appear", type: "epoch" },
@@ -99,33 +144,6 @@ const EVENT_CATEGORIES = [
         name: 'Communication technology',
         desc: 'Key inventions in how humans share information',
         events: [
-		/*
-            { ya: 40000, name: "Cave paintings", time: "40,000 ya", desc: "Earliest known visual communication", type: "milestone", color: "#ff6b6b" },
-            { ya: 5000, name: "Cuneiform writing", time: "~3,000 BCE", desc: "First writing system in Mesopotamia", type: "milestone", color: "#ff6b6b" },
-            { ya: 3200, name: "Phoenician alphabet", time: "~1,200 BCE", desc: "First widely-used phonetic alphabet", type: "milestone", color: "#ff6b6b" },
-            { cal_year: 105, name: "Paper (China)", time: "105 CE", desc: "Cai Lun standardises papermaking", type: "milestone", color: "#ff6b6b" },
-			{ cal_year: 200, name: "First Books", time: "~2nd century CE", desc: "Bound pages replace scrolls as dominant format for written knowledge", type: "milestone", color: "#ff6b6b" },
-            { cal_year: 1440, name: "Printing press (Gutenberg)", time: "1440 CE", desc: "Movable type revolutionises information spread", type: "milestone", color: "#ff6b6b" },
-            { cal_year: 1826, name: "Photographic camera", time: "1826 CE", desc: "First permanent photograph", type: "milestone", color: "#ff6b6b" },
-            { cal_year: 1837, name: "Telegraph", time: "1837 CE", desc: "Morse code enables instant long-distance messaging", type: "milestone", color: "#ff6b6b" },
-            { cal_year: 1876, name: "Telephone", time: "1876 CE", desc: "Bell patents voice transmission over wire", type: "milestone", color: "#ff6b6b" },
-            { cal_year: 1895, name: "Radio", time: "1895 CE", desc: "Marconi demonstrates wireless telegraphy", type: "milestone", color: "#ff6b6b" },
-            { cal_year: 1888, name: "Moving image camera", time: "1888 CE", desc: "First moving image camera", type: "milestone", color: "#ff6b6b" },
-            { cal_year: 1895, name: "Cinema", time: "1895 CE", desc: "First public film screening", type: "milestone", color: "#ff6b6b" },
-            { cal_year: 1927, name: "Television", time: "1927 CE", desc: "Farnsworth demonstrates electronic TV", type: "milestone", color: "#ff6b6b" },
-            { cal_year: 1962, name: "Telstar satellite", time: "1962 CE", desc: "First active communications satellite", type: "milestone", color: "#ff6b6b" },
-            { cal_year: 1969, name: "ARPANET", time: "1969 CE", desc: "Precursor to the internet goes live", type: "milestone", color: "#ff6b6b" },
-            { cal_year: 1971, name: "Email", time: "1971 CE", desc: "First networked email sent by Ray Tomlinson", type: "milestone", color: "#ff6b6b" },
-            { cal_year: 1983, name: "Early Mobile phones", time: "1983 CE", desc: "Motorola DynaTAC: first commercial mobile phone", type: "milestone", color: "#ff6b6b" },
-            { cal_year: 1991, name: "World Wide Web (public)", time: "1991 CE", desc: "Berners-Lee opens the web to the public", type: "milestone", color: "#ff6b6b" },
-            { cal_year: 1992, name: "SMS text messaging", time: "1992 CE", desc: "First text message sent over GSM", type: "milestone", color: "#ff6b6b" },
-			{ cal_year: 1998, name: "Mobile phones widespread", time: "1998 CE", desc: "Most people have one, and landline usage declines", type: "milestone", color: "#ff6b6b" },
-            { cal_year: 2004, name: "Facebook", time: "2004 CE", desc: "Social networking goes mainstream", type: "milestone", color: "#ff6b6b" },
-            { cal_year: 2007, name: "iPhone", time: "2007 CE", desc: "Touchscreen smartphone redefines communication", type: "milestone", color: "#ff6b6b" },
-            { cal_year: 2010, name: "Instagram", time: "2010 CE", desc: "Visual social media takes off", type: "milestone", color: "#ff6b6b" },
-            { cal_year: 2022, name: "ChatGPT", time: "2022 CE", desc: "Conversational AI reaches the mainstream", type: "milestone", color: "#ff6b6b" },
-			
-			*/
 	
 			// ===== proto language ==========
 			{
@@ -133,7 +151,7 @@ const EVENT_CATEGORIES = [
 				name: "Vocal 'hardware' develops",
 				time: "~530,000 ya",
 				desc: "Fossils shows modern-looking hyoid bone and a descended larynx, required for complex articulation",
-				category: "platform",
+				type: "platform",
 				color: "#a66cff"
 			},
 	
@@ -146,7 +164,7 @@ const EVENT_CATEGORIES = [
 				name: "Symbolic engraving & ochre patterns",
 				time: "~75,000 ya",
 				desc: "Early abstract symbols on ochre and bone; possible proto-symbolic communication",
-				category: "invention",
+				type: "invention",
 				color: "#ff6b6b"
 			},
 			
@@ -156,7 +174,7 @@ const EVENT_CATEGORIES = [
 				name: "Cave paintings",
 				time: "40,000 ya",
 				desc: "Earliest known visual communication",
-				category: "invention",
+				type: "invention",
 				color: "#ff6b6b"
 			},
 
@@ -168,7 +186,7 @@ const EVENT_CATEGORIES = [
 				name: "Cuneiform writing",
 				time: "~3,000 BCE",
 				desc: "First writing system in Mesopotamia",
-				category: "invention",
+				type: "invention",
 				color: "#ff6b6b"
 			},
 
@@ -177,7 +195,7 @@ const EVENT_CATEGORIES = [
 				name: "Phoenician alphabet",
 				time: "~1,200 BCE",
 				desc: "First widely-used phonetic alphabet",
-				category: "invention",
+				type: "invention",
 				color: "#ff6b6b"
 			},
 			
@@ -189,7 +207,7 @@ const EVENT_CATEGORIES = [
 				name: "Clay tokens (proto-record keeping)",
 				time: "~8000–3000 BCE",
 				desc: "Small clay objects used for accounting and record keeping in early farming societies",
-				category: "infrastructure",
+				type: "infrastructure",
 				color: "#4ecdc4"
 			},
 
@@ -198,7 +216,7 @@ const EVENT_CATEGORIES = [
 				name: "Paper (China)",
 				time: "105 CE",
 				desc: "Cai Lun standardises papermaking",
-				category: "infrastructure",
+				type: "infrastructure",
 				color: "#4ecdc4"
 			},
 
@@ -207,7 +225,7 @@ const EVENT_CATEGORIES = [
 				name: "Codex books",
 				time: "~2nd century CE",
 				desc: "Bound books replace scrolls",
-				category: "infrastructure",
+				type: "infrastructure",
 				color: "#4ecdc4"
 			},
 
@@ -218,7 +236,7 @@ const EVENT_CATEGORIES = [
 				name: "Woodblock printing",
 				time: "~700 CE",
 				desc: "Texts and images reproduced at scale in China",
-				category: "invention",
+				type: "invention",
 				color: "#ff6b6b"
 			},
 
@@ -227,7 +245,7 @@ const EVENT_CATEGORIES = [
 				name: "Movable type printing",
 				time: "~1040 CE",
 				desc: "Bi Sheng develops movable type in China",
-				category: "invention",
+				type: "invention",
 				color: "#ff6b6b"
 			},
 
@@ -236,7 +254,7 @@ const EVENT_CATEGORIES = [
 				name: "Printing press (Gutenberg)",
 				time: "1440 CE",
 				desc: "Movable type revolutionises information spread in Europe",
-				category: "mass_adoption",
+				type: "mass_adoption",
 				color: "#45b7d1"
 			},
 
@@ -247,7 +265,7 @@ const EVENT_CATEGORIES = [
 				name: "Modern postal systems",
 				time: "1516 CE",
 				desc: "Organised state postal networks expand",
-				category: "infrastructure",
+				type: "infrastructure",
 				color: "#4ecdc4"
 			},
 
@@ -256,7 +274,7 @@ const EVENT_CATEGORIES = [
 				name: "Newspapers",
 				time: "1605 CE",
 				desc: "Regular printed news publications emerge",
-				category: "mass_adoption",
+				type: "mass_adoption",
 				color: "#45b7d1"
 			},
 
@@ -265,7 +283,7 @@ const EVENT_CATEGORIES = [
 				name: "Optical telegraph",
 				time: "1794 CE",
 				desc: "Semaphore towers enable rapid long-distance messaging",
-				category: "infrastructure",
+				type: "infrastructure",
 				color: "#4ecdc4"
 			},
 
@@ -276,7 +294,7 @@ const EVENT_CATEGORIES = [
 				name: "Photographic camera",
 				time: "1826 CE",
 				desc: "First permanent photograph",
-				category: "invention",
+				type: "invention",
 				color: "#ff6b6b"
 			},
 
@@ -285,7 +303,7 @@ const EVENT_CATEGORIES = [
 				name: "Telegraph",
 				time: "1837 CE",
 				desc: "Morse code enables instant long-distance messaging",
-				category: "invention",
+				type: "invention",
 				color: "#ff6b6b"
 			},
 
@@ -294,7 +312,7 @@ const EVENT_CATEGORIES = [
 				name: "Typewriter",
 				time: "1868 CE",
 				desc: "Mechanical typing standardises written communication",
-				category: "mass_adoption",
+				type: "mass_adoption",
 				color: "#45b7d1"
 			},
 
@@ -303,7 +321,7 @@ const EVENT_CATEGORIES = [
 				name: "Telephone",
 				time: "1876 CE",
 				desc: "Bell patents voice transmission over wire",
-				category: "invention",
+				type: "invention",
 				color: "#ff6b6b"
 			},
 
@@ -312,7 +330,7 @@ const EVENT_CATEGORIES = [
 				name: "Moving image camera",
 				time: "1888 CE",
 				desc: "First practical moving image camera",
-				category: "invention",
+				type: "invention",
 				color: "#ff6b6b"
 			},
 
@@ -321,7 +339,7 @@ const EVENT_CATEGORIES = [
 				name: "Radio",
 				time: "1895 CE",
 				desc: "Marconi demonstrates wireless telegraphy",
-				category: "infrastructure",
+				type: "infrastructure",
 				color: "#4ecdc4"
 			},
 
@@ -330,7 +348,7 @@ const EVENT_CATEGORIES = [
 				name: "Cinema",
 				time: "1895 CE",
 				desc: "First public film screening",
-				category: "mass_adoption",
+				type: "mass_adoption",
 				color: "#45b7d1"
 			},
 
@@ -339,7 +357,7 @@ const EVENT_CATEGORIES = [
 				name: "Television",
 				time: "1927 CE",
 				desc: "Farnsworth demonstrates electronic TV",
-				category: "mass_adoption",
+				type: "mass_adoption",
 				color: "#45b7d1"
 			},
 
@@ -350,7 +368,7 @@ const EVENT_CATEGORIES = [
 				name: "Telstar satellite",
 				time: "1962 CE",
 				desc: "First active communications satellite",
-				category: "infrastructure",
+				type: "infrastructure",
 				color: "#4ecdc4"
 			},
 
@@ -359,7 +377,7 @@ const EVENT_CATEGORIES = [
 				name: "ARPANET",
 				time: "1969 CE",
 				desc: "Precursor to the internet goes live",
-				category: "infrastructure",
+				type: "infrastructure",
 				color: "#4ecdc4"
 			},
 
@@ -368,7 +386,7 @@ const EVENT_CATEGORIES = [
 				name: "Email",
 				time: "1971 CE",
 				desc: "First networked email sent by Ray Tomlinson",
-				category: "invention",
+				type: "invention",
 				color: "#ff6b6b"
 			},
 
@@ -377,7 +395,7 @@ const EVENT_CATEGORIES = [
 				name: "Personal computers",
 				time: "1977 CE",
 				desc: "Home computing becomes commercially viable",
-				category: "mass_adoption",
+				type: "mass_adoption",
 				color: "#45b7d1"
 			},
 
@@ -386,7 +404,7 @@ const EVENT_CATEGORIES = [
 				name: "Early mobile phones",
 				time: "1983 CE",
 				desc: "Motorola DynaTAC becomes first commercial mobile phone",
-				category: "invention",
+				type: "invention",
 				color: "#ff6b6b"
 			},
 
@@ -395,7 +413,7 @@ const EVENT_CATEGORIES = [
 				name: "World Wide Web (public)",
 				time: "1991 CE",
 				desc: "Berners-Lee opens the web to the public",
-				category: "mass_adoption",
+				type: "mass_adoption",
 				color: "#45b7d1"
 			},
 
@@ -404,7 +422,7 @@ const EVENT_CATEGORIES = [
 				name: "SMS text messaging",
 				time: "1992 CE",
 				desc: "First text message sent over GSM",
-				category: "invention",
+				type: "invention",
 				color: "#ff6b6b"
 			},
 
@@ -413,7 +431,7 @@ const EVENT_CATEGORIES = [
 				name: "Mobile phones widespread",
 				time: "1998 CE",
 				desc: "Mobile phones become common consumer technology",
-				category: "mass_adoption",
+				type: "mass_adoption",
 				color: "#45b7d1"
 			},
 
@@ -424,7 +442,7 @@ const EVENT_CATEGORIES = [
 				name: "Facebook",
 				time: "2004 CE",
 				desc: "Social networking goes mainstream",
-				category: "platform",
+				type: "platform",
 				color: "#a66cff"
 			},
 
@@ -433,7 +451,7 @@ const EVENT_CATEGORIES = [
 				name: "iPhone",
 				time: "2007 CE",
 				desc: "Touchscreen smartphones redefine communication",
-				category: "mass_adoption",
+				type: "mass_adoption",
 				color: "#45b7d1"
 			},
 
@@ -442,7 +460,7 @@ const EVENT_CATEGORIES = [
 				name: "Instagram",
 				time: "2010 CE",
 				desc: "Visual social media takes off",
-				category: "platform",
+				type: "platform",
 				color: "#a66cff"
 			},
 
@@ -453,11 +471,54 @@ const EVENT_CATEGORIES = [
 				name: "ChatGPT",
 				time: "2022 CE",
 				desc: "Conversational AI reaches the mainstream",
-				category: "platform",
+				type: "platform",
 				color: "#a66cff"
 			}
 
 
         ]
-    }
+    },
+	{
+		id: 'mass_extinctions',
+		name: 'Mass extinctions',
+		desc: 'The "Big Five" mass extinction events in Earth\'s history',
+		color: "#ff1111",
+		events: [
+			{
+				ya: 444e6,
+				name: "End Ordovician",
+				time: "444 mya",
+				desc: "86% of species lost; glacial cycles and tectonic uplift caused CO₂ sequestration, sea-level swings, and ocean chemistry changes",
+				type: "milestone"
+			},
+			{
+				ya: 360e6,
+				name: "Late Devonian",
+				time: "360 mya",
+				desc: "75% of species lost; rapid spread of land plants caused global cooling, disrupted ocean oxygen levels",
+				type: "milestone"
+			},
+			{
+				ya: 250e6,
+				name: "End Permian",
+				time: "250 mya",
+				desc: "96% of species lost; Siberian volcanism caused global warming and ocean acidification",
+				type: "milestone"
+			},
+			{
+				ya: 200e6,
+				name: "End Triassic",
+				time: "200 mya",
+				desc: "80% of species lost; underwater volcanism in Atlantic triggered global warming",
+				type: "milestone"
+			},
+			{
+				ya: 66e6,
+				name: "End Cretaceous",
+				time: "66 mya",
+				desc: "76% of species lost; asteroid caused rapid global cooling",
+				type: "milestone"
+			},
+		]
+	},
 ];
