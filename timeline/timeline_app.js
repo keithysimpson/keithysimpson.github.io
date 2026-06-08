@@ -1273,6 +1273,14 @@ function openCreateEventModal(catId) {
         </div>
 
         <div class="form-group">
+        <label class="form-label" for="evt-visible-from">Show on Timeline From Zoom Level</label>
+        <select class="form-input" id="evt-visible-from">
+            <option value="">Default (Show automatically)</option>
+            ${LEVELS.map(l => `<option value="${l.start_ya}">${l.name} (${l.span})</option>`).join('')}
+        </select>
+        </div>
+
+        <div class="form-group">
         <label class="form-label">Custom Event Color (Optional)</label>
         <div class="color-picker-wrapper">
             <div class="color-preview" id="evt-color-preview" style="background: transparent; border: 1.5px dashed rgba(0, 0, 0, 0.25);"></div>
@@ -1396,6 +1404,11 @@ function openCreateEventModal(catId) {
         evt.color = activePickrInstance.getColor().toHEXA().toString();
     }
     
+    const visibleFromVal = document.getElementById('evt-visible-from').value;
+    if (visibleFromVal) {
+        evt.visibleFrom = parseFloat(visibleFromVal);
+    }
+    
     const submitBtn = document.getElementById('modal-submit-btn');
     submitBtn.disabled = true;
     submitBtn.textContent = 'Saving...';
@@ -1482,6 +1495,17 @@ function openEditEventModal(catId, eventIndex) {
             <input type="number" class="form-input" id="evt-end-ya" value="${evt.end_ya !== undefined ? evt.end_ya : ''}" placeholder="e.g. 100000">
             </div>
         </div>
+        </div>
+
+        <div class="form-group">
+        <label class="form-label" for="evt-visible-from">Show on Timeline From Zoom Level</label>
+        <select class="form-input" id="evt-visible-from">
+            <option value="">Default (Show automatically)</option>
+            ${LEVELS.map(l => {
+                const selected = (evt.visibleFrom !== undefined && evt.visibleFrom == l.start_ya) ? 'selected' : '';
+                return `<option value="${l.start_ya}" ${selected}>${l.name} (${l.span})</option>`;
+            }).join('')}
+        </select>
         </div>
 
         <div class="form-group">
@@ -1606,6 +1630,11 @@ function openEditEventModal(catId, eventIndex) {
     
     if (useColorCheck.checked) {
         newEvt.color = activePickrInstance.getColor().toHEXA().toString();
+    }
+    
+    const visibleFromVal = document.getElementById('evt-visible-from').value;
+    if (visibleFromVal) {
+        newEvt.visibleFrom = parseFloat(visibleFromVal);
     }
     
     const submitBtn = document.getElementById('modal-submit-btn');

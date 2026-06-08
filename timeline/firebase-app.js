@@ -209,8 +209,9 @@ async function fbDeleteEvent(catId, index) {
 function generateTimeLabel(e) {
   const fCY = y => {
     if (y == null) return '';
-    return y < 0 ? Math.abs(y).toLocaleString() + ' BCE'
-                  : y.toLocaleString() + ' CE';
+    const absY = Math.abs(y);
+    const formattedY = absY >= 10000 ? absY.toLocaleString() : absY.toString();
+    return y < 0 ? formattedY + ' BCE' : formattedY + ' CE';
   };
   const fYA = ya => {
     if (ya == null) return '';

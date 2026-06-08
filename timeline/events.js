@@ -521,4 +521,53 @@ const EVENT_CATEGORIES = [
 			},
 		]
 	},
+	
+	
+	
+	{
+        id: 'medical_breakthroughs',
+        name: 'Medical breakthroughs',
+        desc: 'Key discoveries and innovations in the human battle against disease and mortality',
+        events: [
+            { ya: 7000, name: "Early Trepanation", time: "~7,000 BCE", desc: "Earliest evidence of surgical intervention (drilling holes in the skull)", type: "invention", color: "#ff6b6b" },
+            { cal_year: -1500, name: "Ebers Papyrus", time: "~1500 BCE", desc: "Egyptian medical text documenting herbal remedies and anatomical knowledge", type: "infrastructure" },
+            { cal_year: 1000, name: "Inoculation practiced", time: "~1000 CE", desc: "Early smallpox variolation documented in China and India", type: "invention" },
+            { cal_year: 1543, name: "Vesalius's Anatomy", time: "1543 CE", desc: "De humani corporis fabrica revolutionizes the study of human anatomy", type: "milestone" },
+            { cal_year: 1628, name: "Circulation of blood", time: "1628 CE", desc: "William Harvey discovers how the heart pumps blood through the body", type: "milestone" },
+            { cal_year: 1796, name: "First successful vaccine", time: "1796 CE", desc: "Edward Jenner uses cowpox to create immunity against smallpox", type: "invention", color: "#ff6b6b" },
+            { cal_year: 1846, name: "Surgical anesthesia", time: "1846 CE", desc: "First public demonstration of ether anesthesia transforms surgery", type: "invention" },
+            { cal_year: 1865, name: "Antiseptic surgery", time: "1865 CE", desc: "Joseph Lister introduces carbolic acid to sterilize surgical instruments", type: "mass_adoption", color: "#45b7d1" },
+            { cal_year: 1895, name: "X-rays discovered", time: "1895 CE", desc: "Wilhelm Röntgen discovers X-rays, birthing medical imaging", type: "invention" },
+            { cal_year: 1928, name: "Penicillin discovered", time: "1928 CE", desc: "Alexander Fleming discovers the first true antibiotic", type: "milestone", color: "#a66cff" },
+            { cal_year: 1940, end_cal_year: 1950, name: "Antibiotic mass production", time: "1940s CE", desc: "Penicillin is mass-produced, drastically reducing wartime and civilian infections", type: "mass_adoption", color: "#45b7d1" },
+            { cal_year: 1953, name: "DNA double helix", time: "1953 CE", desc: "Franklin, Watson, and Crick unlock the structural blueprint of life", type: "milestone" },
+            { cal_year: 1978, name: "First IVF baby", time: "1978 CE", desc: "In vitro fertilization opens new frontiers in reproductive medicine", type: "milestone" },
+            { cal_year: 1980, name: "Smallpox eradicated", time: "1980 CE", desc: "WHO officially declares smallpox the first human disease eradicated by science", type: "epoch", color: "#00ff90" },
+            { cal_year: 2003, name: "Human Genome Project", time: "2003 CE", desc: "Scientists finish sequencing 92% of the entire human genome", type: "epoch" },
+            { cal_year: 2020, name: "mRNA vaccines", time: "2020 CE", desc: "First lipid-nanoparticle mRNA vaccines deployed at scale during COVID-19", type: "mass_adoption", color: "#45b7d1" }
+        ]
+    },
+    {
+        id: 'transportation_mobility',
+        name: 'Transportation & mobility',
+        desc: 'How humanity conquered distance across land, sea, and air',
+        events: [
+            { ya: 4000, name: "Horse domestication", time: "~4,000 BCE", desc: "Horses are domesticated in the Eurasian Steppe, revolutionizing land travel", type: "epoch" },
+            { ya: 3500, name: "Invention of the wheel", time: "~3,500 BCE", desc: "Pottery wheels pivot into transport wheels in Mesopotamia", type: "invention", color: "#ff6b6b" },
+            { cal_year: -3000, name: "Sailing ships", time: "~3,000 BCE", desc: "Egyptians construct hull-built boats propelled by sails", type: "infrastructure" },
+            { cal_year: -312, name: "The Appian Way", time: "312 BCE", desc: "Construction begins on Rome's famously durable paved highway network", type: "infrastructure" },
+            { cal_year: 1783, name: "Hot air balloon", time: "1783 CE", desc: "The Montgolfier brothers achieve the first sustained human flight", type: "invention" },
+            { cal_year: 1804, name: "Steam locomotive", time: "1804 CE", desc: "Richard Trevithick debuts the first steam-powered railway engine", type: "invention", color: "#ff6b6b" },
+            { cal_year: 1817, name: "Invention of the bicycle", time: "1817 CE", desc: "Karl von Drais invents the 'Laufmaschine' (dandy horse), the proto-bicycle", type: "invention", color: "#ff6b6b" },
+            { cal_year: 1830, name: "Inter-city railways open", time: "1830 CE", desc: "The Liverpool and Manchester Railway establishes modern commercial rail", type: "mass_adoption", color: "#45b7d1" },
+            { cal_year: 1885, name: "Safety bicycle", time: "1885 CE", desc: "The modern chain-driven bicycle layout triggers a global cycling craze", type: "mass_adoption", color: "#45b7d1", visibleFrom: 10000 },
+            { cal_year: 1886, name: "First modern automobile", time: "1886 CE", desc: "Karl Benz patents the gas-powered Motorwagen", type: "invention", color: "#ff6b6b" },
+            { cal_year: 1903, name: "Wright brothers' flight", time: "1903 CE", desc: "First sustained, controlled, powered heavier-than-air flight", type: "milestone" },
+            { cal_year: 1908, name: "Model T production", time: "1908 CE", desc: "Ford's assembly line makes cars affordable to the middle class", type: "mass_adoption", color: "#45b7d1" },
+            { cal_year: 1952, name: "Commercial jet age", time: "1952 CE", desc: "The de Havilland Comet enters service, shrinking global travel times", type: "epoch" },
+            { cal_year: 1956, name: "Container shippingized", time: "1956 CE", desc: "Standardized shipping containers drastically reduce global trade costs", type: "infrastructure" },
+            { cal_year: 1964, name: "Bullet Train (Shinkansen)", time: "1964 CE", desc: "Japan launches high-speed rail, connecting Tokyo and Osaka at 210 km/h", type: "infrastructure" },
+            { cal_year: 1969, name: "Apollo 11 Moon landing", time: "1969 CE", desc: "Humanity travels to and walks on another celestial body", type: "milestone", color: "#a66cff" }
+        ]
+    }
 ];
