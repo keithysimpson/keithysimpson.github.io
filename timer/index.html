@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Timer with Changing Background, Sections, and Celebration</title>
+    <link rel="stylesheet" href="nano.min.css">
     <style>
         html,
         body {
@@ -389,6 +390,37 @@
         #settings-reset-defaults:hover {
             background: rgba(240, 128, 128, 0.12);
         }
+
+        /* ===== Pickr custom overrides ===== */
+        .pcr-app {
+            z-index: 40000 !important;
+        }
+
+        .pickr {
+            flex-shrink: 0;
+        }
+
+        .pickr .pcr-button {
+            width: 28px !important;
+            height: 28px !important;
+            border-radius: 6px !important;
+            border: 2px solid rgba(255, 255, 255, 0.25) !important;
+            padding: 0 !important;
+            box-shadow: none !important;
+            transition: transform 0.2s, border-color 0.2s !important;
+        }
+
+        .pickr .pcr-button:hover:not(.disabled) {
+            transform: scale(1.08);
+            border-color: rgba(255, 255, 255, 0.6) !important;
+        }
+
+        .pickr .pcr-button.disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            filter: grayscale(0.5);
+            transform: none !important;
+        }
     </style>
 </head>
 
@@ -443,8 +475,19 @@
     <!-- Settings modal -->
     <div id="settings-overlay">
         <div id="settings-modal">
-            <h2>⚙️ Celebration Settings</h2>
-            <p class="subtitle">Choose which celebration plays for each colour slot.</p>
+            <h2>⚙️ Timer Settings</h2>
+            <p class="subtitle">Customize the color theme and celebration effects.</p>
+
+            <!-- Theme selection row -->
+            <div class="settings-row" style="margin-bottom: 22px; justify-content: space-between;">
+                <span class="settings-label" style="width: auto; font-weight: bold;">Color Theme:</span>
+                <select id="theme-select" class="settings-select" style="max-width: 180px; flex: none;">
+                    <option value="rainbow">Rainbow</option>
+                    <option value="child">Rowan's Theme</option>
+                    <option value="custom">Custom Theme</option>
+                </select>
+            </div>
+
             <div id="settings-rows"></div>
             <div class="settings-footer">
                 <button class="settings-btn" id="settings-reset-defaults">Reset to defaults</button>
@@ -453,6 +496,9 @@
             </div>
         </div>
     </div>
+
+    <!-- load pickr library -->
+    <script src="pickr.min.js"></script>
 
     <!-- load image list from image_list.js -->
     <script src="image_list.js?v=<?= time(); ?>"></script>
@@ -530,7 +576,86 @@
         const startPauseBtn = document.getElementById('startPauseBtn');
         const resetBtn = document.getElementById('resetBtn');
         const colors = ['red', 'orange', 'yellow', 'green', 'blue', 'purple'];
-        const backgroundColors = ['teal', 'red', 'yellow', 'orange', 'pink', 'purple'];
+
+        // Color theme configurations
+        const THEMES = {
+            rainbow: {
+                label: "Rainbow",
+                barStyles: ["red", "orange", "yellow", "green", "blue", "purple"],
+                backgrounds: ["red", "orange", "yellow", "green", "blue", "purple"],
+                swatches: ["red", "orange", "yellow", "green", "blue", "purple"]
+            },
+            child: {
+                label: "Rowan's Theme",
+                barStyles: [
+                    "linear-gradient(90deg, teal 8%, rgb(165, 232, 232) 12% 18%, teal 22% 28%, rgb(165, 232, 232) 32% 38%, teal 42% 48%, rgb(165, 232, 232) 52% 58%, teal 62% 68%, rgb(165, 232, 232) 72% 78%, teal 82% 88%, rgb(165, 232, 232) 92%)",
+                    "red",
+                    "yellow",
+                    "orange",
+                    "pink",
+                    "purple"
+                ],
+                backgrounds: ["teal", "red", "yellow", "orange", "pink", "purple"],
+                swatches: ["teal", "red", "yellow", "orange", "pink", "purple"]
+            },
+            custom: {
+                label: "Custom Theme",
+                barStyles: [],
+                backgrounds: [],
+                swatches: []
+            }
+        };
+
+        const DEFAULT_CUSTOM_COLORS = ["#ff0000", "#ff7f00", "#ffff00", "#00ff00", "#0000ff", "#8b00ff"];
+        let customColors = [...DEFAULT_CUSTOM_COLORS];
+
+        // Load custom colors from localStorage
+        const storedCustom = localStorage.getItem('timerCustomColors');
+        if (storedCustom) {
+            try {
+                const parsed = JSON.parse(storedCustom);
+                if (Array.isArray(parsed) && parsed.length === 6) {
+                    customColors = parsed;
+                }
+            } catch (e) {}
+        }
+
+        // Active theme (default is 'rainbow')
+        let activeTheme = localStorage.getItem('timerActiveTheme') || 'rainbow';
+
+        // Temporary settings state
+        let tempActiveTheme = activeTheme;
+        let tempCustomColors = [...customColors];
+
+        let backgroundColors = [];
+
+        function applyThemeToUI() {
+            colors.forEach((color, index) => {
+                const colorSection = document.getElementById(`color-section-${color}`);
+                if (colorSection) {
+                    let styleVal = "";
+                    if (activeTheme === 'custom') {
+                        styleVal = customColors[index];
+                    } else {
+                        styleVal = THEMES[activeTheme].barStyles[index];
+                    }
+                    
+                    if (styleVal.includes('gradient')) {
+                        colorSection.style.background = styleVal;
+                    } else {
+                        colorSection.style.background = ""; // Reset gradient
+                        colorSection.style.backgroundColor = styleVal;
+                    }
+                }
+            });
+
+            // Update running backgrounds list
+            if (activeTheme === 'custom') {
+                backgroundColors = [...customColors];
+            } else {
+                backgroundColors = [...THEMES[activeTheme].backgrounds];
+            }
+        }
         const colorWords = {
             'red': 'RED',
             'orange': 'ORANGE',
@@ -638,20 +763,30 @@
         const settingsSave = document.getElementById('settings-save');
         const settingsCancel = document.getElementById('settings-cancel');
         const settingsResetDef = document.getElementById('settings-reset-defaults');
+        const themeSelect = document.getElementById('theme-select');
 
-        function buildSettingsRows(lookup) {
+        let pickrInstances = {};
+
+        function initSettingsUI() {
             settingsRowsEl.innerHTML = '';
-            colors.forEach(color => {
+            colors.forEach((color, index) => {
                 const row = document.createElement('div');
                 row.className = 'settings-row';
 
-                const swatch = document.createElement('div');
-                swatch.className = 'settings-swatch';
-                swatch.style.background = slotSwatchColors[color];
+                // Container for pickr/swatch
+                const swatchContainer = document.createElement('div');
+                swatchContainer.style.width = '28px';
+                swatchContainer.style.height = '28px';
+                swatchContainer.style.flexShrink = '0';
+                
+                const pickerEl = document.createElement('div');
+                pickerEl.id = `picker-${color}`;
+                swatchContainer.appendChild(pickerEl);
 
                 const label = document.createElement('span');
                 label.className = 'settings-label';
-                label.textContent = color.charAt(0).toUpperCase() + color.slice(1);
+                label.textContent = `Section ${index + 1}`;
+                label.style.width = '80px';
 
                 const select = document.createElement('select');
                 select.className = 'settings-select';
@@ -661,24 +796,117 @@
                     const opt = document.createElement('option');
                     opt.value = cel.id;
                     opt.textContent = cel.label;
-                    if (lookup[color] === cel.id) opt.selected = true;
                     select.appendChild(opt);
                 });
 
-                row.appendChild(swatch);
+                row.appendChild(swatchContainer);
                 row.appendChild(label);
                 row.appendChild(select);
                 settingsRowsEl.appendChild(row);
+
+                // Instantiate Pickr
+                const pickr = Pickr.create({
+                    el: `#picker-${color}`,
+                    theme: 'nano',
+                    default: '#ff0000',
+                    components: {
+                        preview: true,
+                        opacity: false,
+                        hue: true,
+                        interaction: {
+                            hex: true,
+                            input: true,
+                            save: true
+                        }
+                    }
+                });
+
+                // Listen to color changes
+                pickr.on('change', (pColor) => {
+                    const hex = pColor.toHEXA().toString();
+                    tempCustomColors[index] = hex;
+                });
+
+                pickr.on('save', (pColor, instance) => {
+                    instance.hide();
+                });
+
+                pickrInstances[color] = pickr;
+            });
+
+            // Bind theme dropdown listener
+            themeSelect.addEventListener('change', (e) => {
+                tempActiveTheme = e.target.value;
+                updateSettingsSwatches(tempActiveTheme);
+            });
+        }
+
+        function updateSettingsSwatches(themeName) {
+            let colorsToUse = [];
+            if (themeName === 'child') {
+                colorsToUse = THEMES.child.barStyles;
+            } else if (themeName === 'rainbow') {
+                colorsToUse = THEMES.rainbow.barStyles;
+            } else {
+                colorsToUse = tempCustomColors;
+            }
+
+            colors.forEach((color, index) => {
+                const pickr = pickrInstances[color];
+                if (pickr) {
+                    const col = colorsToUse[index];
+                    
+                    // Always enable first to permit color updates
+                    pickr.enable();
+                    
+                    if (col.includes('gradient')) {
+                        // Set fallback color in pickr (pickr only parses solid colors)
+                        pickr.setColor('teal', true);
+                    } else {
+                        pickr.setColor(col, true);
+                    }
+                    
+                    // Manually force update of the Pickr button custom property
+                    const button = pickr.getRoot().button;
+                    if (button) {
+                        button.style.setProperty('--pcr-color', col);
+                    }
+                    
+                    if (themeName === 'custom') {
+                        pickr.enable();
+                    } else {
+                        pickr.disable();
+                    }
+                }
             });
         }
 
         function openSettings() {
-            buildSettingsRows(effectLookup);
+            // Set temporary settings state
+            tempActiveTheme = activeTheme;
+            tempCustomColors = [...customColors];
+
+            // Set the theme dropdown
+            themeSelect.value = tempActiveTheme;
+
+            // Set celebration dropdowns
+            colors.forEach(color => {
+                const select = settingsRowsEl.querySelector(`select[data-color="${color}"]`);
+                if (select) {
+                    select.value = effectLookup[color];
+                }
+            });
+
+            // Update Pickr colors/enabled states
+            updateSettingsSwatches(tempActiveTheme);
+
             settingsOverlay.classList.add('open');
         }
 
         function closeSettings() {
             settingsOverlay.classList.remove('open');
+            // Close any open color pickers
+            Object.values(pickrInstances).forEach(pickr => pickr.hide());
         }
 
         settingsCog.addEventListener('click', openSettings);
@@ -691,16 +919,45 @@
         });
 
         settingsSave.addEventListener('click', () => {
-            const selects = settingsRowsEl.querySelectorAll('select');
+            // Save celebrations
+            const selects = settingsRowsEl.querySelectorAll('select.settings-select[data-color]');
             selects.forEach(sel => {
                 effectLookup[sel.dataset.color] = sel.value;
             });
             localStorage.setItem('timerCelebrationSlots', JSON.stringify(effectLookup));
+
+            // Save theme
+            activeTheme = tempActiveTheme;
+            localStorage.setItem('timerActiveTheme', activeTheme);
+
+            // Save custom colors
+            customColors = [...tempCustomColors];
+            localStorage.setItem('timerCustomColors', JSON.stringify(customColors));
+
+            // Apply theme changes to UI
+            applyThemeToUI();
+
             closeSettings();
         });
 
         settingsResetDef.addEventListener('click', () => {
-            buildSettingsRows(DEFAULT_EFFECT_LOOKUP);
+            // Reset celebrations to defaults (local temp settings)
+            colors.forEach(color => {
+                const select = settingsRowsEl.querySelector(`select[data-color="${color}"]`);
+                if (select) {
+                    select.value = DEFAULT_EFFECT_LOOKUP[color];
+                }
+            });
+
+            // Reset theme to default 'rainbow'
+            tempActiveTheme = 'rainbow';
+            themeSelect.value = tempActiveTheme;
+
+            // Reset custom colors to default custom colors
+            tempCustomColors = [...DEFAULT_CUSTOM_COLORS];
+
+            // Update swatches
+            updateSettingsSwatches(tempActiveTheme);
         });
 
         // ---- Show / hide cog based on app phase ----
@@ -1102,6 +1359,10 @@
         // Initialize event listeners
         startPauseBtn.addEventListener('click', toggleTimer);
         resetBtn.addEventListener('click', resetTimer);
+
+        // Initialize active theme and settings UI
+        applyThemeToUI();
+        initSettingsUI();
 
         /*======================================
         TODO:
