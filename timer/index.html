@@ -815,20 +815,19 @@
                         hue: true,
                         interaction: {
                             hex: true,
-                            input: true,
-                            save: true
+                            input: true
                         }
                     }
                 });
 
                 // Listen to color changes
-                pickr.on('change', (pColor) => {
-                    const hex = pColor.toHEXA().toString();
-                    tempCustomColors[index] = hex;
-                });
-
-                pickr.on('save', (pColor, instance) => {
-                    instance.hide();
+                pickr.on('change', (pColor, source, instance) => {
+                    if (pColor) {
+                        const hex = pColor.toHEXA().toString();
+                        tempCustomColors[index] = hex;
+                        // Commit the color immediately so it doesn't revert when clicking outside
+                        instance.applyColor();
+                    }
                 });
 
                 pickrInstances[color] = pickr;
