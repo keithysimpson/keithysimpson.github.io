@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Survey Question</title>
+<style>
+  body {
+    font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    max-width: 640px;
+    margin: 60px auto;
+    padding: 0 20px;
+    color: #1a1a1a;
+    background: #fafafa;
+  }
+  h2 {
+    font-size: 1.15rem;
+    font-weight: 600;
+    margin-bottom: 14px;
+  }
+  textarea {
+    width: 100%;
+    min-height: 150px;
+    font-size: 1rem;
+    font-family: inherit;
+    padding: 12px;
+    box-sizing: border-box;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    resize: vertical;
+  }
+  textarea:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+  }
+  button {
+    margin-top: 16px;
+    padding: 10px 22px;
+    font-size: 1rem;
+    background: #6366f1;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  button:hover {
+    background: #4f46e5;
+  }
+  #results {
+    margin-top: 30px;
+    padding: 18px 20px;
+    background: white;
+    border: 1px solid #e2e2e2;
+    border-radius: 8px;
+    display: none;
+  }
+  #results h3 {
+    margin-top: 0;
+    font-size: 1rem;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.92rem;
+  }
+  td {
+    padding: 5px 4px;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  td.label {
+    color: #555;
+  }
+  td.value {
+    text-align: right;
+    font-weight: 600;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+  }
+  .flag-row td.value {
+    color: #b91c1c;
+  }
+  .ok-row td.value {
+    color: #15803d;
+  }
+  #verdict {
+    margin-top: 14px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.92rem;
+  }
+  .verdict-clean {
+    background: #ecfdf5;
+    color: #15803d;
+  }
+  .verdict-flagged {
+    background: #fef2f2;
+    color: #b91c1c;
+  }
+</style>
+</head>
+<body>
+
+<h2>Please describe the ways that you think this product could be improved</h2>
+
+<textarea id="answerBox" placeholder="Type your answer here..."></textarea>
+<br>
+<button id="continueBtn">Continue</button>
+
+<div id="results">
+  <h3>Response diagnostics (for survey design / debugging)</h3>
+  <table id="resultsTable"></table>
+  <div id="verdict"></div>
+</div>
+
+<script>
+(function() {
+  var textarea = document.getElementById("answerBox");
+
+  // ---- Tracking state ----
+  var keydownCount = 0;
+  var firstKeyTime = null;
+  var lastKeyTime = null;
+  var pasteEvents = 0;
+  var pasteCharsTotal = 0;
+  var interKeyIntervals = [];
+  var lastIntervalTime = null;
+
+  // Track characters added via paste vs typed, by comparing length deltas
+  // around paste events.
+  textarea.addEventListener("keydown", function(e) {
+    // Ignore pure modifier presses for the "keystroke" count, but still fine to count - 
+    // here we count all keydowns since that's what a real typist vs a script differs on.
+    keydownCount++;
+
+    var now = performance.now();
+    if (firstKeyTime === null) firstKeyTime = now;
+    lastKeyTime = now;
+
+    if (lastIntervalTime !== null) {
+      interKeyIntervals.push(now - lastIntervalTime);
+    }
+    lastIntervalTime = now;
+  });
+
+  textarea.addEventListener("paste", function(e) {
+    pasteEvents++;
+    var pasted = "";
+    try {
+      pasted = (e.clipboardData || window.clipboardData).getData("text");
+    } catch (err) {
+      pasted = "";
+    }
+    pasteCharsTotal += pasted.length;
+  });
+
+  document.getElementById("continueBtn").addEventListener("click", function() {
+    var text = textarea.value;
+    var charCount = text.length;
+    var wordCount = text.trim().length > 0 ? text.trim().split(/\s+/).length : 0;
+
+    var durationSec = (firstKeyTime !== null && lastKeyTime !== null && lastKeyTime > firstKeyTime)
+      ? (lastKeyTime - firstKeyTime) / 1000
+      : 0;
+
+    var keysPerSecond = durationSec > 0 ? (keydownCount / durationSec) : 0;
+
+    // Median inter-key interval is a more robust "typing rhythm" signal than mean,
+    // since a few long pauses (thinking) shouldn't dominate.
+    var medianInterval = null;
+    if (interKeyIntervals.length > 0) {
+      var sorted = interKeyIntervals.slice().sort(function(a, b) { return a - b; });
+      var mid = Math.floor(sorted.length / 2);
+      medianInterval = sorted.length % 2 !== 0
+        ? sorted[mid]
+        : (sorted[mid - 1] + sorted[mid]) / 2;
+    }
+
+    var pctFromPaste = charCount > 0 ? (pasteCharsTotal / charCount) * 100 : 0;
+
+    // ---- Simple heuristic flags ----
+    // These thresholds are illustrative starting points, not validated cutoffs -
+    // you'd want to tune them against real pilot data.
+    var flags = [];
+    if (pasteEvents > 0 && pctFromPaste > 50) {
+      flags.push("Majority of text appears to be pasted");
+    }
+    if (keysPerSecond > 12 && keydownCount > 20) {
+      flags.push("Typing rate implausibly fast for a human");
+    }
+    if (medianInterval !== null && medianInterval < 25 && keydownCount > 20) {
+      flags.push("Inter-key timing too uniform/fast (bot-like)");
+    }
+    if (charCount > 0 && keydownCount === 0) {
+      flags.push("Text present with zero keystrokes recorded (programmatic fill)");
+    }
+
+    renderResults({
+      charCount: charCount,
+      wordCount: wordCount,
+      keydownCount: keydownCount,
+      durationSec: durationSec,
+      keysPerSecond: keysPerSecond,
+      medianInterval: medianInterval,
+      pasteEvents: pasteEvents,
+      pasteCharsTotal: pasteCharsTotal,
+      pctFromPaste: pctFromPaste,
+      flags: flags
+    });
+  });
+
+  function renderResults(stats) {
+    var rows = [
+      ["Character count", stats.charCount, null],
+      ["Word count", stats.wordCount, null],
+      ["Total keystrokes", stats.keydownCount, null],
+      ["Typing duration (first to last key)", stats.durationSec.toFixed(2) + " s", null],
+      ["Keys per second", stats.keysPerSecond.toFixed(2), stats.keysPerSecond > 12 ? "flag" : "ok"],
+      ["Median time between keys", stats.medianInterval !== null ? stats.medianInterval.toFixed(0) + " ms" : "n/a", (stats.medianInterval !== null && stats.medianInterval < 25) ? "flag" : "ok"],
+      ["Paste events", stats.pasteEvents, stats.pasteEvents > 0 ? "flag" : "ok"],
+      ["Characters from paste", stats.pasteCharsTotal, null],
+      ["% of text from paste", stats.pctFromPaste.toFixed(0) + "%", stats.pctFromPaste > 50 ? "flag" : "ok"]
+    ];
+
+    var table = document.getElementById("resultsTable");
+    table.innerHTML = "";
+    rows.forEach(function(r) {
+      var tr = document.createElement("tr");
+      if (r[2] === "flag") tr.className = "flag-row";
+      if (r[2] === "ok") tr.className = "ok-row";
+      tr.innerHTML = '<td class="label">' + r[0] + '</td><td class="value">' + r[1] + '</td>';
+      table.appendChild(tr);
+    });
+
+    var verdictDiv = document.getElementById("verdict");
+    if (stats.flags.length === 0) {
+      verdictDiv.className = "verdict-clean";
+      verdictDiv.textContent = "No suspicious patterns detected.";
+    } else {
+      verdictDiv.className = "verdict-flagged";
+      verdictDiv.textContent = "Flagged: " + stats.flags.join("; ");
+    }
+
+    document.getElementById("results").style.display = "block";
+  }
+})();
+</script>
+
+</body>
+</html>
