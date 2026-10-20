@@ -77,7 +77,35 @@ function prepareEvents() {
 prepareEvents();
 
 let currentLevel = 0;
+let currentStartYa = LEVELS[0].start_ya;
+let currentEndYa = 0;
 let buildSettingsUI;
+
+// Each interval gets the same dragging distance, despite vastly different spans.
+function zoomPosition(startYa) {
+    for (let i = 0; i < LEVELS.length - 1; i++) {
+        if (startYa > LEVELS[i + 1].start_ya) {
+            return i + (LEVELS[i].start_ya - startYa) /
+                (LEVELS[i].start_ya - LEVELS[i + 1].start_ya);
+        }
+    }
+    return LEVELS.length - 1;
+}
+
+function startAtZoom(position) {
+    const p = Math.max(0, Math.min(LEVELS.length - 1, position));
+    const i = Math.floor(p);
+    const next = LEVELS[Math.min(i + 1, LEVELS.length - 1)].start_ya;
+    return Math.round(LEVELS[i].start_ya + (next - LEVELS[i].start_ya) * (p - i));
+}
+
+function selectLevel(index) {
+    currentLevel = index;
+    currentStartYa = LEVELS[index].start_ya;
+    currentEndYa = 0;
+    render(currentLevel);
+    updateZoomDots();
+}
 
 // Dynamically calculate what increment of years each tick mark should represent
 // based on the total time span (spanYa) currently visible
@@ -133,12 +161,16 @@ function formatTickLabel(ya, roundBCE = false) {
 
 // Get the usable vertical height of the timeline rail
 function railH() {
-    return (document.getElementById('rail-col').offsetHeight || 500) - 28;
+    return Math.max(1, (document.getElementById('rail-col').offsetHeight || 500) - 28);
 }
 
 // Map a specific "years ago" value to a vertical pixel position on the rail
 function dotY(ya, startYa, rH) {
-    return rH - (ya / startYa) * rH;
+    return (startYa - ya) / (startYa - currentEndYa) * rH;
+}
+
+function visibleDotY(ya, startYa, rH) {
+    return Math.max(0, Math.min(rH, dotY(ya, startYa, rH)));
 }
 
 // Build the numbered zoom dots in the header bar
@@ -154,9 +186,7 @@ function buildZoomDots() {
     // For very light colors, use dark text
     dot.style.color = isLightColor(l.color) ? '#555' : '#fff';
     dot.addEventListener('click', () => {
-        currentLevel = i;
-        render(currentLevel);
-        updateZoomDots();
+        selectLevel(i);
     });
     container.appendChild(dot);
     });
@@ -342,10 +372,10 @@ function getItems() {
 function calculateOffsets(visibleEvents, startYa, rH) {
     // 1. Map each event to its vertical range [start, end]
     const eventsWithRanges = visibleEvents.map(e => {
-    const y1 = rH - (e.ya / startYa) * rH;
+    const y1 = visibleDotY(e.ya, startYa, rH);
     let start, end;
     if (typeof e.end_ya !== 'undefined') {
-        const y2 = rH - (e.end_ya / startYa) * rH;
+        const y2 = visibleDotY(e.end_ya, startYa, rH);
         start = Math.min(y1, y2) - 1; // 1px padding
         end = Math.max(y1, y2) + 1;   // 1px padding
     } else {
@@ -386,14 +416,30 @@ function calculateOffsets(visibleEvents, startYa, rH) {
 }
 
 let connectorTimer = null;
+let renderTimers = [];
+let renderRevision = 0;
 
 // Main UI update function: Calculates positions, renders elements, and triggers transitions
-function render(levelIdx) {
+function render(levelIdx, immediate = false) {
+    const revision = ++renderRevision;
+    renderTimers.forEach(clearTimeout);
+    renderTimers = [];
+    const later = (callback, delay) => {
+        if (immediate) callback();
+        else renderTimers.push(setTimeout(callback, delay));
+    };
+    const enter = callback => {
+        if (immediate) callback();
+        else requestAnimationFrame(() => requestAnimationFrame(() => {
+            if (revision === renderRevision) callback();
+        }));
+    };
     const svg = document.getElementById('connectors-svg');
     if (svg) svg.classList.remove('visible');
     if (connectorTimer) clearTimeout(connectorTimer);
 
-    const startYa = LEVELS[levelIdx].start_ya;
+    const startYa = currentStartYa;
+    const spanYa = startYa - currentEndYa;
     const rH = railH();
     const rail = document.getElementById('rail-col');
     const inner = document.getElementById('events-inner');
@@ -405,8 +451,8 @@ function render(levelIdx) {
     const threshold = 0.02;
     const vFrom = e.visibleFrom !== undefined ? e.visibleFrom : (e.ya / threshold);
     const until = e.visibleUntil !== undefined ? e.visibleUntil : LEVELS.length - 1;
-    const inTimeRange = e.ya <= startYa || (typeof e.end_ya !== 'undefined' && e.end_ya <= startYa);
-    return inTimeRange && startYa <= vFrom && levelIdx <= until;
+    const inTimeRange = e.ya >= currentEndYa && (e.end_ya ?? e.ya) <= startYa;
+    return inTimeRange && spanYa <= vFrom && levelIdx <= until;
     });
 
     // Calculate dynamic offsets for visible events
@@ -416,7 +462,20 @@ function render(levelIdx) {
 
     // Update the header title with the current level's name and total time span
     document.getElementById('level-name').textContent =
-    LEVELS[levelIdx].name + ' · ' + LEVELS[levelIdx].span;
+    LEVELS[levelIdx].name + ' · ' + (startYa === LEVELS[levelIdx].start_ya
+        ? LEVELS[levelIdx].span : startYa.toLocaleString('en-GB') + ' years ago') +
+        (currentEndYa ? ' → ' + currentEndYa.toLocaleString('en-GB') + ' years ago' : '');
+    rail.setAttribute('aria-valuenow', startYa);
+    rail.setAttribute('aria-valuemin', Math.max(25, currentEndYa + 1));
+    rail.setAttribute('aria-valuetext', startYa.toLocaleString('en-GB') + ' years ago to ' +
+        (currentEndYa ? currentEndYa.toLocaleString('en-GB') + ' years ago' : 'today'));
+    const endHandle = document.getElementById('end-time-handle');
+    endHandle.setAttribute('aria-valuenow', currentEndYa);
+    endHandle.setAttribute('aria-valuemax', startYa - 1);
+    endHandle.setAttribute('aria-valuetext', currentEndYa ?
+        currentEndYa.toLocaleString('en-GB') + ' years ago' : 'Today');
+    document.getElementById('end-time-label').textContent = formatTickLabel(currentEndYa).replace('<br>', ' ');
+    document.getElementById('reset-end-time').hidden = currentEndYa === 0;
 
     // --- Update Level Backgrounds ---
     // Scale and position the colored blocks on the timeline rail based on the current zoom level's start and end times.
@@ -446,7 +505,7 @@ function render(levelIdx) {
     rail.querySelectorAll('.rail-tick').forEach(el => ticks[el.dataset.ya] = el);
 
     // Determine the ideal step size between ticks for the current zoom level
-    const step = getTickStep(startYa);
+    const step = getTickStep(spanYa);
     let targetTicksYa = [];
     let count = 0;
     const currentYear = new Date().getFullYear();
@@ -455,7 +514,7 @@ function render(levelIdx) {
     if (startYa <= 3500) {
     // Special logic for recent history: align ticks to nice round numbers based on the calendar year
     let startCE = currentYear - startYa;
-    let firstVisual = Math.floor(currentYear / step) * step;
+    let firstVisual = Math.floor((currentYear - currentEndYa) / step) * step;
     let lastVisual = Math.ceil(startCE / step) * step;
 
     for (let vYear = firstVisual; vYear >= lastVisual; vYear -= step) {
@@ -467,14 +526,14 @@ function render(levelIdx) {
         y = Number(y.toPrecision(12));
         let ya = Number((currentYear - y).toPrecision(12));
 
-        if (ya <= startYa && ya > 0) targetTicksYa.push(ya);
+        if (ya <= startYa && ya > currentEndYa) targetTicksYa.push(ya);
         if (++count > 50) break;
     }
     } else {
     // General logic for deep history: space ticks evenly based on 'years ago'
-    for (let y = Math.floor(startYa / step) * step; y > 0; y -= step) {
+    for (let y = Math.floor(startYa / step) * step; y > currentEndYa; y -= step) {
         let val = Number(y.toPrecision(12));
-        if (val <= startYa && val > 0) targetTicksYa.push(val);
+        if (val <= startYa && val > currentEndYa) targetTicksYa.push(val);
         if (++count > 50) break;
     }
     }
@@ -484,7 +543,7 @@ function render(levelIdx) {
     Object.entries(ticks).forEach(([yaStr, tick]) => {
     if (visibleTicks.has(yaStr)) return;
     tick.style.opacity = '0';
-    setTimeout(() => tick.remove(), SLIDE_MS + 50);
+    later(() => tick.remove(), SLIDE_MS + 50);
     });
 
     // Render the newly calculated ticks (or update the positions of existing ones)
@@ -506,10 +565,8 @@ function render(levelIdx) {
 
         rail.appendChild(tick);
 
-        requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
+        enter(() => {
             tick.style.opacity = '1';
-        });
         });
     } else {
         ticks[yaStr].style.top = dy + 'px';
@@ -530,13 +587,13 @@ function render(levelIdx) {
     dot.style.top = '0px';
     if (conn) conn.style.top = '0px';
 
-    setTimeout(() => {
+    later(() => {
         dot.style.opacity = '0';
         if (conn) conn.style.opacity = '0';
         if (card) card.style.opacity = '0';
     }, SLIDE_MS - FADE_MS);
 
-    setTimeout(() => {
+    later(() => {
         dot.remove();
         if (conn) conn.remove();
         if (card) card.remove();
@@ -549,10 +606,10 @@ function render(levelIdx) {
     // To prevent overlapping text cards, each card is "nudged" down if it collides with the card above it.
 
     let positions = visible.map(e => {
-    const dy = dotY(e.ya, startYa, rH); // Ideal anchor point matching the dot on the rail
+    const dy = visibleDotY(e.ya, startYa, rH); // Clip periods to the visible window.
     let labelDy = dy;
     if (typeof e.end_ya !== 'undefined') {
-        const dyEnd = dotY(e.end_ya, startYa, rH);
+        const dyEnd = visibleDotY(e.end_ya, startYa, rH);
         labelDy = dy + (dyEnd - dy) / 2;
     }
     return { e, dy, labelDy };
@@ -586,7 +643,7 @@ function render(levelIdx) {
     let dyEnd = dy;
     let periodH = 0;
     if (hasEnd) {
-        dyEnd = dotY(e.end_ya, startYa, rH);
+        dyEnd = visibleDotY(e.end_ya, startYa, rH);
         periodH = Math.max(2, dyEnd - dy);
     }
 
@@ -654,14 +711,12 @@ function render(levelIdx) {
         inner.appendChild(div);
 
         // Next frame: slide into position and fade in
-        requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
+        enter(() => {
             dot.style.top = dy + 'px';
             conn.style.top = labelDy + 'px';
             dot.style.opacity = '1';
             conn.style.opacity = '1';
             card.style.opacity = '1';
-        });
         });
     } else {
         // Existing dot/period: just update position
@@ -685,7 +740,10 @@ function render(levelIdx) {
     updateHighlights();
 
     // After the slide/fade transition completes, redraw and fade connectors in
-    connectorTimer = setTimeout(() => {
+    if (immediate) {
+        drawConnectors();
+        if (svg) svg.classList.add('visible');
+    } else connectorTimer = setTimeout(() => {
     drawConnectors();
     if (svg) {
         requestAnimationFrame(() => svg.classList.add('visible'));
@@ -711,16 +769,12 @@ buildLevelBGs();
 // Back / Forward navigation buttons
 document.getElementById('nav-back').addEventListener('click', () => {
     if (currentLevel > 0) {
-    currentLevel--;
-    render(currentLevel);
-    updateZoomDots();
+    selectLevel(currentLevel - 1);
     }
 });
 document.getElementById('nav-forward').addEventListener('click', () => {
     if (currentLevel < LEVELS.length - 1) {
-    currentLevel++;
-    render(currentLevel);
-    updateZoomDots();
+    selectLevel(currentLevel + 1);
     }
 });
 
@@ -745,10 +799,8 @@ document.getElementById('nav-forward').addEventListener('click', () => {
 
     function applyLevel(clientX) {
     const newLevel = levelFromPointer(clientX);
-    if (newLevel !== currentLevel) {
-        currentLevel = newLevel;
-        render(currentLevel);
-        updateZoomDots();
+    if (newLevel !== currentLevel || currentStartYa !== LEVELS[newLevel].start_ya || currentEndYa !== 0) {
+        selectLevel(newLevel);
     }
     }
 
@@ -775,6 +827,135 @@ document.getElementById('nav-forward').addEventListener('click', () => {
 
     // Prevent default touch behavior (scrolling) while dragging the track
     track.style.touchAction = 'none';
+})();
+
+// Fine zoom on the left rail; the right column retains native scrolling.
+(function setupRailZoom() {
+    const rail = document.getElementById('rail-col');
+    const app = document.getElementById('app');
+    let gesture = null;
+    let frame = null;
+    let suppressClick = false;
+
+    function applyPosition(position) {
+        currentStartYa = Math.max(currentEndYa + 1, startAtZoom(position));
+        currentLevel = Math.floor(zoomPosition(currentStartYa));
+        render(currentLevel, true);
+        updateZoomDots();
+    }
+
+    function flush() {
+        frame = null;
+        if (gesture && gesture.moved) applyPosition(gesture.position);
+    }
+
+    rail.addEventListener('pointerdown', e => {
+        if (!e.isPrimary || e.button !== 0 || gesture) return;
+        suppressClick = false;
+        gesture = { id: e.pointerId, y: e.clientY, position: zoomPosition(currentStartYa),
+            distance: Math.max(120, railH() / 2), moved: false };
+    });
+    rail.addEventListener('pointermove', e => {
+        if (!gesture || gesture.id !== e.pointerId) return;
+        const delta = gesture.y - e.clientY;
+        if (!gesture.moved && Math.abs(delta) < 5) return;
+        if (!gesture.moved) {
+            gesture.moved = true;
+            rail.setPointerCapture(e.pointerId);
+            app.classList.add('rail-zooming');
+        }
+        gesture.position = Math.max(0, Math.min(LEVELS.length - 1,
+            gesture.position + delta / gesture.distance));
+        gesture.position = Math.min(gesture.position, zoomPosition(Math.max(25, currentEndYa + 1)));
+        gesture.y = e.clientY;
+        if (frame === null) frame = requestAnimationFrame(flush);
+    });
+    function finish(e) {
+        if (!gesture || gesture.id !== e.pointerId) return;
+        if (frame !== null) cancelAnimationFrame(frame);
+        flush();
+        suppressClick = gesture.moved;
+        gesture = null;
+        app.classList.remove('rail-zooming');
+        if (rail.hasPointerCapture(e.pointerId)) rail.releasePointerCapture(e.pointerId);
+    }
+    window.addEventListener('pointerup', finish);
+    window.addEventListener('pointercancel', finish);
+    rail.addEventListener('lostpointercapture', finish);
+    rail.addEventListener('click', e => {
+        if (!suppressClick) return;
+        suppressClick = false;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+    }, true);
+    rail.addEventListener('keydown', e => {
+        const direction = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1 }[e.key];
+        if (!direction && e.key !== 'Home' && e.key !== 'End') return;
+        e.preventDefault();
+        const position = e.key === 'Home' ? 0 : e.key === 'End' ? LEVELS.length - 1
+            : zoomPosition(currentStartYa) + direction * (e.shiftKey ? 0.01 : 0.05);
+        app.classList.add('rail-zooming');
+        applyPosition(position);
+        app.classList.remove('rail-zooming');
+    });
+})();
+
+// The bottom handle crops the newer end of the window without moving its start.
+(function setupEndTimeDrag() {
+    const handle = document.getElementById('end-time-handle');
+    const app = document.getElementById('app');
+    let gesture = null;
+    let frame = null;
+
+    function applyEnd(value) {
+        currentEndYa = Math.max(0, Math.min(currentStartYa - 1, Math.round(value)));
+        render(currentLevel, true);
+    }
+    function flush() {
+        frame = null;
+        if (gesture) applyEnd(gesture.end);
+    }
+    handle.addEventListener('pointerdown', e => {
+        if (!e.isPrimary || e.button !== 0 || gesture) return;
+        gesture = { id: e.pointerId, y: e.clientY, end: currentEndYa,
+            yearsPerPixel: (currentStartYa - currentEndYa) / railH() };
+        handle.setPointerCapture(e.pointerId);
+        app.classList.add('rail-zooming');
+    });
+    handle.addEventListener('pointermove', e => {
+        if (!gesture || gesture.id !== e.pointerId) return;
+        gesture.end = Math.max(0, Math.min(currentStartYa - 1,
+            gesture.end + (gesture.y - e.clientY) * gesture.yearsPerPixel));
+        gesture.y = e.clientY;
+        if (frame === null) frame = requestAnimationFrame(flush);
+    });
+    function finish(e) {
+        if (!gesture || gesture.id !== e.pointerId) return;
+        if (frame !== null) cancelAnimationFrame(frame);
+        flush();
+        gesture = null;
+        app.classList.remove('rail-zooming');
+        if (handle.hasPointerCapture(e.pointerId)) handle.releasePointerCapture(e.pointerId);
+    }
+    handle.addEventListener('pointerup', finish);
+    handle.addEventListener('pointercancel', finish);
+    handle.addEventListener('lostpointercapture', finish);
+    handle.addEventListener('click', e => e.stopPropagation());
+    handle.addEventListener('keydown', e => {
+        const direction = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1 }[e.key];
+        if (!direction && e.key !== 'Home' && e.key !== 'End') return;
+        e.preventDefault();
+        const step = Math.max(1, Math.round((currentStartYa - currentEndYa) * (e.shiftKey ? 0.01 : 0.05)));
+        app.classList.add('rail-zooming');
+        applyEnd(e.key === 'Home' ? 0 : e.key === 'End' ? currentStartYa - 1
+            : currentEndYa + direction * step);
+        app.classList.remove('rail-zooming');
+    });
+    document.getElementById('reset-end-time').addEventListener('click', () => {
+        currentEndYa = 0;
+        render(currentLevel);
+        handle.focus();
+    });
 })();
 
 // --- Draw connector lines from rail dots/periods to their event cards ---
@@ -846,6 +1027,7 @@ x="-10" y="-10" width="${bodyRect.width + 20}" height="${bodyRect.height + 20}">
 document.getElementById('events-col').addEventListener('scroll', drawConnectors);
 // Redraw connectors on window resize
 window.addEventListener('resize', drawConnectors);
+window.addEventListener('resize', () => render(currentLevel));
 
 
 // ─── FIREBASE / UI SYNC HELPERS ──────────────────────────────────────────
@@ -1866,7 +2048,7 @@ document.addEventListener('click', (ev) => {
     }
 });
 
-setTimeout(() => render(0), 60);
+setTimeout(() => render(currentLevel), 60);
 
 // Initialize Firebase authentication flow
 if (typeof initAuth === 'function') {

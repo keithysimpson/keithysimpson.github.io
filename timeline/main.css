@@ -27,6 +27,11 @@
 
 .header-top {
   margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 32px;
 }
 
 .level-name {
@@ -144,6 +149,26 @@
   width: 150px;
   flex-shrink: 0;
   position: relative;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+}
+
+.rail-col:focus-visible {
+  outline: 2px solid #648cff;
+  outline-offset: -2px;
+}
+
+#app.rail-zooming .rail-col,
+#app.rail-zooming .rail-col * {
+  cursor: grabbing;
+}
+
+#app.rail-zooming .rail-col *,
+#app.rail-zooming .event-item,
+#app.rail-zooming #connectors-svg {
+  transition: none;
 }
 
 .rail-line {
@@ -177,30 +202,71 @@
   transition: top 0.5s cubic-bezier(0.4, 0, 0.2, 1), height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.now-dot {
+.end-time-handle {
   position: absolute;
-  bottom: 18px;
-  left: 50%;
+  bottom: 1px;
+  left: 53px;
+  width: 44px;
+  height: 44px;
+  color: #234ba9;
+  font-size: 10px;
+  text-align: center;
+  z-index: 6;
+  cursor: ns-resize;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.end-time-handle::before {
+  content: '';
+  position: absolute;
+  left: 17px;
+  top: 17px;
   width: 10px;
   height: 10px;
   border-radius: 50%;
   background: #648cff;
   border: 2px solid rgba(100, 140, 255, 0.5);
-  transform: translateX(-50%);
   box-shadow: 0 0 8px rgba(100, 140, 255, 0.6);
-  z-index: 4;
 }
 
-.today-lbl {
+#end-time-label {
   position: absolute;
-  bottom: 4px;
-  left: 0;
-  right: 0;
-  text-align: center;
+  bottom: 3px;
+  left: -53px;
+  width: 150px;
   font-size: 8px;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: rgb(9, 56, 196);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.end-time-handle:focus-visible {
+  outline: 2px solid #234ba9;
+  outline-offset: -3px;
+}
+
+.reset-end-time {
+  position: absolute;
+  left: 8px;
+  bottom: 49px;
+  width: 134px;
+  z-index: 7;
+  border: 1px solid #648cff;
+  border-radius: 6px;
+  background: #f0f4ff;
+  color: #234ba9;
+  padding: 7px 9px;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.reset-end-time[hidden] {
+  display: none;
 }
 
 .rail-dot {

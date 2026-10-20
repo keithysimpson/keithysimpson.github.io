@@ -583,5 +583,35 @@ const EVENT_CATEGORIES = [
             { cal_year: 2018, name: "Self driving taxi", time: "2018 CE", desc: "Waymo launches the world's first commercial, fully autonomous robotaxi service in Phoenix", type: "epoch", color: "#a66cff" },
             { cal_year: 2023, name: "EV Market Surge", time: "2023 CE", desc: "Hybrid and fully electric vehicles make up nearly half (47%) of all new car registrations in the UK", type: "mass_adoption", color: "#45b7d1" }
         ]
-    }
+    },
+
+
+{
+    id: 'ancient_egypt',
+    name: 'Ancient Egypt',
+    desc: 'The rise of the pharaohs, pyramids, Egyptian civilisation and its conquest by Rome',
+    events: [
+        { cal_year: -3200, name: "Egyptian hieroglyphs", time: "c. 3200 BCE", desc: "One of the world's earliest writing systems develops in Egypt", type: "invention" },
+        { cal_year: -3100, name: "Unification of Egypt", time: "c. 3100 BCE", desc: "Narmer is traditionally associated with uniting Upper and Lower Egypt, beginning the dynastic age", type: "milestone" },
+        { cal_year: -2686, end_cal_year: -2181, name: "Old Kingdom", time: "2686–2181 BCE", desc: "The great age of pyramid building and powerful pharaohs", type: "epoch", color: "#d4a017" },
+        { cal_year: -2630, name: "First pyramid", time: "c. 2630 BCE", desc: "Djoser's Step Pyramid at Saqqara pioneers monumental stone pyramid construction", type: "milestone" },
+        { cal_year: -2560, name: "Great Pyramid of Giza", time: "c. 2560 BCE", desc: "Khufu's pyramid is completed, the only surviving Wonder of the Ancient World", type: "milestone", color: "#ffd700" },
+        { cal_year: -2500, name: "Great Sphinx", time: "c. 2500 BCE", desc: "The monumental lion-bodied guardian is carved beside the pyramids at Giza", type: "milestone" },
+        { cal_year: -2055, end_cal_year: -1650, name: "Middle Kingdom", time: "2055–1650 BCE", desc: "Egypt is reunited and enjoys renewed prosperity, trade and cultural development", type: "epoch", color: "#d4a017" },
+        { cal_year: -1650, end_cal_year: -1550, name: "Hyksos rule", time: "c. 1650–1550 BCE", desc: "Hyksos kings rule northern Egypt during a period of political division", type: "epoch" },
+        { cal_year: -1550, end_cal_year: -1069, name: "New Kingdom", time: "1550–1069 BCE", desc: "Egypt becomes a major empire, home to its most famous pharaohs", type: "epoch", color: "#d4a017" },
+        { cal_year: -1479, name: "Hatshepsut", time: "c. 1479 BCE", desc: "Hatshepsut becomes pharaoh, later commissioning her magnificent temple at Deir el-Bahari", type: "milestone" },
+        { cal_year: -1353, name: "Akhenaten", time: "c. 1353 BCE", desc: "Akhenaten begins his reign and later promotes the worship of the Aten above traditional Egyptian gods", type: "milestone" },
+        { cal_year: -1332, name: "Tutankhamun", time: "c. 1332 BCE", desc: "The young pharaoh begins his reign; his nearly intact tomb will be discovered in 1922", type: "milestone", color: "#ffd700" },
+        { cal_year: -1279, name: "Ramesses II", time: "1279 BCE", desc: "One of Egypt's greatest builders begins his 66-year reign", type: "milestone" },
+        { cal_year: -1274, name: "Battle of Kadesh", time: "c. 1274 BCE", desc: "Ramesses II clashes with the Hittites in one of history's best-documented ancient battles", type: "milestone" },
+        { cal_year: -1250, name: "Abu Simbel temples", time: "c. 1250 BCE", desc: "Ramesses II's colossal rock-cut temples are completed in Nubia", type: "milestone" },
+        { cal_year: -525, name: "Persian conquest", time: "525 BCE", desc: "Cambyses II conquers Egypt, bringing it under Persian imperial rule", type: "milestone" },
+        { cal_year: -332, name: "Alexander conquers Egypt", time: "332 BCE", desc: "Alexander the Great takes Egypt from the Persians, ushering in Greek rule", type: "milestone" },
+        { cal_year: -331, name: "Alexandria founded", time: "331 BCE", desc: "Alexander founds a city that becomes a major centre of Mediterranean learning and trade", type: "milestone" },
+        { cal_year: -51, name: "Cleopatra VII", time: "51 BCE", desc: "Cleopatra becomes queen, later forming political alliances with Julius Caesar and Mark Antony", type: "milestone", color: "#ffd700" },
+        { cal_year: -30, name: "Roman conquest of Egypt", time: "30 BCE", desc: "Following Cleopatra's death, Egypt comes under Roman rule, ending the Ptolemaic dynasty", type: "milestone", color: "#c45c3e" }
+    ]
+}
+
 ];

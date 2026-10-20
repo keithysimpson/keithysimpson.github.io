@@ -61,12 +61,20 @@ Event Cards
       </div>
     </div>
     <div class="body" id="body">
-      <div class="rail-col" id="rail-col">
+      <div class="rail-col" id="rail-col" tabindex="0" role="slider"
+        aria-label="Timeline range. Drag up to zoom in, down to zoom out, or use arrow keys."
+        aria-orientation="vertical" aria-valuemin="25" aria-valuemax="13800000000"
+        aria-valuenow="13800000000" title="Drag up to zoom in · Drag down to zoom out">
         <div class="level-bg-layer" id="level-bg-layer"></div>
         <div class="rail-line"></div>
-        <div class="now-dot"></div>
-        <div class="today-lbl">Today</div>
       </div>
+      <div id="end-time-handle" class="end-time-handle" tabindex="0" role="slider"
+        aria-label="End date. Drag up to move into the past, down toward today, or use arrow keys."
+        aria-orientation="vertical" aria-valuemin="0" aria-valuemax="13799999999" aria-valuenow="0"
+        title="Drag up to change the end date · Home to reset to today">
+        <span id="end-time-label">Today</span>
+      </div>
+      <button id="reset-end-time" class="reset-end-time" hidden>Reset to today</button>
       <div class="events-col" id="events-col">
         <div class="events-inner" id="events-inner"></div>
       </div>
