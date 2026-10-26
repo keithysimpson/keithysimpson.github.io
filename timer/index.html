@@ -1147,8 +1147,7 @@
         }
         function showCelebration() {
             startPauseBtn.textContent = 'Start';
-            sectionText.textContent = 'Ding!';
-            playDingSound(7 * 660, 3);
+            
             document.body.style.backgroundColor = 'black';
             document.body.style.color = 'white';
             /*
@@ -1159,14 +1158,6 @@
             document.body.style.backgroundPosition = "center";  // This centers the image
             */
 
-            //--- show celebration effect:
-            if (celebration_effect == -1) {
-                var effects = Object.values(effectLookup);
-                celebration_effect = effects[Math.floor(Math.random() * effects.length)];
-            }
-
-            initial_width = window.innerWidth;
-            initial_height = window.innerHeight;
 
             // birthday special:
             const birthdayList = [
@@ -1179,16 +1170,55 @@
 
             const today = new Date();
 
-            // loop through each birthday in the list
-            for (let i = 0; i < birthdayList.length; i++) {
-                const birthday = birthdayList[i];
-                if (today.getMonth() + 1 == birthday.month && today.getDate() == birthday.day) {
-                    createConfetti();
-                    releaseBalloons();
-                    document.addEventListener('click', launchFirework);
 
-                    break;
-                }
+            const today_is_a_birthday = birthdayList.some(b =>
+                b.month === today.getMonth() + 1 && b.day === today.getDate()
+            );
+
+
+
+            //--- show celebration effect:
+            if (celebration_effect == -1) {
+                var effects = Object.values(effectLookup);
+                celebration_effect = effects[Math.floor(Math.random() * effects.length)];
+            }
+
+            initial_width = window.innerWidth;
+            initial_height = window.innerHeight;
+
+            
+
+            // if today is a birthday
+            if (today_is_a_birthday) {
+
+                sectionText.textContent = 'HAPPY BIRTHDAY!';
+
+                createConfetti();
+                releaseBalloons();
+                document.addEventListener('click', launchFirework);
+
+
+                let happy_birthday_song = [
+                    [392, 392, 440, 392, 523.25, 493.88], //  # G G A G C B - "Happy birthday to you"
+                    [392, 392, 440, 392, 587.33, 523.25], //  # G G A G D C - "Happy birthday to you"
+                    [392, 392, 784, 659.26, 523.25, 493.88, 440], //  # G G G' E C B A - "Happy birthday dear [name]"
+                    [698.46, 698.46, 659.26, 523.25], //  # F F E C  - "Happy birthday ..."
+                    [ 587.33, 523.25] //  #  D C - "... to you"
+                ];
+
+                const timeGap = 0.2;     // seconds between notes
+                const linePause = 0.4;   // extra pause between lines, in seconds
+
+                let delay = 0;           // when the next line should start, in seconds
+
+                happy_birthday_song.forEach(line => {
+                    setTimeout(() => playDingSound(line, line.length, timeGap), delay * 1000);
+                    delay += line.length * timeGap + linePause;
+                });
+
+            } else {
+                sectionText.textContent = 'Ding!';
+                playDingSound(7 * 660, 3);
             }
 
 

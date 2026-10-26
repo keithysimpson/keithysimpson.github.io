@@ -149,6 +149,10 @@ const dated_image_list = [
 
     // birthday 2025
     {date: '2025-10-26', time_of_day: "afternoon", url: 'images/7.gif', color: 1},
+
+    // birthday 2026
+    {date: '2026-10-26', time_of_day: "morning", url: 'images/8.gif', color: 1},
+    {date: '2026-10-26', time_of_day: "afternoon", url: 'images/8.gif', color: 1},
 ];
 
 
