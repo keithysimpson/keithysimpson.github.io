@@ -3,53 +3,608 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Get Dressed!</title>
+<title>Get Dressed! - Morning Routine Timer</title>
 <style>
-  :root { --bg1:#dff3ff; --bg2:#fff3d6; --ink:#35506b; }
+  :root {
+    --bg1: #d8f1ff;
+    --bg2: #fff5df;
+    --ink: #2c445e;
+    --ink-light: #5f7a99;
+    --accent: #ff7e54;
+    --accent-hover: #ff6b3d;
+    --accent-shadow: #d45731;
+    --green: #2ecc71;
+    --green-shadow: #229954;
+    --blue: #3498db;
+    --blue-shadow: #2471a3;
+    --card-bg: rgba(255, 255, 255, 0.94);
+    --panel-border: rgba(53, 80, 107, 0.16);
+  }
+
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { margin:0; height:100%; overflow:hidden; background:linear-gradient(180deg,var(--bg1),var(--bg2)); font-family: "Trebuchet MS", "Comic Sans MS", system-ui, sans-serif; color:var(--ink); }
-  body { touch-action:none; user-select:none; -webkit-user-select:none; }
-  #stage { position:absolute; left:0; top:0; transform-origin:0 0; }
-  .item { position:absolute; pointer-events:none; will-change:transform; }
-  .item img { display:block; width:100%; height:100%; -webkit-user-drag:none; }
-  .item.glide { transition: transform .35s cubic-bezier(.3,1.4,.5,1); }
-  .item.lifted img { filter: drop-shadow(0 18px 14px rgba(0,0,0,.28)); }
-  .pad { position:absolute; border-radius:36px; background:rgba(255,255,255,.55); border:4px dashed rgba(53,80,107,.18); }
-  #hint { position:absolute; left:0; right:0; top:14px; text-align:center; font-size:clamp(18px,3.2vmin,32px); font-weight:700; pointer-events:none; }
-  #reset { position:absolute; right:16px; bottom:16px; font:inherit; font-weight:700; font-size:clamp(16px,2.6vmin,26px); padding:.6em 1.1em; border:0; border-radius:999px; background:#ff8c69; color:#fff; box-shadow:0 5px 0 #d9694a; cursor:pointer; }
-  #reset:active { transform:translateY(4px); box-shadow:0 1px 0 #d9694a; }
-  .spark { position:absolute; width:18px; height:18px; border-radius:50%; pointer-events:none; animation: pop 1s ease-out forwards; }
-  @keyframes pop { from { opacity:1; transform:translate(0,0) scale(1);} to { opacity:0; transform:translate(var(--dx),var(--dy)) scale(.3);} }
-  #done { position:absolute; left:50%; top:46%; transform:translate(-50%,-50%) scale(0); font-size:clamp(40px,10vmin,110px); font-weight:900; color:#ff6b6b; text-shadow:0 5px 0 #fff, 0 10px 20px rgba(0,0,0,.2); pointer-events:none; transition:transform .5s cubic-bezier(.3,1.6,.5,1); white-space:nowrap; }
-  #done.show { transform:translate(-50%,-50%) scale(1); }
+  html, body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+    background: linear-gradient(180deg, var(--bg1) 0%, var(--bg2) 100%);
+    font-family: 'Quicksand', 'Nunito', 'Trebuchet MS', 'Segoe UI', system-ui, sans-serif;
+    color: var(--ink);
+  }
+  body { touch-action: none; user-select: none; -webkit-user-select: none; }
+
+  /* Stage scaling */
+  #stage-container {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  #stage {
+    position: absolute;
+    left: 0;
+    top: 0;
+    transform-origin: 0 0;
+    pointer-events: auto;
+  }
+
+  .item { position: absolute; pointer-events: none; will-change: transform; cursor: pointer; }
+  .item img { display: block; width: 100%; height: 100%; -webkit-user-drag: none; pointer-events: none; }
+  .item.glide { transition: transform .35s cubic-bezier(.3, 1.35, .5, 1); }
+  .item.lifted img { filter: drop-shadow(0 18px 16px rgba(0, 0, 0, 0.32)); }
+  .item.pulse-hint { animation: wiggle 0.6s ease-in-out; }
+
+  @keyframes wiggle {
+    0%, 100% { transform: translate(var(--curr-x, 0), var(--curr-y, 0)) scale(var(--curr-s, 1)) rotate(0deg); }
+    25% { transform: translate(var(--curr-x, 0), var(--curr-y, 0)) scale(calc(var(--curr-s, 1) * 1.08)) rotate(-4deg); }
+    75% { transform: translate(var(--curr-x, 0), var(--curr-y, 0)) scale(calc(var(--curr-s, 1) * 1.08)) rotate(4deg); }
+  }
+
+  .pad {
+    position: absolute;
+    border-radius: 36px;
+    background: rgba(255, 255, 255, 0.58);
+    border: 4px dashed var(--panel-border);
+    box-shadow: inset 0 4px 18px rgba(53, 80, 107, 0.05);
+    pointer-events: none;
+  }
+  .pad-label {
+    position: absolute;
+    top: 14px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 21px;
+    font-weight: 800;
+    color: var(--ink-light);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    opacity: 0.85;
+  }
+
+  /* Top Timer Header */
+  #timer-header {
+    position: fixed;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--card-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 6px 32px;
+    border-radius: 999px;
+    box-shadow: 0 6px 22px rgba(44, 68, 94, 0.12);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #timer-display {
+    font-variant-numeric: tabular-nums;
+    font-size: clamp(28px, 4.4vmin, 42px);
+    font-weight: 900;
+    letter-spacing: -0.5px;
+    line-height: 1.1;
+    color: var(--ink);
+  }
+  #timer-display.overtime {
+    color: #e67e22;
+  }
+
+  /* Full-width progress bar */
+  #full-progress-wrap {
+    position: fixed;
+    top: 64px;
+    left: 0;
+    width: 100%;
+    height: 8px;
+    background: rgba(53, 80, 107, 0.12);
+    z-index: 999;
+    overflow: hidden;
+  }
+  #timer-progress-bar {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, #3498db 0%, #2ecc71 100%);
+    transition: width 0.3s linear, background 0.3s ease;
+  }
+  #timer-progress-bar.warning {
+    background: linear-gradient(90deg, #f39c12 0%, #e74c3c 100%);
+  }
+
+  /* Hint Banner */
+  #hint-banner {
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    padding: 6px 24px;
+    border-radius: 999px;
+    font-weight: 800;
+    font-size: clamp(14px, 2vmin, 18px);
+    color: var(--ink);
+    box-shadow: 0 4px 14px rgba(44, 68, 94, 0.08);
+    pointer-events: none;
+    z-index: 900;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+  }
+
+  /* Bottom Controls Bar */
+  #bottom-bar {
+    position: fixed;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    z-index: 1000;
+  }
+
+  /* Buttons */
+  .btn {
+    font: inherit;
+    font-weight: 800;
+    font-size: clamp(15px, 2.2vmin, 18px);
+    padding: 0.65em 1.35em;
+    border: 0;
+    border-radius: 999px;
+    background: #edf6fd;
+    color: var(--ink);
+    cursor: pointer;
+    box-shadow: 0 4px 0 #cbdde8;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: transform 0.1s, box-shadow 0.1s, background-color 0.2s;
+  }
+  .btn:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 #cbdde8;
+  }
+  .btn-primary {
+    background: var(--blue);
+    color: #fff;
+    box-shadow: 0 4px 0 var(--blue-shadow);
+  }
+  .btn-primary:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 var(--blue-shadow);
+  }
+  .btn-secondary {
+    background: #ffffff;
+    color: var(--ink);
+    border: 2px solid #cbdde8;
+    box-shadow: 0 4px 0 #cbdde8;
+  }
+  .btn-secondary:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 #cbdde8;
+  }
+  .btn-accent {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 4px 0 var(--accent-shadow);
+  }
+  .btn-accent:active {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 var(--accent-shadow);
+  }
+  .btn-green {
+    background: var(--green);
+    color: #fff;
+    box-shadow: 0 4px 0 var(--green-shadow);
+  }
+  .btn-green:active {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 var(--green-shadow);
+  }
+
+  /* Toast Notification */
+  #toast {
+    position: fixed;
+    bottom: 78px;
+    left: 50%;
+    transform: translate(-50%, 20px);
+    opacity: 0;
+    background: #2c445e;
+    color: #ffffff;
+    padding: 10px 24px;
+    border-radius: 999px;
+    font-weight: 800;
+    font-size: clamp(14px, 2vmin, 17px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+    pointer-events: none;
+    z-index: 2000;
+    transition: transform 0.3s cubic-bezier(0.3, 1.4, 0.5, 1), opacity 0.3s ease;
+  }
+  #toast.show {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+
+  /* Modals */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(30, 48, 68, 0.55);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3000;
+    padding: 16px;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+  }
+  .modal-overlay.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+  .modal-card {
+    background: #ffffff;
+    width: min(92vw, 530px);
+    border-radius: 32px;
+    padding: clamp(24px, 4vmin, 36px);
+    text-align: center;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+    transform: scale(1);
+    transition: transform 0.3s cubic-bezier(0.3, 1.4, 0.5, 1);
+  }
+  .modal-overlay.hidden .modal-card {
+    transform: scale(0.9);
+  }
+
+  .modal-title {
+    font-size: clamp(24px, 4.5vmin, 34px);
+    font-weight: 900;
+    color: var(--ink);
+    margin: 0 0 6px 0;
+  }
+  .modal-subtitle {
+    font-size: clamp(14px, 2.2vmin, 17px);
+    color: var(--ink-light);
+    margin: 0 0 20px 0;
+    line-height: 1.4;
+  }
+
+  /* Timer setup duration selector */
+  .timer-options {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .timer-chip {
+    font: inherit;
+    font-weight: 800;
+    font-size: clamp(15px, 2.4vmin, 18px);
+    padding: 10px 18px;
+    border-radius: 16px;
+    border: 2px solid #e1ecf4;
+    background: #f7fbff;
+    color: var(--ink);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .timer-chip:hover {
+    border-color: #bad3e8;
+    background: #edf6fd;
+  }
+  .timer-chip.active {
+    border-color: var(--accent);
+    background: #fff4f0;
+    color: var(--accent);
+    box-shadow: 0 3px 10px rgba(255, 126, 84, 0.25);
+  }
+
+  .stepper-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 22px;
+  }
+  .stepper-val {
+    font-size: clamp(22px, 3.8vmin, 28px);
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    min-width: 110px;
+  }
+
+  .instruction-box {
+    background: #f5f9fc;
+    border-radius: 18px;
+    padding: 14px 18px;
+    text-align: left;
+    margin-bottom: 24px;
+    font-size: 14px;
+    color: var(--ink);
+    line-height: 1.5;
+  }
+  .instruction-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 8px 0;
+    font-weight: 700;
+  }
+  .instruction-row .bullet {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #d8ecf8;
+    color: var(--blue);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+
+  /* Victory modal special styling */
+  .victory-badge {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: #fff5e6;
+    color: #f39c12;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 42px;
+    margin: 0 auto 12px auto;
+    box-shadow: 0 8px 24px rgba(243, 156, 18, 0.25);
+  }
+  .report-time-box {
+    background: linear-gradient(135deg, #f0f8ff 0%, #e8f5e9 100%);
+    border: 2px solid #d4ecd5;
+    border-radius: 22px;
+    padding: 18px 20px;
+    margin-bottom: 20px;
+  }
+  .report-time-label {
+    font-size: 14px;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--ink-light);
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .report-time-val {
+    font-size: clamp(34px, 6.5vmin, 50px);
+    font-weight: 900;
+    color: #27ae60;
+    line-height: 1.1;
+  }
+  .report-target-diff {
+    font-size: clamp(14px, 2.2vmin, 16px);
+    font-weight: 800;
+    margin-top: 6px;
+    color: var(--ink);
+  }
+  .report-target-diff.under { color: #27ae60; }
+  .report-target-diff.over { color: #d35400; }
+
+  .best-time-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #fff9e6;
+    color: #b7791f;
+    border: 1px solid #fbd38d;
+    padding: 4px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 800;
+    margin-bottom: 20px;
+  }
+
+  /* Confetti canvas */
+  #confetti-canvas {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2500;
+    display: none;
+  }
+
+  /* Sparkles on snap */
+  .spark {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    pointer-events: none;
+    animation: pop 1s ease-out forwards;
+  }
+  @keyframes pop {
+    from { opacity: 1; transform: translate(0, 0) scale(1); }
+    to { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0.3); }
+  }
 </style>
 </head>
 <body>
-<div id="stage"></div>
-<div id="hint">Drag the clothes onto me!</div>
-<button id="reset">Start again</button>
 
+<!-- Confetti canvas overlay -->
+<canvas id="confetti-canvas"></canvas>
+
+<!-- Top Timer Header -->
+<header id="timer-header">
+  <div id="timer-display">05:00</div>
+</header>
+
+<!-- Full-width progress bar line -->
+<div id="full-progress-wrap">
+  <div id="timer-progress-bar"></div>
+</div>
+
+<!-- Hint banner -->
+<div id="hint-banner">
+  <span id="hint-icon">🌙</span>
+  <span id="hint-text">Take off your pyjamas! (Drag or double-tap)</span>
+</div>
+
+<!-- Floating toast notification -->
+<div id="toast"></div>
+
+<!-- Dressing Stage -->
+<div id="stage-container">
+  <div id="stage"></div>
+</div>
+
+<!-- Bottom Controls Bar -->
+<div id="bottom-bar">
+  <button id="btn-pause" class="btn btn-primary" title="Pause or Resume">
+    <span class="btn-icon">⏸</span>
+    <span class="btn-text">Pause</span>
+  </button>
+  <button id="btn-restart" class="btn btn-secondary" title="Start over">
+    <span class="btn-icon">🔄</span>
+    <span class="btn-text">Restart</span>
+  </button>
+</div>
+
+<!-- Start / Timer Setup Modal -->
+<div id="modal-setup" class="modal-overlay">
+  <div class="modal-card">
+    <div style="font-size:46px;margin-bottom:8px;">🌅</div>
+    <h1 class="modal-title">Time to Get Dressed!</h1>
+    <p class="modal-subtitle">Pick your timer goal and beat the clock as you get ready for the day!</p>
+
+    <div class="timer-options" id="timer-chips">
+      <button class="timer-chip" data-min="2">2 min</button>
+      <button class="timer-chip" data-min="3">3 min</button>
+      <button class="timer-chip active" data-min="5">5 min</button>
+      <button class="timer-chip" data-min="7">7 min</button>
+      <button class="timer-chip" data-min="10">10 min</button>
+    </div>
+
+    <div class="stepper-wrap">
+      <button id="btn-step-minus" class="btn btn-secondary" style="padding:0.4em 0.8em;" aria-label="Decrease time">-</button>
+      <span id="stepper-display" class="stepper-val">05:00</span>
+      <button id="btn-step-plus" class="btn btn-secondary" style="padding:0.4em 0.8em;" aria-label="Increase time">+</button>
+    </div>
+
+    <div class="instruction-box">
+      <div class="instruction-row">
+        <span class="bullet">1</span>
+        <span>Drag or <strong>double-tap</strong> pyjamas off into the <strong>Left Box</strong> 🌙</span>
+      </div>
+      <div class="instruction-row">
+        <span class="bullet">2</span>
+        <span>Drag or <strong>double-tap</strong> day clothes on from the <strong>Right Box</strong> 👕</span>
+      </div>
+      <div class="instruction-row">
+        <span class="bullet">3</span>
+        <span>Timer <strong>dings at every minute</strong> mark & stops when all dressed!</span>
+      </div>
+    </div>
+
+    <button id="btn-start-game" class="btn btn-accent" style="width:100%;padding:14px;font-size:20px;">
+      Start Timer! 🚀
+    </button>
+  </div>
+</div>
+
+<!-- Victory / Report Modal -->
+<div id="modal-victory" class="modal-overlay hidden">
+  <div class="modal-card">
+    <div class="victory-badge">🎉</div>
+    <h2 class="modal-title">All Dressed!</h2>
+    <p class="modal-subtitle" id="victory-cheer">Awesome focus! You're ready to conquer the day!</p>
+
+    <div class="report-time-box">
+      <div class="report-time-label">Time Taken to Get Dressed</div>
+      <div class="report-time-val" id="report-time">02:45</div>
+      <div class="report-target-diff" id="report-diff">⭐ Beat your 5-minute target by 2m 15s!</div>
+    </div>
+
+    <div id="best-time-box" class="best-time-pill">
+      <span>🏆</span>
+      <span id="best-time-text">Personal Best: 02:45</span>
+    </div>
+
+    <div style="display:flex;gap:10px;justify-content:center;">
+      <button id="btn-play-again" class="btn btn-green" style="flex:1;padding:12px;font-size:18px;">
+        Play Again 🔄
+      </button>
+      <button id="btn-change-timer" class="btn btn-secondary" style="flex:1;padding:12px;font-size:18px;">
+        Change Timer ⏱️
+      </button>
+    </div>
+  </div>
+</div>
 
 <script src="items.js"></script>
 <script>
+// ==========================================
+// CONFIGURATION & SETUP
+// ==========================================
 const CFG = window.DRESS_CONFIG;
-if (!CFG) document.body.innerHTML = '<p style="padding:2em">items.js not found. Run extract_psd.py first.</p>';
+if (!CFG) {
+  document.body.innerHTML = '<p style="padding:2em;font-size:20px;">items.js not found. Run extract_psd.py first.</p>';
+}
 
-// ---- Layout (in "stage" pixels; the stage is scaled to fit the window) ----
 const [STAGE_W, STAGE_H] = CFG.stage;
-const OX = CFG.offsetX;                         // body sits in the middle
-const SNAP_DIST = CFG.snapDistance;             // generous: little hands!
+const OX = CFG.offsetX;
+const SNAP_DIST = CFG.snapDistance;
 
 const stage = document.getElementById('stage');
 stage.style.width = STAGE_W + 'px';
 stage.style.height = STAGE_H + 'px';
-[[20, 130], [STAGE_W - 20 - 390, 130]].forEach(([x, y]) => {
-  const p = document.createElement('div'); p.className = 'pad';
-  Object.assign(p.style, {left:x+'px', top:y+'px', width:'390px', height:(STAGE_H - 330)+'px'});
+
+// Side boxes: Left is Pyjamas, Right is Daytime Clothes
+const sidePads = [
+  { x: 20, y: 130, label: "🌙 Pyjamas" },
+  { x: STAGE_W - 20 - 390, y: 130, label: "👕 Day Clothes" }
+];
+sidePads.forEach(sp => {
+  const p = document.createElement('div');
+  p.className = 'pad';
+  Object.assign(p.style, {
+    left: sp.x + 'px',
+    top: sp.y + 'px',
+    width: '390px',
+    height: (STAGE_H - 330) + 'px'
+  });
+  const lbl = document.createElement('div');
+  lbl.className = 'pad-label';
+  lbl.textContent = sp.label;
+  p.appendChild(lbl);
   stage.appendChild(p);
 });
 
-// ---- Fit stage to the window ----
+// Fit stage to window responsively
 let K = 1, stageLeft = 0, stageTop = 0;
 function fit() {
   K = Math.min(innerWidth / STAGE_W, innerHeight / STAGE_H);
@@ -57,144 +612,861 @@ function fit() {
   stageTop  = (innerHeight - STAGE_H * K) / 2;
   stage.style.transform = `translate(${stageLeft}px,${stageTop}px) scale(${K})`;
 }
-addEventListener('resize', fit); fit();
+addEventListener('resize', fit);
+fit();
 
-// ---- Build items ----
+// ==========================================
+// ITEM INITIALIZATION
+// ==========================================
 const items = [];
-function build(L, isBase) {
+function buildItem(L, isBase) {
   const el = document.createElement('div');
   el.className = 'item';
-  const tx = OX + L.x, ty = L.y;               // target (dressed) position
-  Object.assign(el.style, {left: tx+'px', top: ty+'px', width: L.w+'px', height: L.h+'px'});
-  const img = new Image(); img.src = L.file; img.draggable = false;
+  const tx = OX + L.x, ty = L.y;
+  Object.assign(el.style, { left: tx + 'px', top: ty + 'px', width: L.w + 'px', height: L.h + 'px' });
+
+  const img = new Image();
+  img.src = L.file;
+  img.draggable = false;
   el.appendChild(img);
   stage.appendChild(el);
-  const it = { name: L.name, z: L.z, el, w: L.w, h: L.h, tx, ty, onBody: false,
-               home: L.home, homeScale: L.homeScale || 0.7, x: 0, y: 0, s: 1, alpha: null };
-  // Alpha map for pixel-accurate picking of items on the body. Browsers block reading
-  // pixels of local files opened straight from disk (file://); in that case we quietly
-  // fall back to rectangle picking. Running a tiny local server enables the accurate mode.
+
+  const it = {
+    name: L.name,
+    z: L.z,
+    el,
+    w: L.w,
+    h: L.h,
+    tx,
+    ty,
+    onBody: false,
+    home: L.home,
+    homeScale: L.homeScale || 0.7,
+    x: 0,
+    y: 0,
+    s: 1,
+    alpha: null
+  };
+
   img.decode().then(() => {
     try {
-      const c = document.createElement('canvas'); c.width = L.w; c.height = L.h;
-      const g = c.getContext('2d'); g.drawImage(img, 0, 0);
+      const c = document.createElement('canvas');
+      c.width = L.w;
+      c.height = L.h;
+      const g = c.getContext('2d');
+      g.drawImage(img, 0, 0);
       it.alpha = g.getImageData(0, 0, L.w, L.h).data;
-    } catch (e) { it.alpha = null; }
-  }).catch(() => console.warn('could not load', L.file));
-  if (isBase) { it.fixed = true; el.style.zIndex = 0; set(it, 0, 0, 1); }
-  else items.push(it);
-}
-build(CFG.base, true);
-CFG.items.forEach(L => build(L, false));
+    } catch (e) {
+      it.alpha = null;
+    }
+  }).catch(() => console.warn('Could not decode image', L.file));
 
-// offset (x,y) = movement of the item's top-left from its target; s = scale about centre
-function set(it, x, y, s) {
-  it.x = x; it.y = y; it.s = s;
+  if (isBase) {
+    it.fixed = true;
+    el.style.zIndex = 0;
+    setPos(it, 0, 0, 1);
+  } else {
+    items.push(it);
+  }
+}
+
+buildItem(CFG.base, true);
+CFG.items.forEach(L => buildItem(L, false));
+
+// Helper: check if item is pajama
+function isPyjama(it) {
+  const n = it.name.toLowerCase();
+  return n.startsWith('pj') || n.includes('pyjama') || n.includes('pajama');
+}
+
+const pjItems = items.filter(it => isPyjama(it));
+const dayItems = items.filter(it => !isPyjama(it));
+
+function setPos(it, x, y, s) {
+  it.x = x;
+  it.y = y;
+  it.s = s;
+  it.el.style.setProperty('--curr-x', x + 'px');
+  it.el.style.setProperty('--curr-y', y + 'px');
+  it.el.style.setProperty('--curr-s', s);
   it.el.style.transform = `translate(${x}px,${y}px) scale(${s})`;
 }
+
 function sendHome(it, animate = true) {
   const [cx, cy] = it.home;
   it.onBody = false;
   it.el.style.zIndex = 10 + it.z;
   it.el.classList.toggle('glide', animate);
-  set(it, cx - (it.tx + it.w / 2), cy - (it.ty + it.h / 2), it.homeScale);
+  setPos(it, cx - (it.tx + it.w / 2), cy - (it.ty + it.h / 2), it.homeScale);
 }
-function snapOn(it) {
-  it.onBody = true;
-  it.el.style.zIndex = it.z;                   // layer order straight from the PSD
-  it.el.classList.add('glide');
-  set(it, 0, 0, 1);
-}
-items.forEach(it => sendHome(it, false));
 
-// ---- Dragging ----
+function snapOn(it, animate = true) {
+  it.onBody = true;
+  it.el.style.zIndex = it.z;
+  it.el.classList.toggle('glide', animate);
+  setPos(it, 0, 0, 1);
+}
+
+// ==========================================
+// AUDIO SYNTHESIZER (Web Audio API)
+// ==========================================
+let audioCtx = null;
+const soundEnabled = true;
+
+function getAudioContext() {
+  if (!audioCtx) {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (AudioContextClass) audioCtx = new AudioContextClass();
+  }
+  if (audioCtx && audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+  return audioCtx;
+}
+
+// Play bell dings for minute marks (1 ding for 1 min, 2 dings for 2 min, etc.)
+function playMinuteDings(count) {
+  if (!soundEnabled) return;
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    for (let i = 0; i < count; i++) {
+      const t = now + i * 0.42;
+
+      // Primary clear bell tone (C6: 1046.5Hz)
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(1046.50, t);
+      gain1.gain.setValueAtTime(0.35, t);
+      gain1.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(t);
+      osc1.stop(t + 0.7);
+
+      // Shimmering harmonic overtone (E6: 1318.5Hz)
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(1318.51, t);
+      gain2.gain.setValueAtTime(0.18, t);
+      gain2.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(t);
+      osc2.stop(t + 0.45);
+    }
+  } catch (e) {}
+}
+
+function playSound(type) {
+  if (!soundEnabled) return;
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+
+    if (type === 'snap') {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(540, now);
+      osc.frequency.exponentialRampToValueAtTime(880, now + 0.09);
+      gain.gain.setValueAtTime(0.28, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.12);
+    } else if (type === 'whoosh') {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(420, now);
+      osc.frequency.exponentialRampToValueAtTime(210, now + 0.14);
+      gain.gain.setValueAtTime(0.18, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.14);
+    } else if (type === 'fanfare') {
+      const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+      notes.forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        const start = now + idx * 0.11;
+        osc.frequency.setValueAtTime(freq, start);
+        gain.gain.setValueAtTime(0.26, start);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + 0.4);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(start);
+        osc.stop(start + 0.4);
+      });
+    } else if (type === 'reject') {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(280, now);
+      osc.frequency.exponentialRampToValueAtTime(160, now + 0.12);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.12);
+    }
+  } catch (e) {}
+}
+
+// ==========================================
+// TOAST & VISUAL EFFECTS
+// ==========================================
+let toastTimer = null;
+const toastEl = document.getElementById('toast');
+function showToast(msg) {
+  clearTimeout(toastTimer);
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2400);
+}
+
+function sparkle(cx, cy, n = 12) {
+  const colors = ['#ffd166', '#ff8c69', '#6bcb77', '#4d96ff', '#ff6bd6', '#2ecc71'];
+  for (let i = 0; i < n; i++) {
+    const s = document.createElement('div');
+    s.className = 'spark';
+    const a = Math.random() * Math.PI * 2;
+    const d = 50 + Math.random() * 100;
+    s.style.cssText = `left:${cx}px;top:${cy}px;background:${colors[i % colors.length]};--dx:${Math.cos(a)*d}px;--dy:${Math.sin(a)*d}px`;
+    stage.appendChild(s);
+    setTimeout(() => s.remove(), 1000);
+  }
+}
+
+// Smooth HTML5 Canvas Confetti
+function launchConfetti(durationMs = 4000) {
+  const canvas = document.getElementById('confetti-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  canvas.style.display = 'block';
+
+  const colors = ['#ff6b6b', '#ffd166', '#06d6a0', '#118ab2', '#ff8c69', '#a29bfe', '#2ecc71'];
+  const particles = [];
+  const count = 100;
+
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x: window.innerWidth * (0.35 + Math.random() * 0.3),
+      y: window.innerHeight * 0.45,
+      vx: (Math.random() - 0.5) * 18,
+      vy: (Math.random() - 0.85) * 20,
+      size: 9 + Math.random() * 8,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      tilt: Math.random() * 10,
+      tiltSpeed: 0.08 + Math.random() * 0.1,
+      gravity: 0.36,
+      shape: Math.random() > 0.35 ? 'rect' : 'circle'
+    });
+  }
+
+  const startTime = performance.now();
+  function render(now) {
+    const elapsed = now - startTime;
+    if (elapsed > durationMs) {
+      canvas.style.display = 'none';
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      return;
+    }
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const alpha = elapsed > durationMs - 900 ? (durationMs - elapsed) / 900 : 1;
+    ctx.globalAlpha = Math.max(0, alpha);
+
+    particles.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += p.gravity;
+      p.vx *= 0.98;
+      p.tilt += p.tiltSpeed;
+
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      if (p.shape === 'circle') {
+        ctx.arc(p.x, p.y, p.size / 2, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.tilt);
+        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+        ctx.restore();
+      }
+    });
+    requestAnimationFrame(render);
+  }
+  requestAnimationFrame(render);
+}
+
+// ==========================================
+// TIMER & GAME STATE
+// ==========================================
+let targetSeconds = 5 * 60; // Default 5 minutes
+let elapsedSeconds = 0;
+let timerRunning = false;
+let isPaused = false;
+let timerInterval = null;
+let sessionStartTime = 0;
+let accumulatedPausedTime = 0;
+let pauseStartTime = 0;
+let lastDingMinute = 0;
+let gameState = 'SETUP'; // 'SETUP', 'PLAYING', 'PAUSED', 'DONE'
+
+const timerDisplay = document.getElementById('timer-display');
+const timerProgressBar = document.getElementById('timer-progress-bar');
+const hintBanner = document.getElementById('hint-banner');
+const hintIcon = document.getElementById('hint-icon');
+const hintText = document.getElementById('hint-text');
+
+const modalSetup = document.getElementById('modal-setup');
+const modalVictory = document.getElementById('modal-victory');
+const btnPause = document.getElementById('btn-pause');
+const btnRestart = document.getElementById('btn-restart');
+
+function formatMMSS(totalSec) {
+  const m = Math.floor(Math.abs(totalSec) / 60);
+  const s = Math.floor(Math.abs(totalSec) % 60);
+  return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+}
+
+function formatWords(totalSec) {
+  const m = Math.floor(totalSec / 60);
+  const s = Math.floor(totalSec % 60);
+  if (m === 0) return `${s} second${s !== 1 ? 's' : ''}`;
+  if (s === 0) return `${m} minute${m !== 1 ? 's' : ''}`;
+  return `${m}m ${s}s`;
+}
+
+function updatePauseButton() {
+  const iconEl = btnPause.querySelector('.btn-icon');
+  const textEl = btnPause.querySelector('.btn-text');
+  if (gameState === 'SETUP') {
+    iconEl.textContent = '▶';
+    textEl.textContent = 'Start';
+  } else if (gameState === 'PLAYING') {
+    if (isPaused) {
+      iconEl.textContent = '▶';
+      textEl.textContent = 'Resume';
+    } else {
+      iconEl.textContent = '⏸';
+      textEl.textContent = 'Pause';
+    }
+  } else if (gameState === 'DONE') {
+    iconEl.textContent = '🔄';
+    textEl.textContent = 'Play Again';
+  }
+}
+
+function updateHUD() {
+  const remaining = targetSeconds - elapsedSeconds;
+  if (remaining >= 0) {
+    timerDisplay.textContent = formatMMSS(remaining);
+    timerDisplay.classList.remove('overtime');
+    const pct = Math.max(0, Math.min(100, (remaining / targetSeconds) * 100));
+    timerProgressBar.style.width = pct + '%';
+    timerProgressBar.classList.toggle('warning', remaining <= 30 && targetSeconds > 30);
+  } else {
+    // Overtime
+    timerDisplay.textContent = '+' + formatMMSS(Math.abs(remaining));
+    timerDisplay.classList.add('overtime');
+    timerProgressBar.style.width = '100%';
+    timerProgressBar.classList.add('warning');
+  }
+
+  // Update dynamic hint
+  const pjsOnCount = pjItems.filter(i => i.onBody).length;
+  const dayClothesOnCount = dayItems.filter(i => i.onBody).length;
+
+  if (pjsOnCount > 0) {
+    hintIcon.textContent = '🌙';
+    hintText.textContent = pjsOnCount === 1 ? 'Take off the last pyjama!' : 'Take off pyjamas! (Drag or double-tap)';
+  } else if (dayClothesOnCount < dayItems.length) {
+    const left = dayItems.length - dayClothesOnCount;
+    hintIcon.textContent = '👕';
+    hintText.textContent = left === 1 ? 'Almost there! Put on the last item!' : `Put on daytime clothes! (${left} left)`;
+  } else {
+    hintIcon.textContent = '🎉';
+    hintText.textContent = 'All dressed!';
+  }
+
+  updatePauseButton();
+}
+
+function tickTimer() {
+  if (!timerRunning || isPaused) return;
+  const now = performance.now();
+  elapsedSeconds = (now - sessionStartTime - accumulatedPausedTime) / 1000;
+
+  // Check for minute mark dings (1 ding at 1 min, 2 dings at 2 min, etc.)
+  const currentMinute = Math.floor(elapsedSeconds / 60);
+  if (currentMinute > lastDingMinute && currentMinute > 0) {
+    lastDingMinute = currentMinute;
+    playMinuteDings(currentMinute);
+    const dingsLabel = currentMinute === 1 ? '1 ding' : `${currentMinute} dings`;
+    showToast(`🔔 ${currentMinute} minute${currentMinute > 1 ? 's' : ''} elapsed (${dingsLabel})!`);
+  }
+
+  updateHUD();
+}
+
+function startTimer() {
+  sessionStartTime = performance.now();
+  accumulatedPausedTime = 0;
+  elapsedSeconds = 0;
+  lastDingMinute = 0;
+  timerRunning = true;
+  isPaused = false;
+  clearInterval(timerInterval);
+  timerInterval = setInterval(tickTimer, 200);
+  updateHUD();
+}
+
+function stopTimer() {
+  timerRunning = false;
+  clearInterval(timerInterval);
+  updatePauseButton();
+}
+
+function togglePause() {
+  if (gameState !== 'PLAYING') return;
+  if (!isPaused) {
+    isPaused = true;
+    pauseStartTime = performance.now();
+    showToast('Paused');
+  } else {
+    isPaused = false;
+    accumulatedPausedTime += (performance.now() - pauseStartTime);
+    showToast('Resumed');
+  }
+  updateHUD();
+}
+
+btnPause.addEventListener('click', () => {
+  if (gameState === 'SETUP') {
+    startNewSession();
+  } else if (gameState === 'PLAYING') {
+    togglePause();
+  } else if (gameState === 'DONE') {
+    startNewSession();
+  }
+});
+
+btnRestart.addEventListener('click', () => {
+  resetToSetup();
+});
+
+// ==========================================
+// DRESSING RULES & CHECK COMPLETION
+// ==========================================
+function checkDone() {
+  updateHUD();
+  const allPjsOff = pjItems.every(i => !i.onBody);
+  const allDayOn = dayItems.every(i => i.onBody);
+
+  if (allPjsOff && allDayOn) {
+    handleVictory();
+  }
+}
+
+function handleVictory() {
+  stopTimer();
+  gameState = 'DONE';
+  playSound('fanfare');
+  launchConfetti(4500);
+
+  const finalSeconds = Math.round(elapsedSeconds);
+  const reportTimeEl = document.getElementById('report-time');
+  reportTimeEl.textContent = formatMMSS(finalSeconds);
+
+  const reportDiffEl = document.getElementById('report-diff');
+  const targetDiff = targetSeconds - finalSeconds;
+  if (targetDiff >= 0) {
+    reportDiffEl.className = 'report-target-diff under';
+    reportDiffEl.textContent = `⭐ Beat your ${Math.round(targetSeconds/60)}-minute target by ${formatWords(targetDiff)}! Fantastic focus!`;
+  } else {
+    reportDiffEl.className = 'report-target-diff over';
+    reportDiffEl.textContent = `👏 Completed in ${formatWords(finalSeconds)}! You stayed focused and finished strong!`;
+  }
+
+  // Personal record tracking
+  const bestKey = 'getdressed_best_time';
+  const savedBest = localStorage.getItem(bestKey);
+  const bestTimeBox = document.getElementById('best-time-box');
+  const bestTimeText = document.getElementById('best-time-text');
+
+  if (!savedBest || finalSeconds < parseInt(savedBest, 10)) {
+    localStorage.setItem(bestKey, finalSeconds);
+    bestTimeText.textContent = `⭐ NEW PERSONAL RECORD: ${formatWords(finalSeconds)}!`;
+    bestTimeBox.style.display = 'inline-flex';
+  } else {
+    const bestSec = parseInt(savedBest, 10);
+    bestTimeText.textContent = `Personal Best: ${formatWords(bestSec)}`;
+    bestTimeBox.style.display = 'inline-flex';
+  }
+
+  updatePauseButton();
+  setTimeout(() => {
+    modalVictory.classList.remove('hidden');
+  }, 600);
+}
+
+// Reset clothes to beginning: pyjamas ON the character, daytime clothes in trays
+function resetClothes(animate = false) {
+  pjItems.forEach(it => snapOn(it, animate));
+  dayItems.forEach(it => sendHome(it, animate));
+  updateHUD();
+}
+
+function resetToSetup() {
+  stopTimer();
+  gameState = 'SETUP';
+  modalVictory.classList.add('hidden');
+  modalSetup.classList.remove('hidden');
+  resetClothes(false);
+  elapsedSeconds = 0;
+  lastDingMinute = 0;
+  updateHUD();
+}
+
+function startNewSession() {
+  modalSetup.classList.add('hidden');
+  modalVictory.classList.add('hidden');
+  resetClothes(false);
+  gameState = 'PLAYING';
+  startTimer();
+  playSound('whoosh');
+  showToast('Go! Drag or double-tap pyjamas off! 🌙');
+}
+
+// ==========================================
+// DOUBLE-TAP / CLICK-TO-TOGGLE HANDLER
+// ==========================================
+let lastActionTimestamp = 0;
+function handleToggleItem(it) {
+  const now = performance.now();
+  if (now - lastActionTimestamp < 260) return; // Debounce rapid triggers
+  lastActionTimestamp = now;
+
+  if (it.onBody) {
+    // Already on body -> take it off and send to its home box!
+    sendHome(it, true);
+    playSound('whoosh');
+    checkDone();
+  } else {
+    // Waiting in its box -> put it on the character!
+    if (isPyjama(it)) {
+      const dayClothesOn = dayItems.some(i => i.onBody);
+      if (dayClothesOn) {
+        showToast("Keep going with daytime clothes! ☀️");
+        playSound('reject');
+        return;
+      }
+      snapOn(it);
+      sparkle(it.tx + it.w / 2, it.ty + it.h / 2);
+      playSound('snap');
+      checkDone();
+    } else {
+      // Daytime item
+      const pjsStillOn = pjItems.filter(i => i.onBody);
+      if (pjsStillOn.length > 0) {
+        showToast("Take off pyjamas first! 🌙");
+        playSound('reject');
+        pjsStillOn.forEach(p => {
+          p.el.classList.add('pulse-hint');
+          setTimeout(() => p.el.classList.remove('pulse-hint'), 700);
+        });
+        return;
+      }
+
+      // Pants (underwear) must go on before trousers
+      if (it.name === 'trousers') {
+        const pantsItem = dayItems.find(i => i.name === 'pants');
+        if (pantsItem && !pantsItem.onBody) {
+          showToast("Put on pants (underwear) first! 🩲");
+          playSound('reject');
+          pantsItem.el.classList.add('pulse-hint');
+          setTimeout(() => pantsItem.el.classList.remove('pulse-hint'), 700);
+          return;
+        }
+      }
+
+      snapOn(it);
+      sparkle(it.tx + it.w / 2, it.ty + it.h / 2);
+      playSound('snap');
+      checkDone();
+    }
+  }
+}
+
+// ==========================================
+// DRAG AND DROP & DOUBLE-TAP INTERACTION
+// ==========================================
 let drag = null;
-function toStage(e) { return [(e.clientX - stageLeft) / K, (e.clientY - stageTop) / K]; }
+let lastTapTime = 0;
+let lastTapItem = null;
+
+function toStage(e) {
+  return [(e.clientX - stageLeft) / K, (e.clientY - stageTop) / K];
+}
 
 function pick(px, py) {
-  // top-most first: dragged-onto-body items by z, then tray items
+  // Top-most first: items on body by PSD z, then tray items
   const order = items.slice().sort((a, b) => (b.onBody - a.onBody) || (b.z - a.z));
   for (const it of order) {
     const r = it.el.getBoundingClientRect();
-    const u = Math.floor((px - r.left) / r.width  * it.w);
-    const v = Math.floor((py - r.top)  / r.height * it.h);
+    const u = Math.floor((px - r.left) / r.width * it.w);
+    const v = Math.floor((py - r.top) / r.height * it.h);
     if (u < 0 || v < 0 || u >= it.w || v >= it.h) continue;
-    // a small halo of tolerance around visible pixels so thin edges are easy to grab
-    // tray items never overlap, so anywhere on the item grabs it (easy for small hands);
-    // on the body items overlap, so only the visible pixels count
-    if (!it.onBody || !it.alpha || hit(it, u, v)) return it;
+    if (!it.onBody || !it.alpha || hitAlpha(it, u, v)) return it;
   }
   return null;
 }
-function hit(it, u, v) {
+
+function hitAlpha(it, u, v) {
   const R = 10;
-  for (let dy = -R; dy <= R; dy += 5) for (let dx = -R; dx <= R; dx += 5) {
-    const x = u + dx, y = v + dy;
-    if (x < 0 || y < 0 || x >= it.w || y >= it.h) continue;
-    if (it.alpha[(y * it.w + x) * 4 + 3] > 40) return true;
+  for (let dy = -R; dy <= R; dy += 5) {
+    for (let dx = -R; dx <= R; dx += 5) {
+      const x = u + dx, y = v + dy;
+      if (x < 0 || y < 0 || x >= it.w || y >= it.h) continue;
+      if (it.alpha[(y * it.w + x) * 4 + 3] > 40) return true;
+    }
   }
   return false;
 }
 
+function moveTo(e) {
+  if (!drag) return;
+  const { it, fx, fy } = drag;
+  const [px, py] = toStage(e);
+  setPos(it, px - fx * it.w - it.tx, py - fy * it.h - it.ty, 1);
+}
+
 addEventListener('pointerdown', e => {
-  if (e.target.id === 'reset') return;
+  if (gameState !== 'PLAYING' || isPaused) return;
+  if (e.target.closest('#timer-header') || e.target.closest('#bottom-bar') || e.target.closest('.modal-card')) return;
+
   const it = pick(e.clientX, e.clientY);
   if (!it) return;
   e.preventDefault();
+
   const r = it.el.getBoundingClientRect();
-  const fx = (e.clientX - r.left) / r.width, fy = (e.clientY - r.top) / r.height;   // grab point (0..1)
-  drag = { it, fx, fy, id: e.pointerId };
+  const fx = (e.clientX - r.left) / r.width;
+  const fy = (e.clientY - r.top) / r.height;
+  const wasOnBody = it.onBody;
+
+  drag = {
+    it,
+    fx,
+    fy,
+    id: e.pointerId,
+    wasOnBody,
+    startX: e.clientX,
+    startY: e.clientY
+  };
+
   it.el.classList.remove('glide');
   it.el.classList.add('lifted');
   it.el.style.zIndex = 100;
-  it.onBody = false;
-  // grow to full size under the finger, keeping the grabbed point in place
+
   moveTo(e);
-  it.el.classList.add('glide'); // brief ease into the larger size...
+  it.el.classList.add('glide');
   setTimeout(() => drag && drag.it === it && it.el.classList.remove('glide'), 150);
-}, {passive:false});
+}, { passive: false });
 
-function moveTo(e) {
-  const { it, fx, fy } = drag;
-  const [px, py] = toStage(e);
-  // at scale 1 the item's top-left is at (px - fx*w, py - fy*h)
-  set(it, px - fx * it.w - it.tx, py - fy * it.h - it.ty, 1);
-}
-addEventListener('pointermove', e => { if (drag && e.pointerId === drag.id) { e.preventDefault(); moveTo(e); } }, {passive:false});
+addEventListener('pointermove', e => {
+  if (drag && e.pointerId === drag.id) {
+    e.preventDefault();
+    moveTo(e);
+  }
+}, { passive: false });
 
-function end(e) {
+function endDrag(e) {
   if (!drag || e.pointerId !== drag.id) return;
-  const it = drag.it; drag = null;
+  const { it, wasOnBody, startX, startY } = drag;
+  drag = null;
   it.el.classList.remove('lifted');
-  const cx = it.x + it.tx + it.w / 2, cy = it.y + it.ty + it.h / 2;    // current centre
-  const tcx = it.tx + it.w / 2,       tcy = it.ty + it.h / 2;           // dressed centre
-  if (Math.hypot(cx - tcx, cy - tcy) < SNAP_DIST) { snapOn(it); sparkle(tcx, tcy); checkDone(); }
-  else sendHome(it);
-}
-addEventListener('pointerup', end);
-addEventListener('pointercancel', end);
 
-// ---- Fun bits ----
-function sparkle(cx, cy, n = 10) {
-  const colors = ['#ffd166','#ff8c69','#6bcB77','#4d96ff','#ff6bd6'];
-  for (let i = 0; i < n; i++) {
-    const s = document.createElement('div'); s.className = 'spark';
-    const a = Math.random() * Math.PI * 2, d = 60 + Math.random() * 110;
-    s.style.cssText = `left:${cx}px;top:${cy}px;background:${colors[i % colors.length]};--dx:${Math.cos(a)*d}px;--dy:${Math.sin(a)*d}px`;
-    stage.appendChild(s); setTimeout(() => s.remove(), 1000);
+  const moveDist = Math.hypot(e.clientX - startX, e.clientY - startY);
+
+  // If moved less than 14 pixels, treat as a TAP / CLICK (for double-tap)
+  if (moveDist < 14) {
+    // Put visually back to state without glide delay
+    if (wasOnBody) {
+      snapOn(it, false);
+    } else {
+      sendHome(it, false);
+    }
+
+    const now = performance.now();
+    if (lastTapItem === it && (now - lastTapTime) < 380) {
+      // DOUBLE TAP DETECTED!
+      lastTapTime = 0;
+      lastTapItem = null;
+      handleToggleItem(it);
+    } else {
+      lastTapTime = now;
+      lastTapItem = it;
+    }
+    return;
+  }
+
+  // Active drag completed
+  lastTapItem = null;
+  lastTapTime = 0;
+  it.onBody = false;
+
+  const cx = it.x + it.tx + it.w / 2;
+  const cy = it.y + it.ty + it.h / 2;
+  const tcx = it.tx + it.w / 2;
+  const tcy = it.ty + it.h / 2;
+  const isNearBody = Math.hypot(cx - tcx, cy - tcy) < SNAP_DIST;
+
+  if (isNearBody) {
+    // Attempting to snap onto body
+    if (isPyjama(it)) {
+      const dayClothesOn = dayItems.some(i => i.onBody);
+      if (dayClothesOn) {
+        showToast("Keep going with daytime clothes! ☀️");
+        sendHome(it, true);
+        playSound('reject');
+        return;
+      }
+      snapOn(it);
+      sparkle(tcx, tcy);
+      playSound('snap');
+      checkDone();
+    } else {
+      // Daytime clothing item!
+      const pjsStillOn = pjItems.filter(i => i.onBody);
+      if (pjsStillOn.length > 0) {
+        showToast("Take off pyjamas first! 🌙");
+        sendHome(it, true);
+        playSound('reject');
+        pjsStillOn.forEach(p => {
+          p.el.classList.add('pulse-hint');
+          setTimeout(() => p.el.classList.remove('pulse-hint'), 700);
+        });
+        return;
+      }
+
+      if (it.name === 'trousers') {
+        const pantsItem = dayItems.find(i => i.name === 'pants');
+        if (pantsItem && !pantsItem.onBody) {
+          showToast("Put on pants (underwear) first! 🩲");
+          sendHome(it, true);
+          playSound('reject');
+          pantsItem.el.classList.add('pulse-hint');
+          setTimeout(() => pantsItem.el.classList.remove('pulse-hint'), 700);
+          return;
+        }
+      }
+
+      snapOn(it);
+      sparkle(tcx, tcy);
+      playSound('snap');
+      checkDone();
+    }
+  } else {
+    // Dropped outside snap distance: send home to its respective box
+    sendHome(it, true);
+    playSound('whoosh');
+    checkDone();
   }
 }
-const done = document.createElement('div'); done.id = 'done'; done.textContent = 'All dressed! 🎉';
-document.body.appendChild(done);
-function checkDone() {
-  const all = items.every(i => i.onBody);
-  done.classList.toggle('show', all);
-  if (all) for (let i = 0; i < 6; i++) setTimeout(() => sparkle(OX + (STAGE_W-2*OX)/2 + (Math.random()-.5)*500, 300 + Math.random()*600, 12), i * 150);
-}
-document.getElementById('reset').addEventListener('click', () => {
-  done.classList.remove('show');
-  items.forEach((it, i) => setTimeout(() => sendHome(it), i * 80));
+
+addEventListener('pointerup', endDrag);
+addEventListener('pointercancel', endDrag);
+
+// Fallback for native double-click on desktop
+addEventListener('dblclick', e => {
+  if (gameState !== 'PLAYING' || isPaused) return;
+  if (e.target.closest('#timer-header') || e.target.closest('#bottom-bar') || e.target.closest('.modal-card')) return;
+  const it = pick(e.clientX, e.clientY);
+  if (it) {
+    handleToggleItem(it);
+  }
 });
+
+// ==========================================
+// UI CONTROLS & MODAL LISTENERS
+// ==========================================
+const stepperDisplay = document.getElementById('stepper-display');
+const timerChips = document.querySelectorAll('.timer-chip');
+
+function setDurationMinutes(mins) {
+  mins = Math.max(0.5, Math.min(30, mins));
+  targetSeconds = Math.round(mins * 60);
+  stepperDisplay.textContent = formatMMSS(targetSeconds);
+  timerChips.forEach(chip => {
+    chip.classList.toggle('active', parseFloat(chip.dataset.min) === mins);
+  });
+  updateHUD();
+}
+
+timerChips.forEach(chip => {
+  chip.addEventListener('click', () => {
+    setDurationMinutes(parseFloat(chip.dataset.min));
+  });
+});
+
+document.getElementById('btn-step-minus').addEventListener('click', () => {
+  const currentMin = targetSeconds / 60;
+  setDurationMinutes(currentMin > 1 ? currentMin - 0.5 : currentMin - 0.25);
+});
+
+document.getElementById('btn-step-plus').addEventListener('click', () => {
+  const currentMin = targetSeconds / 60;
+  setDurationMinutes(currentMin + 0.5);
+});
+
+document.getElementById('btn-start-game').addEventListener('click', () => {
+  startNewSession();
+});
+
+document.getElementById('btn-play-again').addEventListener('click', () => {
+  startNewSession();
+});
+
+document.getElementById('btn-change-timer').addEventListener('click', () => {
+  resetToSetup();
+});
+
+// Keyboard shortcuts
+addEventListener('keydown', e => {
+  if (e.code === 'Space') {
+    e.preventDefault();
+    if (gameState === 'SETUP') startNewSession();
+    else if (gameState === 'PLAYING') togglePause();
+    else if (gameState === 'DONE') startNewSession();
+  } else if (e.code === 'Escape') {
+    if (gameState === 'PLAYING') resetToSetup();
+  } else if (e.code === 'KeyR') {
+    resetToSetup();
+  }
+});
+
+// ==========================================
+// INITIAL BOOT
+// ==========================================
+// Always begin with character wearing pyjamas!
+resetClothes(false);
+setDurationMinutes(5); // Default 5 minutes
+updateHUD();
 </script>
 </body>
 </html>
