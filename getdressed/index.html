@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Get Dressed!</title>
+<style>
+  :root { --bg1:#dff3ff; --bg2:#fff3d6; --ink:#35506b; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin:0; height:100%; overflow:hidden; background:linear-gradient(180deg,var(--bg1),var(--bg2)); font-family: "Trebuchet MS", "Comic Sans MS", system-ui, sans-serif; color:var(--ink); }
+  body { touch-action:none; user-select:none; -webkit-user-select:none; }
+  #stage { position:absolute; left:0; top:0; transform-origin:0 0; }
+  .item { position:absolute; pointer-events:none; will-change:transform; }
+  .item img { display:block; width:100%; height:100%; -webkit-user-drag:none; }
+  .item.glide { transition: transform .35s cubic-bezier(.3,1.4,.5,1); }
+  .item.lifted img { filter: drop-shadow(0 18px 14px rgba(0,0,0,.28)); }
+  .pad { position:absolute; border-radius:36px; background:rgba(255,255,255,.55); border:4px dashed rgba(53,80,107,.18); }
+  #hint { position:absolute; left:0; right:0; top:14px; text-align:center; font-size:clamp(18px,3.2vmin,32px); font-weight:700; pointer-events:none; }
+  #reset { position:absolute; right:16px; bottom:16px; font:inherit; font-weight:700; font-size:clamp(16px,2.6vmin,26px); padding:.6em 1.1em; border:0; border-radius:999px; background:#ff8c69; color:#fff; box-shadow:0 5px 0 #d9694a; cursor:pointer; }
+  #reset:active { transform:translateY(4px); box-shadow:0 1px 0 #d9694a; }
+  .spark { position:absolute; width:18px; height:18px; border-radius:50%; pointer-events:none; animation: pop 1s ease-out forwards; }
+  @keyframes pop { from { opacity:1; transform:translate(0,0) scale(1);} to { opacity:0; transform:translate(var(--dx),var(--dy)) scale(.3);} }
+  #done { position:absolute; left:50%; top:46%; transform:translate(-50%,-50%) scale(0); font-size:clamp(40px,10vmin,110px); font-weight:900; color:#ff6b6b; text-shadow:0 5px 0 #fff, 0 10px 20px rgba(0,0,0,.2); pointer-events:none; transition:transform .5s cubic-bezier(.3,1.6,.5,1); white-space:nowrap; }
+  #done.show { transform:translate(-50%,-50%) scale(1); }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="hint">Drag the clothes onto me!</div>
+<button id="reset">Start again</button>
+
+
+<script src="items.js"></script>
+<script>
+const CFG = window.DRESS_CONFIG;
+if (!CFG) document.body.innerHTML = '<p style="padding:2em">items.js not found. Run extract_psd.py first.</p>';
+
+// ---- Layout (in "stage" pixels; the stage is scaled to fit the window) ----
+const [STAGE_W, STAGE_H] = CFG.stage;
+const OX = CFG.offsetX;                         // body sits in the middle
+const SNAP_DIST = CFG.snapDistance;             // generous: little hands!
+
+const stage = document.getElementById('stage');
+stage.style.width = STAGE_W + 'px';
+stage.style.height = STAGE_H + 'px';
+[[20, 130], [STAGE_W - 20 - 390, 130]].forEach(([x, y]) => {
+  const p = document.createElement('div'); p.className = 'pad';
+  Object.assign(p.style, {left:x+'px', top:y+'px', width:'390px', height:(STAGE_H - 330)+'px'});
+  stage.appendChild(p);
+});
+
+// ---- Fit stage to the window ----
+let K = 1, stageLeft = 0, stageTop = 0;
+function fit() {
+  K = Math.min(innerWidth / STAGE_W, innerHeight / STAGE_H);
+  stageLeft = (innerWidth - STAGE_W * K) / 2;
+  stageTop  = (innerHeight - STAGE_H * K) / 2;
+  stage.style.transform = `translate(${stageLeft}px,${stageTop}px) scale(${K})`;
+}
+addEventListener('resize', fit); fit();
+
+// ---- Build items ----
+const items = [];
+function build(L, isBase) {
+  const el = document.createElement('div');
+  el.className = 'item';
+  const tx = OX + L.x, ty = L.y;               // target (dressed) position
+  Object.assign(el.style, {left: tx+'px', top: ty+'px', width: L.w+'px', height: L.h+'px'});
+  const img = new Image(); img.src = L.file; img.draggable = false;
+  el.appendChild(img);
+  stage.appendChild(el);
+  const it = { name: L.name, z: L.z, el, w: L.w, h: L.h, tx, ty, onBody: false,
+               home: L.home, homeScale: L.homeScale || 0.7, x: 0, y: 0, s: 1, alpha: null };
+  // Alpha map for pixel-accurate picking of items on the body. Browsers block reading
+  // pixels of local files opened straight from disk (file://); in that case we quietly
+  // fall back to rectangle picking. Running a tiny local server enables the accurate mode.
+  img.decode().then(() => {
+    try {
+      const c = document.createElement('canvas'); c.width = L.w; c.height = L.h;
+      const g = c.getContext('2d'); g.drawImage(img, 0, 0);
+      it.alpha = g.getImageData(0, 0, L.w, L.h).data;
+    } catch (e) { it.alpha = null; }
+  }).catch(() => console.warn('could not load', L.file));
+  if (isBase) { it.fixed = true; el.style.zIndex = 0; set(it, 0, 0, 1); }
+  else items.push(it);
+}
+build(CFG.base, true);
+CFG.items.forEach(L => build(L, false));
+
+// offset (x,y) = movement of the item's top-left from its target; s = scale about centre
+function set(it, x, y, s) {
+  it.x = x; it.y = y; it.s = s;
+  it.el.style.transform = `translate(${x}px,${y}px) scale(${s})`;
+}
+function sendHome(it, animate = true) {
+  const [cx, cy] = it.home;
+  it.onBody = false;
+  it.el.style.zIndex = 10 + it.z;
+  it.el.classList.toggle('glide', animate);
+  set(it, cx - (it.tx + it.w / 2), cy - (it.ty + it.h / 2), it.homeScale);
+}
+function snapOn(it) {
+  it.onBody = true;
+  it.el.style.zIndex = it.z;                   // layer order straight from the PSD
+  it.el.classList.add('glide');
+  set(it, 0, 0, 1);
+}
+items.forEach(it => sendHome(it, false));
+
+// ---- Dragging ----
+let drag = null;
+function toStage(e) { return [(e.clientX - stageLeft) / K, (e.clientY - stageTop) / K]; }
+
+function pick(px, py) {
+  // top-most first: dragged-onto-body items by z, then tray items
+  const order = items.slice().sort((a, b) => (b.onBody - a.onBody) || (b.z - a.z));
+  for (const it of order) {
+    const r = it.el.getBoundingClientRect();
+    const u = Math.floor((px - r.left) / r.width  * it.w);
+    const v = Math.floor((py - r.top)  / r.height * it.h);
+    if (u < 0 || v < 0 || u >= it.w || v >= it.h) continue;
+    // a small halo of tolerance around visible pixels so thin edges are easy to grab
+    // tray items never overlap, so anywhere on the item grabs it (easy for small hands);
+    // on the body items overlap, so only the visible pixels count
+    if (!it.onBody || !it.alpha || hit(it, u, v)) return it;
+  }
+  return null;
+}
+function hit(it, u, v) {
+  const R = 10;
+  for (let dy = -R; dy <= R; dy += 5) for (let dx = -R; dx <= R; dx += 5) {
+    const x = u + dx, y = v + dy;
+    if (x < 0 || y < 0 || x >= it.w || y >= it.h) continue;
+    if (it.alpha[(y * it.w + x) * 4 + 3] > 40) return true;
+  }
+  return false;
+}
+
+addEventListener('pointerdown', e => {
+  if (e.target.id === 'reset') return;
+  const it = pick(e.clientX, e.clientY);
+  if (!it) return;
+  e.preventDefault();
+  const r = it.el.getBoundingClientRect();
+  const fx = (e.clientX - r.left) / r.width, fy = (e.clientY - r.top) / r.height;   // grab point (0..1)
+  drag = { it, fx, fy, id: e.pointerId };
+  it.el.classList.remove('glide');
+  it.el.classList.add('lifted');
+  it.el.style.zIndex = 100;
+  it.onBody = false;
+  // grow to full size under the finger, keeping the grabbed point in place
+  moveTo(e);
+  it.el.classList.add('glide'); // brief ease into the larger size...
+  setTimeout(() => drag && drag.it === it && it.el.classList.remove('glide'), 150);
+}, {passive:false});
+
+function moveTo(e) {
+  const { it, fx, fy } = drag;
+  const [px, py] = toStage(e);
+  // at scale 1 the item's top-left is at (px - fx*w, py - fy*h)
+  set(it, px - fx * it.w - it.tx, py - fy * it.h - it.ty, 1);
+}
+addEventListener('pointermove', e => { if (drag && e.pointerId === drag.id) { e.preventDefault(); moveTo(e); } }, {passive:false});
+
+function end(e) {
+  if (!drag || e.pointerId !== drag.id) return;
+  const it = drag.it; drag = null;
+  it.el.classList.remove('lifted');
+  const cx = it.x + it.tx + it.w / 2, cy = it.y + it.ty + it.h / 2;    // current centre
+  const tcx = it.tx + it.w / 2,       tcy = it.ty + it.h / 2;           // dressed centre
+  if (Math.hypot(cx - tcx, cy - tcy) < SNAP_DIST) { snapOn(it); sparkle(tcx, tcy); checkDone(); }
+  else sendHome(it);
+}
+addEventListener('pointerup', end);
+addEventListener('pointercancel', end);
+
+// ---- Fun bits ----
+function sparkle(cx, cy, n = 10) {
+  const colors = ['#ffd166','#ff8c69','#6bcB77','#4d96ff','#ff6bd6'];
+  for (let i = 0; i < n; i++) {
+    const s = document.createElement('div'); s.className = 'spark';
+    const a = Math.random() * Math.PI * 2, d = 60 + Math.random() * 110;
+    s.style.cssText = `left:${cx}px;top:${cy}px;background:${colors[i % colors.length]};--dx:${Math.cos(a)*d}px;--dy:${Math.sin(a)*d}px`;
+    stage.appendChild(s); setTimeout(() => s.remove(), 1000);
+  }
+}
+const done = document.createElement('div'); done.id = 'done'; done.textContent = 'All dressed! 🎉';
+document.body.appendChild(done);
+function checkDone() {
+  const all = items.every(i => i.onBody);
+  done.classList.toggle('show', all);
+  if (all) for (let i = 0; i < 6; i++) setTimeout(() => sparkle(OX + (STAGE_W-2*OX)/2 + (Math.random()-.5)*500, 300 + Math.random()*600, 12), i * 150);
+}
+document.getElementById('reset').addEventListener('click', () => {
+  done.classList.remove('show');
+  items.forEach((it, i) => setTimeout(() => sendHome(it), i * 80));
+});
+</script>
+</body>
+</html>
