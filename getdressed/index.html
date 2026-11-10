@@ -155,6 +155,51 @@
     white-space: nowrap;
   }
 
+  /* Prominent "All dressed?" Button */
+  .btn-all-dressed {
+    position: fixed;
+    bottom: 82px;
+    left: 50%;
+    transform: translateX(-50%) scale(1);
+    background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+    color: #ffffff;
+    font-family: inherit;
+    font-size: clamp(20px, 3.2vmin, 28px);
+    font-weight: 900;
+    padding: 0.65em 1.8em;
+    border: 0;
+    border-radius: 999px;
+    box-shadow: 0 8px 26px rgba(46, 204, 113, 0.45), 0 4px 0 #1e8449;
+    cursor: pointer;
+    z-index: 1500;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    animation: pulse-glow 1.5s infinite;
+    transition: transform 0.25s cubic-bezier(0.3, 1.4, 0.5, 1), opacity 0.25s ease;
+  }
+  .btn-all-dressed:hover {
+    transform: translateX(-50%) scale(1.05);
+  }
+  .btn-all-dressed:active {
+    transform: translateX(-50%) translateY(3px) scale(0.98);
+    box-shadow: 0 4px 14px rgba(46, 204, 113, 0.35), 0 1px 0 #1e8449;
+  }
+  .btn-all-dressed.hidden {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.6);
+    pointer-events: none;
+  }
+  @keyframes pulse-glow {
+    0%, 100% {
+      box-shadow: 0 8px 26px rgba(46, 204, 113, 0.45), 0 4px 0 #1e8449;
+    }
+    50% {
+      box-shadow: 0 12px 36px rgba(46, 204, 113, 0.75), 0 4px 0 #1e8449;
+    }
+  }
+
   /* Bottom Controls Bar */
   #bottom-bar {
     position: fixed;
@@ -230,9 +275,9 @@
   /* Toast Notification */
   #toast {
     position: fixed;
-    bottom: 78px;
+    top: 130px;
     left: 50%;
-    transform: translate(-50%, 20px);
+    transform: translate(-50%, -20px);
     opacity: 0;
     background: #2c445e;
     color: #ffffff;
@@ -471,7 +516,7 @@
 <!-- Hint banner -->
 <div id="hint-banner">
   <span id="hint-icon">🌙</span>
-  <span id="hint-text">Take off your pyjamas! (Drag or double-tap)</span>
+  <span id="hint-text">Take off pyjamas! (Start with top or bottoms)</span>
 </div>
 
 <!-- Floating toast notification -->
@@ -481,6 +526,13 @@
 <div id="stage-container">
   <div id="stage"></div>
 </div>
+
+<!-- Prominent "All dressed?" button (appears when all clothes are on and automatically_end is false) -->
+<button id="btn-all-dressed" class="btn-all-dressed hidden" title="Finish and stop the timer">
+  <span>✨</span>
+  <span>All dressed?</span>
+  <span>🎉</span>
+</button>
 
 <!-- Bottom Controls Bar -->
 <div id="bottom-bar">
@@ -518,15 +570,15 @@
     <div class="instruction-box">
       <div class="instruction-row">
         <span class="bullet">1</span>
-        <span>Drag or <strong>double-tap</strong> pyjamas off into the <strong>Left Box</strong> 🌙</span>
+        <span>Take off pyjamas into the <strong>Left Box</strong> (top or bottoms first!) 🌙</span>
       </div>
       <div class="instruction-row">
         <span class="bullet">2</span>
-        <span>Drag or <strong>double-tap</strong> day clothes on from the <strong>Right Box</strong> 👕</span>
+        <span>Put on day clothes from the <strong>Right Box</strong> (drag or double-tap) 👕</span>
       </div>
       <div class="instruction-row">
         <span class="bullet">3</span>
-        <span>Timer <strong>dings at every minute</strong> mark & stops when all dressed!</span>
+        <span>Timer <strong>dings at each minute</strong> & stops when fully dressed! ⏱️</span>
       </div>
     </div>
 
@@ -574,6 +626,11 @@ const CFG = window.DRESS_CONFIG;
 if (!CFG) {
   document.body.innerHTML = '<p style="padding:2em;font-size:20px;">items.js not found. Run extract_psd.py first.</p>';
 }
+
+// Parameter: automatically_end
+// When false: when all clothes are on, the timer keeps running until the user clicks "All dressed?"
+// When true: the run ends immediately as soon as all day clothes are on
+let automatically_end = (CFG && typeof CFG.automatically_end === 'boolean') ? CFG.automatically_end : false;
 
 const [STAGE_W, STAGE_H] = CFG.stage;
 const OX = CFG.offsetX;
@@ -937,6 +994,7 @@ const modalSetup = document.getElementById('modal-setup');
 const modalVictory = document.getElementById('modal-victory');
 const btnPause = document.getElementById('btn-pause');
 const btnRestart = document.getElementById('btn-restart');
+const btnAllDressed = document.getElementById('btn-all-dressed');
 
 function formatMMSS(totalSec) {
   const m = Math.floor(Math.abs(totalSec) / 60);
@@ -951,6 +1009,21 @@ function formatWords(totalSec) {
   if (s === 0) return `${m} minute${m !== 1 ? 's' : ''}`;
   return `${m}m ${s}s`;
 }
+
+function showAllDressedButton(show) {
+  if (!btnAllDressed) return;
+  if (show && gameState === 'PLAYING') {
+    btnAllDressed.classList.remove('hidden');
+  } else {
+    btnAllDressed.classList.add('hidden');
+  }
+}
+
+btnAllDressed.addEventListener('click', () => {
+  if (gameState !== 'PLAYING') return;
+  showAllDressedButton(false);
+  handleVictory();
+});
 
 function updatePauseButton() {
   const iconEl = btnPause.querySelector('.btn-icon');
@@ -988,13 +1061,35 @@ function updateHUD() {
     timerProgressBar.classList.add('warning');
   }
 
-  // Update dynamic hint
-  const pjsOnCount = pjItems.filter(i => i.onBody).length;
-  const dayClothesOnCount = dayItems.filter(i => i.onBody).length;
+  // Dynamic context-aware hint
+  const pjTop = pjItems.find(i => i.name === 'pj_top');
+  const pjBottoms = pjItems.find(i => i.name === 'pj_bottoms');
+  const pjTopOn = pjTop && pjTop.onBody;
+  const pjBottomsOn = pjBottoms && pjBottoms.onBody;
 
-  if (pjsOnCount > 0) {
+  const shirt = dayItems.find(i => i.name === 'shirt');
+  const shirtOn = shirt && shirt.onBody;
+
+  const dayClothesOnCount = dayItems.filter(i => i.onBody).length;
+  const allPjsOff = pjItems.every(i => !i.onBody);
+  const allDayOn = dayItems.every(i => i.onBody);
+
+  if (allPjsOff && allDayOn) {
+    hintIcon.textContent = '✨';
+    hintText.textContent = automatically_end ? 'All dressed!' : "All clothes on! Tap 'All dressed?' to finish! 👇";
+  } else if (pjTopOn && pjBottomsOn) {
     hintIcon.textContent = '🌙';
-    hintText.textContent = pjsOnCount === 1 ? 'Take off the last pyjama!' : 'Take off pyjamas! (Drag or double-tap)';
+    hintText.textContent = 'Take off pyjamas! (Start with top or bottoms)';
+  } else if (!pjTopOn && pjBottomsOn) {
+    hintIcon.textContent = shirtOn ? '👖' : '👕';
+    hintText.textContent = shirtOn 
+      ? 'Shirt is on! Now take off pyjama bottoms!' 
+      : 'Top is off! Put on your shirt, or take off bottoms!';
+  } else if (pjTopOn && !pjBottomsOn) {
+    hintIcon.textContent = '👖';
+    hintText.textContent = dayClothesOnCount > 0 
+      ? 'Great progress! Now take off pyjama top!' 
+      : 'Bottoms are off! Put on your day clothes, or take off top!';
   } else if (dayClothesOnCount < dayItems.length) {
     const left = dayItems.length - dayClothesOnCount;
     hintIcon.textContent = '👕';
@@ -1079,11 +1174,18 @@ function checkDone() {
   const allDayOn = dayItems.every(i => i.onBody);
 
   if (allPjsOff && allDayOn) {
-    handleVictory();
+    if (automatically_end) {
+      handleVictory();
+    } else {
+      showAllDressedButton(true);
+    }
+  } else {
+    showAllDressedButton(false);
   }
 }
 
 function handleVictory() {
+  showAllDressedButton(false);
   stopTimer();
   gameState = 'DONE';
   playSound('fanfare');
@@ -1125,16 +1227,81 @@ function handleVictory() {
   }, 600);
 }
 
+// Flexible clothing validation: users can dress top-first or bottom-first
+function canPutOn(it) {
+  if (isPyjama(it)) {
+    if (it.name === 'pj_top') {
+      const shirtItem = dayItems.find(i => i.name === 'shirt');
+      if (shirtItem && shirtItem.onBody) {
+        return { ok: false, reason: "Take off your shirt first! 👕", pulseItem: shirtItem };
+      }
+    } else if (it.name === 'pj_bottoms') {
+      const pantsItem = dayItems.find(i => i.name === 'pants');
+      const trousersItem = dayItems.find(i => i.name === 'trousers');
+      if ((pantsItem && pantsItem.onBody) || (trousersItem && trousersItem.onBody)) {
+        const blocking = trousersItem && trousersItem.onBody ? trousersItem : pantsItem;
+        return { ok: false, reason: "Take off your trousers/pants first! 👖", pulseItem: blocking };
+      }
+    }
+    return { ok: true };
+  }
+
+  // Daytime clothing items
+  // 1. Shirt (Upper body): only requires pj_top to be off
+  if (it.name === 'shirt') {
+    const pjTop = pjItems.find(i => i.name === 'pj_top');
+    if (pjTop && pjTop.onBody) {
+      return { ok: false, reason: "Take off pyjama top first! 👕", pulseItem: pjTop };
+    }
+    return { ok: true };
+  }
+
+  // 2. Pants / Underwear (Lower body): only requires pj_bottoms to be off
+  if (it.name === 'pants') {
+    const pjBottoms = pjItems.find(i => i.name === 'pj_bottoms');
+    if (pjBottoms && pjBottoms.onBody) {
+      return { ok: false, reason: "Take off pyjama bottoms first! 👖", pulseItem: pjBottoms };
+    }
+    return { ok: true };
+  }
+
+  // 3. Trousers (Lower body): requires pj_bottoms off AND pants on
+  if (it.name === 'trousers') {
+    const pjBottoms = pjItems.find(i => i.name === 'pj_bottoms');
+    if (pjBottoms && pjBottoms.onBody) {
+      return { ok: false, reason: "Take off pyjama bottoms first! 👖", pulseItem: pjBottoms };
+    }
+    const pantsItem = dayItems.find(i => i.name === 'pants');
+    if (pantsItem && !pantsItem.onBody) {
+      return { ok: false, reason: "Put on pants (underwear) first! 🩲", pulseItem: pantsItem };
+    }
+    return { ok: true };
+  }
+
+  // 4. Socks (Feet / Lower body): requires pj_bottoms off
+  if (it.name === 'socks') {
+    const pjBottoms = pjItems.find(i => i.name === 'pj_bottoms');
+    if (pjBottoms && pjBottoms.onBody) {
+      return { ok: false, reason: "Take off pyjama bottoms first! 👖", pulseItem: pjBottoms };
+    }
+    return { ok: true };
+  }
+
+  return { ok: true };
+}
+
 // Reset clothes to beginning: pyjamas ON the character, daytime clothes in trays
 function resetClothes(animate = false) {
   pjItems.forEach(it => snapOn(it, animate));
   dayItems.forEach(it => sendHome(it, animate));
+  showAllDressedButton(false);
   updateHUD();
 }
 
 function resetToSetup() {
   stopTimer();
   gameState = 'SETUP';
+  showAllDressedButton(false);
   modalVictory.classList.add('hidden');
   modalSetup.classList.remove('hidden');
   resetClothes(false);
@@ -1146,11 +1313,12 @@ function resetToSetup() {
 function startNewSession() {
   modalSetup.classList.add('hidden');
   modalVictory.classList.add('hidden');
+  showAllDressedButton(false);
   resetClothes(false);
   gameState = 'PLAYING';
   startTimer();
   playSound('whoosh');
-  showToast('Go! Drag or double-tap pyjamas off! 🌙');
+  showToast('Go! Drag or double-tap to get dressed! 🚀');
 }
 
 // ==========================================
@@ -1168,48 +1336,22 @@ function handleToggleItem(it) {
     playSound('whoosh');
     checkDone();
   } else {
-    // Waiting in its box -> put it on the character!
-    if (isPyjama(it)) {
-      const dayClothesOn = dayItems.some(i => i.onBody);
-      if (dayClothesOn) {
-        showToast("Keep going with daytime clothes! ☀️");
-        playSound('reject');
-        return;
+    // Waiting in its box -> check if it can be put on
+    const check = canPutOn(it);
+    if (!check.ok) {
+      showToast(check.reason);
+      playSound('reject');
+      if (check.pulseItem) {
+        check.pulseItem.el.classList.add('pulse-hint');
+        setTimeout(() => check.pulseItem.el.classList.remove('pulse-hint'), 700);
       }
-      snapOn(it);
-      sparkle(it.tx + it.w / 2, it.ty + it.h / 2);
-      playSound('snap');
-      checkDone();
-    } else {
-      // Daytime item
-      const pjsStillOn = pjItems.filter(i => i.onBody);
-      if (pjsStillOn.length > 0) {
-        showToast("Take off pyjamas first! 🌙");
-        playSound('reject');
-        pjsStillOn.forEach(p => {
-          p.el.classList.add('pulse-hint');
-          setTimeout(() => p.el.classList.remove('pulse-hint'), 700);
-        });
-        return;
-      }
-
-      // Pants (underwear) must go on before trousers
-      if (it.name === 'trousers') {
-        const pantsItem = dayItems.find(i => i.name === 'pants');
-        if (pantsItem && !pantsItem.onBody) {
-          showToast("Put on pants (underwear) first! 🩲");
-          playSound('reject');
-          pantsItem.el.classList.add('pulse-hint');
-          setTimeout(() => pantsItem.el.classList.remove('pulse-hint'), 700);
-          return;
-        }
-      }
-
-      snapOn(it);
-      sparkle(it.tx + it.w / 2, it.ty + it.h / 2);
-      playSound('snap');
-      checkDone();
+      return;
     }
+
+    snapOn(it);
+    sparkle(it.tx + it.w / 2, it.ty + it.h / 2);
+    playSound('snap');
+    checkDone();
   }
 }
 
@@ -1258,7 +1400,7 @@ function moveTo(e) {
 
 addEventListener('pointerdown', e => {
   if (gameState !== 'PLAYING' || isPaused) return;
-  if (e.target.closest('#timer-header') || e.target.closest('#bottom-bar') || e.target.closest('.modal-card')) return;
+  if (e.target.closest('#timer-header') || e.target.closest('#bottom-bar') || e.target.closest('#btn-all-dressed') || e.target.closest('.modal-card')) return;
 
   const it = pick(e.clientX, e.clientY);
   if (!it) return;
@@ -1337,50 +1479,22 @@ function endDrag(e) {
   const isNearBody = Math.hypot(cx - tcx, cy - tcy) < SNAP_DIST;
 
   if (isNearBody) {
-    // Attempting to snap onto body
-    if (isPyjama(it)) {
-      const dayClothesOn = dayItems.some(i => i.onBody);
-      if (dayClothesOn) {
-        showToast("Keep going with daytime clothes! ☀️");
-        sendHome(it, true);
-        playSound('reject');
-        return;
+    const check = canPutOn(it);
+    if (!check.ok) {
+      showToast(check.reason);
+      sendHome(it, true);
+      playSound('reject');
+      if (check.pulseItem) {
+        check.pulseItem.el.classList.add('pulse-hint');
+        setTimeout(() => check.pulseItem.el.classList.remove('pulse-hint'), 700);
       }
-      snapOn(it);
-      sparkle(tcx, tcy);
-      playSound('snap');
-      checkDone();
-    } else {
-      // Daytime clothing item!
-      const pjsStillOn = pjItems.filter(i => i.onBody);
-      if (pjsStillOn.length > 0) {
-        showToast("Take off pyjamas first! 🌙");
-        sendHome(it, true);
-        playSound('reject');
-        pjsStillOn.forEach(p => {
-          p.el.classList.add('pulse-hint');
-          setTimeout(() => p.el.classList.remove('pulse-hint'), 700);
-        });
-        return;
-      }
-
-      if (it.name === 'trousers') {
-        const pantsItem = dayItems.find(i => i.name === 'pants');
-        if (pantsItem && !pantsItem.onBody) {
-          showToast("Put on pants (underwear) first! 🩲");
-          sendHome(it, true);
-          playSound('reject');
-          pantsItem.el.classList.add('pulse-hint');
-          setTimeout(() => pantsItem.el.classList.remove('pulse-hint'), 700);
-          return;
-        }
-      }
-
-      snapOn(it);
-      sparkle(tcx, tcy);
-      playSound('snap');
-      checkDone();
+      return;
     }
+
+    snapOn(it);
+    sparkle(tcx, tcy);
+    playSound('snap');
+    checkDone();
   } else {
     // Dropped outside snap distance: send home to its respective box
     sendHome(it, true);
@@ -1395,7 +1509,7 @@ addEventListener('pointercancel', endDrag);
 // Fallback for native double-click on desktop
 addEventListener('dblclick', e => {
   if (gameState !== 'PLAYING' || isPaused) return;
-  if (e.target.closest('#timer-header') || e.target.closest('#bottom-bar') || e.target.closest('.modal-card')) return;
+  if (e.target.closest('#timer-header') || e.target.closest('#bottom-bar') || e.target.closest('#btn-all-dressed') || e.target.closest('.modal-card')) return;
   const it = pick(e.clientX, e.clientY);
   if (it) {
     handleToggleItem(it);
@@ -1448,8 +1562,13 @@ document.getElementById('btn-change-timer').addEventListener('click', () => {
 
 // Keyboard shortcuts
 addEventListener('keydown', e => {
-  if (e.code === 'Space') {
+  if (e.code === 'Space' || e.code === 'Enter') {
     e.preventDefault();
+    if (!btnAllDressed.classList.contains('hidden')) {
+      showAllDressedButton(false);
+      handleVictory();
+      return;
+    }
     if (gameState === 'SETUP') startNewSession();
     else if (gameState === 'PLAYING') togglePause();
     else if (gameState === 'DONE') startNewSession();

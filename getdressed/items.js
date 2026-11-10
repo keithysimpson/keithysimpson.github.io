@@ -2,6 +2,7 @@
 // Left box: pyjamas (pj_top, pj_bottoms)
 // Right box: daytime clothes (shirt, pants, trousers, socks)
 window.DRESS_CONFIG = {
+ "automatically_end": false,
  "stage": [
   1500,
   1117
