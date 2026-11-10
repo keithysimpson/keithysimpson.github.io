@@ -114,10 +114,10 @@
   /* Full-width progress bar */
   #full-progress-wrap {
     position: fixed;
-    top: 64px;
+    top: 5px;
     left: 0;
     width: 100%;
-    height: 8px;
+    height: 55px;
     background: rgba(53, 80, 107, 0.12);
     z-index: 999;
     overflow: hidden;
@@ -377,7 +377,7 @@
     align-items: center;
     justify-content: center;
     gap: 12px;
-    margin-bottom: 22px;
+    margin-bottom: 20px;
   }
   .stepper-val {
     font-size: clamp(22px, 3.8vmin, 28px);
@@ -391,7 +391,7 @@
     border-radius: 18px;
     padding: 14px 18px;
     text-align: left;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
     font-size: 14px;
     color: var(--ink);
     line-height: 1.5;
@@ -414,6 +414,111 @@
     justify-content: center;
     font-size: 13px;
     flex-shrink: 0;
+  }
+
+  .history-count-badge {
+    background: #3498db;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: 999px;
+    margin-left: 4px;
+  }
+
+  /* History List & Items */
+  .history-list {
+    max-height: 320px;
+    overflow-y: auto;
+    margin: 16px 0;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    text-align: left;
+  }
+  .history-item {
+    background: #f7fbff;
+    border: 2px solid #e1ecf4;
+    border-radius: 16px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    transition: all 0.2s ease;
+  }
+  .history-item:hover {
+    border-color: #bad3e8;
+    background: #eef6fc;
+  }
+  .history-item.is-best {
+    border-color: #fbd38d;
+    background: #fffdf5;
+  }
+  .history-item-left {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .history-item-time-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .history-item-time {
+    font-size: 20px;
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+  .history-item.is-best .history-item-time {
+    color: #27ae60;
+  }
+  .history-best-badge {
+    background: #fef3c7;
+    color: #b45309;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid #fde68a;
+  }
+  .history-item-meta {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink-light);
+  }
+  .btn-delete-record {
+    background: #fee2e2;
+    color: #ef4444;
+    border: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 800;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+  }
+  .btn-delete-record:hover {
+    background: #fecaca;
+    color: #dc2626;
+    transform: scale(1.1);
+  }
+  .btn-delete-record:active {
+    transform: scale(0.95);
+  }
+  .history-empty {
+    padding: 30px 10px;
+    text-align: center;
+    color: var(--ink-light);
+    font-weight: 700;
+    font-size: 15px;
   }
 
   /* Victory modal special styling */
@@ -472,6 +577,11 @@
     font-size: 13px;
     font-weight: 800;
     margin-bottom: 20px;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+  }
+  .best-time-pill:hover {
+    transform: scale(1.05);
   }
 
   /* Confetti canvas */
@@ -550,15 +660,16 @@
 <div id="modal-setup" class="modal-overlay">
   <div class="modal-card">
     <div style="font-size:46px;margin-bottom:8px;">🌅</div>
-    <h1 class="modal-title">Time to Get Dressed!</h1>
-    <p class="modal-subtitle">Pick your timer goal and beat the clock as you get ready for the day!</p>
+    <h1 class="modal-title">Lets get dressed!</h1>
+    <p class="modal-subtitle">Pick a time you think you can beat!</p>
 
     <div class="timer-options" id="timer-chips">
+      <button class="timer-chip" data-min="1">1 min</button>
       <button class="timer-chip" data-min="2">2 min</button>
       <button class="timer-chip" data-min="3">3 min</button>
+      <button class="timer-chip" data-min="4">4 min</button>
       <button class="timer-chip active" data-min="5">5 min</button>
-      <button class="timer-chip" data-min="7">7 min</button>
-      <button class="timer-chip" data-min="10">10 min</button>
+      
     </div>
 
     <div class="stepper-wrap">
@@ -570,21 +681,44 @@
     <div class="instruction-box">
       <div class="instruction-row">
         <span class="bullet">1</span>
-        <span>Take off pyjamas into the <strong>Left Box</strong> (top or bottoms first!) 🌙</span>
+        <span>Drag (or double-tap) pyjamas into the <strong>Left Box</strong> and day time clothes to the <strong>Right Box</strong></span>
       </div>
       <div class="instruction-row">
         <span class="bullet">2</span>
-        <span>Put on day clothes from the <strong>Right Box</strong> (drag or double-tap) 👕</span>
-      </div>
-      <div class="instruction-row">
-        <span class="bullet">3</span>
-        <span>Timer <strong>dings at each minute</strong> & stops when fully dressed! ⏱️</span>
+        <span>Once all clothes are on, press "All dressed?" to stop the time </span>
       </div>
     </div>
 
     <button id="btn-start-game" class="btn btn-accent" style="width:100%;padding:14px;font-size:20px;">
       Start Timer! 🚀
     </button>
+    <button id="btn-open-history" class="btn btn-secondary" style="width:100%;margin-top:10px;padding:10px 16px;font-size:16px;">
+      <span>⏱️</span>
+      <span>Past Times</span>
+      <span id="history-count-badge" class="history-count-badge" style="display:none;">0</span>
+    </button>
+  </div>
+</div>
+
+<!-- Past Times / History Modal -->
+<div id="modal-history" class="modal-overlay hidden">
+  <div class="modal-card" style="width:min(92vw, 480px);">
+    <div style="font-size:38px;margin-bottom:6px;">⏱️</div>
+    <h2 class="modal-title" style="font-size:28px;">Past Times</h2>
+    <p class="modal-subtitle" style="margin-bottom:12px;">Review your dressing records or remove test runs.</p>
+
+    <div id="history-list" class="history-list">
+      <!-- Dynamically filled with history records -->
+    </div>
+
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:14px;">
+      <button id="btn-close-history" class="btn btn-primary" style="flex:1;padding:11px;font-size:16px;">
+        ← Back
+      </button>
+      <button id="btn-clear-history" class="btn btn-secondary" style="padding:11px 16px;font-size:16px;color:#e74c3c;border-color:#f5b7b1;" title="Clear all records">
+        🗑️ Clear All
+      </button>
+    </div>
   </div>
 </div>
 
@@ -593,7 +727,7 @@
   <div class="modal-card">
     <div class="victory-badge">🎉</div>
     <h2 class="modal-title">All Dressed!</h2>
-    <p class="modal-subtitle" id="victory-cheer">Awesome focus! You're ready to conquer the day!</p>
+    <p class="modal-subtitle" id="victory-cheer">Awesome focus! You're all ready!</p>
 
     <div class="report-time-box">
       <div class="report-time-label">Time Taken to Get Dressed</div>
@@ -601,9 +735,10 @@
       <div class="report-target-diff" id="report-diff">⭐ Beat your 5-minute target by 2m 15s!</div>
     </div>
 
-    <div id="best-time-box" class="best-time-pill">
+    <div id="best-time-box" class="best-time-pill" title="Click to view history">
       <span>🏆</span>
       <span id="best-time-text">Personal Best: 02:45</span>
+      <span style="font-size:11px;opacity:0.8;margin-left:4px;">(History)</span>
     </div>
 
     <div style="display:flex;gap:10px;justify-content:center;">
@@ -971,6 +1106,140 @@ function launchConfetti(durationMs = 4000) {
 }
 
 // ==========================================
+// HISTORY & PERSONAL BEST STORAGE
+// ==========================================
+function getHistory() {
+  try {
+    const raw = localStorage.getItem('getdressed_history');
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveHistory(list) {
+  try {
+    localStorage.setItem('getdressed_history', JSON.stringify(list));
+  } catch (e) {}
+  updateHistoryUI();
+}
+
+function getBestTimeSeconds() {
+  const list = getHistory();
+  if (list.length === 0) return null;
+  return Math.min(...list.map(item => item.seconds));
+}
+
+function addHistoryRecord(seconds, targetSec) {
+  const list = getHistory();
+  const now = new Date();
+  const dateStr = now.toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  const record = {
+    id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+    seconds,
+    targetSeconds: targetSec,
+    date: dateStr,
+    timestamp: Date.now()
+  };
+  list.unshift(record); // Most recent first
+  saveHistory(list);
+  return record;
+}
+
+function deleteHistoryRecord(id) {
+  let list = getHistory();
+  list = list.filter(item => item.id !== id);
+  saveHistory(list);
+  renderHistoryList();
+  updateBestTimeUI();
+  showToast("Record removed! 🗑️");
+}
+
+function updateHistoryUI() {
+  const history = getHistory();
+  const badge = document.getElementById('history-count-badge');
+  if (badge) {
+    badge.textContent = history.length;
+    badge.style.display = history.length > 0 ? 'inline-flex' : 'none';
+  }
+  updateBestTimeUI();
+}
+
+function updateBestTimeUI() {
+  const bestSec = getBestTimeSeconds();
+  const bestTimeBox = document.getElementById('best-time-box');
+  const bestTimeText = document.getElementById('best-time-text');
+  if (bestSec !== null) {
+    if (bestTimeText) bestTimeText.textContent = `Personal Best: ${formatWords(bestSec)}`;
+    if (bestTimeBox) bestTimeBox.style.display = 'inline-flex';
+  } else {
+    if (bestTimeBox) bestTimeBox.style.display = 'none';
+  }
+}
+
+function renderHistoryList() {
+  const listEl = document.getElementById('history-list');
+  if (!listEl) return;
+
+  const history = getHistory();
+  if (history.length === 0) {
+    listEl.innerHTML = `
+      <div class="history-empty">
+        <div style="font-size:36px;margin-bottom:8px;opacity:0.6;">⏳</div>
+        <div>No past times recorded yet.</div>
+        <div style="font-size:13px;margin-top:4px;opacity:0.8;">Complete a run to see your times here!</div>
+      </div>
+    `;
+    return;
+  }
+
+  const minSeconds = Math.min(...history.map(h => h.seconds));
+
+  listEl.innerHTML = history.map(item => {
+    const isBest = item.seconds === minSeconds;
+    const timeFormatted = formatMMSS(item.seconds);
+    const targetMins = Math.round(item.targetSeconds / 60);
+    const diff = item.targetSeconds - item.seconds;
+    let diffText = '';
+    if (diff >= 0) {
+      diffText = `• <span style="color:#27ae60;">-${formatWords(diff)}</span>`;
+    } else {
+      diffText = `• <span style="color:#e67e22;">+${formatWords(Math.abs(diff))}</span>`;
+    }
+
+    return `
+      <div class="history-item ${isBest ? 'is-best' : ''}">
+        <div class="history-item-left">
+          <div class="history-item-time-row">
+            <span class="history-item-time">${timeFormatted}</span>
+            ${isBest ? '<span class="history-best-badge">🏆 Best</span>' : ''}
+          </div>
+          <div class="history-item-meta">
+            Target: ${targetMins}m ${diffText} • ${item.date}
+          </div>
+        </div>
+        <button class="btn-delete-record" data-id="${item.id}" title="Delete this time">✕</button>
+      </div>
+    `;
+  }).join('');
+
+  listEl.querySelectorAll('.btn-delete-record').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = btn.getAttribute('data-id');
+      deleteHistoryRecord(id);
+    });
+  });
+}
+
+// ==========================================
 // TIMER & GAME STATE
 // ==========================================
 let targetSeconds = 5 * 60; // Default 5 minutes
@@ -983,6 +1252,7 @@ let accumulatedPausedTime = 0;
 let pauseStartTime = 0;
 let lastDingMinute = 0;
 let gameState = 'SETUP'; // 'SETUP', 'PLAYING', 'PAUSED', 'DONE'
+let historyPreviousModal = 'setup';
 
 const timerDisplay = document.getElementById('timer-display');
 const timerProgressBar = document.getElementById('timer-progress-bar');
@@ -992,6 +1262,7 @@ const hintText = document.getElementById('hint-text');
 
 const modalSetup = document.getElementById('modal-setup');
 const modalVictory = document.getElementById('modal-victory');
+const modalHistory = document.getElementById('modal-history');
 const btnPause = document.getElementById('btn-pause');
 const btnRestart = document.getElementById('btn-restart');
 const btnAllDressed = document.getElementById('btn-all-dressed');
@@ -1205,19 +1476,20 @@ function handleVictory() {
     reportDiffEl.textContent = `👏 Completed in ${formatWords(finalSeconds)}! You stayed focused and finished strong!`;
   }
 
-  // Personal record tracking
-  const bestKey = 'getdressed_best_time';
-  const savedBest = localStorage.getItem(bestKey);
+  // Personal record tracking & history storage
+  const prevBest = getBestTimeSeconds();
+  addHistoryRecord(finalSeconds, targetSeconds);
+  const isNewBest = prevBest === null || finalSeconds < prevBest;
+
   const bestTimeBox = document.getElementById('best-time-box');
   const bestTimeText = document.getElementById('best-time-text');
 
-  if (!savedBest || finalSeconds < parseInt(savedBest, 10)) {
-    localStorage.setItem(bestKey, finalSeconds);
+  if (isNewBest) {
     bestTimeText.textContent = `⭐ NEW PERSONAL RECORD: ${formatWords(finalSeconds)}!`;
     bestTimeBox.style.display = 'inline-flex';
   } else {
-    const bestSec = parseInt(savedBest, 10);
-    bestTimeText.textContent = `Personal Best: ${formatWords(bestSec)}`;
+    const currentBest = getBestTimeSeconds();
+    bestTimeText.textContent = `Personal Best: ${formatWords(currentBest)}`;
     bestTimeBox.style.display = 'inline-flex';
   }
 
@@ -1303,16 +1575,19 @@ function resetToSetup() {
   gameState = 'SETUP';
   showAllDressedButton(false);
   modalVictory.classList.add('hidden');
+  modalHistory.classList.add('hidden');
   modalSetup.classList.remove('hidden');
   resetClothes(false);
   elapsedSeconds = 0;
   lastDingMinute = 0;
+  updateHistoryUI();
   updateHUD();
 }
 
 function startNewSession() {
   modalSetup.classList.add('hidden');
   modalVictory.classList.add('hidden');
+  modalHistory.classList.add('hidden');
   showAllDressedButton(false);
   resetClothes(false);
   gameState = 'PLAYING';
@@ -1560,6 +1835,45 @@ document.getElementById('btn-change-timer').addEventListener('click', () => {
   resetToSetup();
 });
 
+// History modal interactions
+document.getElementById('btn-open-history').addEventListener('click', () => {
+  historyPreviousModal = 'setup';
+  modalSetup.classList.add('hidden');
+  renderHistoryList();
+  modalHistory.classList.remove('hidden');
+});
+
+document.getElementById('btn-close-history').addEventListener('click', () => {
+  modalHistory.classList.add('hidden');
+  if (historyPreviousModal === 'victory') {
+    modalVictory.classList.remove('hidden');
+  } else {
+    modalSetup.classList.remove('hidden');
+  }
+});
+
+document.getElementById('btn-clear-history').addEventListener('click', () => {
+  const history = getHistory();
+  if (history.length === 0) return;
+  if (confirm("Are you sure you want to delete all past times?")) {
+    saveHistory([]);
+    renderHistoryList();
+    updateBestTimeUI();
+    showToast("All records cleared");
+  }
+});
+
+// Best time pill in victory modal opens history too
+const bestTimeBox = document.getElementById('best-time-box');
+if (bestTimeBox) {
+  bestTimeBox.addEventListener('click', () => {
+    historyPreviousModal = 'victory';
+    modalVictory.classList.add('hidden');
+    renderHistoryList();
+    modalHistory.classList.remove('hidden');
+  });
+}
+
 // Keyboard shortcuts
 addEventListener('keydown', e => {
   if (e.code === 'Space' || e.code === 'Enter') {
@@ -1573,7 +1887,13 @@ addEventListener('keydown', e => {
     else if (gameState === 'PLAYING') togglePause();
     else if (gameState === 'DONE') startNewSession();
   } else if (e.code === 'Escape') {
-    if (gameState === 'PLAYING') resetToSetup();
+    if (!modalHistory.classList.contains('hidden')) {
+      modalHistory.classList.add('hidden');
+      if (historyPreviousModal === 'victory') modalVictory.classList.remove('hidden');
+      else modalSetup.classList.remove('hidden');
+    } else if (gameState === 'PLAYING') {
+      resetToSetup();
+    }
   } else if (e.code === 'KeyR') {
     resetToSetup();
   }
@@ -1585,6 +1905,7 @@ addEventListener('keydown', e => {
 // Always begin with character wearing pyjamas!
 resetClothes(false);
 setDurationMinutes(5); // Default 5 minutes
+updateHistoryUI();
 updateHUD();
 </script>
 </body>

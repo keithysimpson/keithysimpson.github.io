@@ -30,7 +30,12 @@ How the App Works:
 6. Audio Cues:
    - At each minute mark, rings out bell dings matching the minute (1 ding at 1 min, 2 dings at 2 min, 3 dings at 3 min, etc.)
    - Snap pops when clothes are put on, whoosh on removal, and victory fanfare at the end.
-7. Report & Celebration: When the run ends, fireworks burst, and the exact time taken is reported with target comparison and personal best tracking!
+7. Report & History Tracking:
+   - Every completed run is automatically saved to local storage with its completion time, target, and date/time.
+   - "Past Times" button on the initial setup screen opens the full history.
+   - Each past record displays its time, target difference, date, and a golden "🏆 Best" badge on the record that is the current personal best.
+   - Any run can be deleted with the "✕" button (e.g. test runs), and the personal best automatically recalculates from the remaining runs!
+   - The "Personal Best" pill on the victory modal can also be clicked to view history.
 
 Controls & Accessibility:
 - Drag & Drop: Drag items onto the character or to their boxes.
@@ -39,7 +44,8 @@ Controls & Accessibility:
 - Bottom Buttons: "⏸ Pause" / "▶ Resume" and "🔄 Restart".
 - Keyboard:
   - Space or Enter: Start timer / Finish run when "All dressed?" is shown / Pause / Resume / Play again
-  - Escape or R: Reset to timer setup
+  - Escape: Close history modal or reset to timer setup
+  - Key R: Reset to timer setup
 - Overtime Support: If time expires, the timer switches gently to overtime without harsh penalty, encouraging the user to finish strong.
 
 Artwork & Customization:
